@@ -1,13 +1,19 @@
 use crate::game::state::{AppState, DrawingMode};
 use crate::models::*;
+use crate::i18n::keys::*;
+use super::common_texts::CommonTexts;
 use egui::*;
 
 pub struct MainContent;
 
 impl MainContent {
     pub fn show(state: &mut AppState, ui: &mut egui::Ui) {
+        // テキストをまとめて取得（borrowing conflicts回避）
+        let texts = MainContentTexts::get(state);
+        let common = CommonTexts::get(state);
+
         if let Some(game) = &mut state.game {
-            // 先に必要な情報を取得（エリア名など）
+            // 先に必要な情報を取得
             let area_name = game.area.name.clone();
             let current_wave_index = state.current_wave_index;
 
@@ -35,14 +41,14 @@ impl MainContent {
 
             // その後、可変参照を取得して編集
             if let Some(wave) = game.get_wave_mut(current_wave_index) {
-                ui.heading(format!("ターン {} - {}", current_wave_index + 1, area_name));
+                ui.heading(format!("{} {} - {}", common.label_turn_prefix, current_wave_index + 1, area_name));
 
                 // 描画モード選択
                 ui.horizontal(|ui| {
-                    ui.label("描画モード:");
-                    ui.radio_value(&mut state.drawing_mode, DrawingMode::None, "なし");
-                    ui.radio_value(&mut state.drawing_mode, DrawingMode::ClickToLine, "クリックで直線");
-                    ui.radio_value(&mut state.drawing_mode, DrawingMode::Freehand, "フリーハンド");
+                    ui.label(&texts.drawing_mode);
+                    ui.radio_value(&mut state.drawing_mode, DrawingMode::None, &texts.drawing_none);
+                    ui.radio_value(&mut state.drawing_mode, DrawingMode::ClickToLine, &texts.drawing_click_line);
+                    ui.radio_value(&mut state.drawing_mode, DrawingMode::Freehand, &texts.drawing_freehand);
                 });
 
                 ui.separator();
@@ -56,31 +62,31 @@ impl MainContent {
                 ui.separator();
 
                 // 議論ターン情報
-                ui.heading("議論ターン情報");
+                ui.heading(&texts.discussion_info);
 
                 ui.horizontal(|ui| {
-                    ui.label("殺害されたプレイヤー:");
+                    ui.label(&texts.killed_player);
                     let mut killed_id = wave.killed;
                     egui::ComboBox::from_id_source("killed_player")
                         .selected_text(
                             if let Some(id) = killed_id {
                                 if let Some((_, name, alive)) = users_info.get(id) {
-                                    format!("{} ({})", name, if *alive { "生存" } else { "死亡" })
+                                    format!("{} ({})", name, if *alive { &common.status_alive } else { &common.status_dead })
                                 } else {
-                                    "選択してください".to_string()
+                                    common.select_prompt.clone()
                                 }
                             } else {
-                                "なし".to_string()
+                                common.select_no_selection.clone()
                             }
                         )
                         .show_ui(ui, |ui| {
-                            if ui.selectable_label(killed_id.is_none(), "なし").clicked() {
+                            if ui.selectable_label(killed_id.is_none(), &common.select_no_selection).clicked() {
                                 killed_id = None;
                             }
                             for (i, (_, name, alive)) in users_info.iter().enumerate() {
                                 if ui.selectable_label(
                                     killed_id == Some(i),
-                                    format!("{} ({})", name, if *alive { "生存" } else { "死亡" })
+                                    format!("{} ({})", name, if *alive { &common.status_alive } else { &common.status_dead })
                                 ).clicked() {
                                     killed_id = Some(i);
                                 }
@@ -107,27 +113,27 @@ impl MainContent {
             // waveを再度取得して続きの処理
             if let Some(wave) = game.get_wave_mut(current_wave_index) {
                 ui.horizontal(|ui| {
-                    ui.label("殺害場所（証言）:");
+                    ui.label(&texts.kill_location);
                     if let Some(loc) = &wave.kill_location {
                         ui.label(format!("({:.2}, {:.2})", loc.x, loc.y));
                     } else {
-                        ui.label("未設定");
+                        ui.label(&texts.location_unset);
                     }
-                    if ui.button("マップ上でクリックして設定").clicked() {
+                    if ui.button(&texts.set_location_btn).clicked() {
                         // マップ上でクリックした位置を殺害場所として設定
                         // これは別のモードとして実装する必要がある
-                        ui.label("（実装中: マップ上で右クリックで設定予定）");
+                        ui.label(&texts.location_note);
                     }
                 });
 
-                ui.label("メモ:");
+                ui.label(&common.label_notes);
                 ui.text_edit_multiline(&mut wave.notes);
             }
         } else {
             ui.vertical_centered(|ui| {
-                ui.heading("Among Us 補助ツール");
-                ui.label("ゲームを開始してください");
-                if ui.button("新規ゲーム").clicked() {
+                ui.heading(&texts.welcome_title);
+                ui.label(&texts.welcome_message);
+                if ui.button(&common.button_new_game).clicked() {
                     state.start_new_game();
                 }
             });
@@ -177,8 +183,8 @@ impl MainContent {
 
         // スタート地点
         let start_pos = pos2(
-            rect.min.x + route.start.x * rect.width(),
-            rect.min.y + route.start.y * rect.height(),
+            rect.min.x + route.start.x * rect.size().x,
+            rect.min.y + route.start.y * rect.size().y,
         );
         painter.circle_filled(start_pos, 5.0, color);
 
@@ -186,8 +192,8 @@ impl MainContent {
         let mut prev_pos = start_pos;
         for point in &route.points {
             let pos = pos2(
-                rect.min.x + point.x * rect.width(),
-                rect.min.y + point.y * rect.height(),
+                rect.min.x + point.x * rect.size().x,
+                rect.min.y + point.y * rect.size().y,
             );
             painter.line_segment([prev_pos, pos], (2.0, color));
             prev_pos = pos;
@@ -200,14 +206,14 @@ impl MainContent {
         }
 
         let mut prev_pos = pos2(
-            rect.min.x + points[0].x * rect.width(),
-            rect.min.y + points[0].y * rect.height(),
+            rect.min.x + points[0].x * rect.size().x,
+            rect.min.y + points[0].y * rect.size().y,
         );
 
         for point in points.iter().skip(1) {
             let pos = pos2(
-                rect.min.x + point.x * rect.width(),
-                rect.min.y + point.y * rect.height(),
+                rect.min.x + point.x * rect.size().x,
+                rect.min.y + point.y * rect.size().y,
             );
             painter.line_segment([prev_pos, pos], (2.0, color));
             prev_pos = pos;
@@ -226,8 +232,8 @@ impl MainContent {
                     if let Some(pos) = response.interact_pointer_pos() {
                         let rect = response.rect;
                         let point = Point::new(
-                            (pos.x - rect.min.x) / rect.width(),
-                            (pos.y - rect.min.y) / rect.height(),
+                            (pos.x - rect.min.x) / rect.size().x,
+                            (pos.y - rect.min.y) / rect.size().y,
                         );
 
                         // 既存のルートを探すか、新規作成
@@ -249,8 +255,8 @@ impl MainContent {
                     if let Some(pos) = response.interact_pointer_pos() {
                         let rect = response.rect;
                         let point = Point::new(
-                            (pos.x - rect.min.x) / rect.width(),
-                            (pos.y - rect.min.y) / rect.height(),
+                            (pos.x - rect.min.x) / rect.size().x,
+                            (pos.y - rect.min.y) / rect.size().y,
                         );
 
                         // 既存のルートがあれば削除して新規作成（フリーハンドは新規描画）
@@ -263,8 +269,8 @@ impl MainContent {
                     if let Some(pos) = response.interact_pointer_pos() {
                         let rect = response.rect;
                         let point = Point::new(
-                            (pos.x - rect.min.x) / rect.width(),
-                            (pos.y - rect.min.y) / rect.height(),
+                            (pos.x - rect.min.x) / rect.size().x,
+                            (pos.y - rect.min.y) / rect.size().y,
                         );
 
                         if let Some(route) = wave.routes.iter_mut()
@@ -275,6 +281,41 @@ impl MainContent {
                 }
             }
             DrawingMode::None => {}
+        }
+    }
+}
+
+// メインコンテンツ固有のテキスト
+struct MainContentTexts {
+    pub drawing_mode: String,
+    pub drawing_none: String,
+    pub drawing_click_line: String,
+    pub drawing_freehand: String,
+    pub discussion_info: String,
+    pub killed_player: String,
+    pub kill_location: String,
+    pub location_unset: String,
+    pub set_location_btn: String,
+    pub location_note: String,
+    pub welcome_title: String,
+    pub welcome_message: String,
+}
+
+impl MainContentTexts {
+    fn get(state: &AppState) -> Self {
+        Self {
+            drawing_mode: state.t(MAIN_DRAWING_MODE).to_string(),
+            drawing_none: state.t(MAIN_DRAWING_NONE).to_string(),
+            drawing_click_line: state.t(MAIN_DRAWING_CLICK_LINE).to_string(),
+            drawing_freehand: state.t(MAIN_DRAWING_FREEHAND).to_string(),
+            discussion_info: state.t(MAIN_DISCUSSION_INFO).to_string(),
+            killed_player: state.t(MAIN_KILLED_PLAYER).to_string(),
+            kill_location: state.t(MAIN_KILL_LOCATION).to_string(),
+            location_unset: state.t(MAIN_LOCATION_UNSET).to_string(),
+            set_location_btn: state.t(MAIN_SET_LOCATION_BTN).to_string(),
+            location_note: state.t(MAIN_LOCATION_NOTE).to_string(),
+            welcome_title: state.t(MAIN_WELCOME_TITLE).to_string(),
+            welcome_message: state.t(MAIN_WELCOME_MESSAGE).to_string(),
         }
     }
 }

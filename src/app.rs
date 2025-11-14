@@ -1,5 +1,6 @@
 use crate::game::state::AppState;
 use crate::ui::{sidebar::Sidebar, setup_dialog::SetupDialog, main_content::MainContent};
+use crate::i18n::{Language, keys::*};
 
 pub struct AmusApp {
     state: AppState,
@@ -18,18 +19,31 @@ impl eframe::App for AmusApp {
         // メインメニューバー
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
-                ui.menu_button("ファイル", |ui| {
-                    if ui.button("新規ゲーム").clicked() {
+                // アプリ固有のテキスト
+                let texts = AppTexts::get(&self.state);
+
+                ui.menu_button(&texts.file_menu, |ui| {
+                    if ui.button(&texts.new_game).clicked() {
                         self.state.start_new_game();
                         ui.close_menu();
                     }
-                    if ui.button("ゲームを読み込む").clicked() {
+                    if ui.button(&texts.load_game).clicked() {
                         // TODO: ファイル読み込み
                         ui.close_menu();
                     }
-                    if ui.button("ゲームを保存").clicked() {
+                    if ui.button(&texts.save_game).clicked() {
                         // TODO: ファイル保存
                         ui.close_menu();
+                    }
+                });
+
+                ui.menu_button(&texts.language_menu, |ui| {
+                    let current_lang = self.state.current_language();
+                    for lang in Language::all() {
+                        if ui.selectable_label(current_lang == lang, lang.name()).clicked() {
+                            self.state.set_language(lang);
+                            ui.close_menu();
+                        }
                     }
                 });
             });
@@ -51,6 +65,27 @@ impl eframe::App for AmusApp {
         // ゲーム設定ダイアログ
         if self.state.show_setup_dialog {
             SetupDialog::show(&mut self.state, ctx);
+        }
+    }
+}
+
+// アプリケーション固有のテキスト（メニューバー等）
+struct AppTexts {
+    pub file_menu: String,
+    pub new_game: String,
+    pub load_game: String,
+    pub save_game: String,
+    pub language_menu: String,
+}
+
+impl AppTexts {
+    fn get(state: &AppState) -> Self {
+        Self {
+            file_menu: state.t(MENU_FILE).to_string(),
+            new_game: state.t(MENU_NEW_GAME).to_string(),
+            load_game: state.t(MENU_LOAD_GAME).to_string(),
+            save_game: state.t(MENU_SAVE_GAME).to_string(),
+            language_menu: state.t(MENU_LANGUAGE).to_string(),
         }
     }
 }

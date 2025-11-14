@@ -2,6 +2,7 @@ mod app;
 mod models;
 mod ui;
 mod game;
+mod i18n;
 
 use app::AmusApp;
 use eframe::egui;
