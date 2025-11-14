@@ -1,4 +1,5 @@
 use crate::models::*;
+use crate::i18n::{Language, Translator};
 
 #[derive(Debug, Clone)]
 pub struct SetupState {
@@ -38,6 +39,7 @@ pub struct AppState {
     pub temp_points: Vec<Point>, // 描画中の一時的なポイント
     pub show_setup_dialog: bool,
     pub setup_state: SetupState, // ゲーム設定の状態
+    pub translator: Translator,
 }
 
 impl Default for AppState {
@@ -50,6 +52,7 @@ impl Default for AppState {
             temp_points: Vec::new(),
             show_setup_dialog: false,
             setup_state: SetupState::default(),
+            translator: Translator::new(Language::Japanese),
         }
     }
 }
@@ -57,6 +60,18 @@ impl Default for AppState {
 impl AppState {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn set_language(&mut self, language: Language) {
+        self.translator.set_language(language);
+    }
+
+    pub fn current_language(&self) -> Language {
+        self.translator.current_language()
+    }
+
+    pub fn t<'a>(&'a self, key: &'a str) -> &'a str {
+        self.translator.t(key)
     }
 
     pub fn start_new_game(&mut self) {

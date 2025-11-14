@@ -2,6 +2,7 @@ mod app;
 mod models;
 mod ui;
 mod game;
+mod i18n;
 
 use app::AmusApp;
 use eframe::egui;
@@ -13,7 +14,7 @@ fn main() -> eframe::Result<()> {
             .with_title("Among Us 補助ツール"),
         ..Default::default()
     };
-    
+
     eframe::run_native(
         "Among Us 補助ツール",
         options,
@@ -27,9 +28,9 @@ fn main() -> eframe::Result<()> {
 
 fn setup_custom_fonts(ctx: &egui::Context) {
     use egui::FontFamily;
-    
+
     let mut fonts = egui::FontDefinitions::default();
-    
+
     // 日本語フォントのパス（優先順位順）
     let font_paths = vec![
         // macOS - ヒラギノ角ゴシック（標準でインストールされている）
@@ -46,7 +47,7 @@ fn setup_custom_fonts(ctx: &egui::Context) {
         "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
         "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
     ];
-    
+
     // 利用可能なフォントを探す
     let mut japanese_font_found = false;
     for font_path in font_paths {
@@ -58,7 +59,7 @@ fn setup_custom_fonts(ctx: &egui::Context) {
                     "japanese".to_owned(),
                     egui::FontData::from_owned(font_data),
                 );
-                
+
                 // 既存のフォントファミリーを取得して、日本語フォントを先頭に追加
                 // プロポーショナルフォントファミリー
                 let proportional = fonts.families.get_mut(&FontFamily::Proportional)
@@ -66,14 +67,14 @@ fn setup_custom_fonts(ctx: &egui::Context) {
                 if !proportional.contains(&"japanese".to_owned()) {
                     proportional.insert(0, "japanese".to_owned());
                 }
-                
+
                 // 等幅フォントファミリー
                 let monospace = fonts.families.get_mut(&FontFamily::Monospace)
                     .expect("Monospace font family should exist");
                 if !monospace.contains(&"japanese".to_owned()) {
                     monospace.insert(0, "japanese".to_owned());
                 }
-                
+
                 japanese_font_found = true;
                 break;
             } else {
@@ -81,12 +82,12 @@ fn setup_custom_fonts(ctx: &egui::Context) {
             }
         }
     }
-    
+
     if !japanese_font_found {
         eprintln!("警告: 日本語フォントが見つかりませんでした。日本語が正しく表示されない可能性があります。");
         eprintln!("利用可能なフォントパスを確認してください。");
     }
-    
+
     ctx.set_fonts(fonts);
 }
 

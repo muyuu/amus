@@ -1,11 +1,16 @@
 use crate::game::state::AppState;
+use crate::i18n::keys::*;
+use super::common_texts::CommonTexts;
 use egui::*;
 
 pub struct Sidebar;
 
 impl Sidebar {
     pub fn show(state: &mut AppState, ui: &mut egui::Ui) {
-        ui.heading("ターン管理");
+        let texts = SidebarTexts::get(state);
+        let common = CommonTexts::get(state);
+
+        ui.heading(&texts.turn_management);
 
         let mut selected_wave = None;
         let mut add_new_wave = false;
@@ -16,9 +21,9 @@ impl Sidebar {
             ScrollArea::vertical().show(ui, |ui| {
                 for (i, _wave) in game.waves.iter().enumerate() {
                     let label = if i == state.current_wave_index {
-                        format!("▶ ターン {}", i + 1)
+                        format!("{} {}", texts.current_turn_prefix, i + 1)
                     } else {
-                        format!("ターン {}", i + 1)
+                        format!("{} {}", common.label_turn_prefix, i + 1)
                     };
 
                     if ui.selectable_label(i == state.current_wave_index, label).clicked() {
@@ -29,12 +34,12 @@ impl Sidebar {
 
             ui.separator();
 
-            if ui.button("新しいターンを追加").clicked() {
+            if ui.button(&texts.add_new_turn).clicked() {
                 add_new_wave = true;
             }
 
             ui.separator();
-            ui.heading("プレイヤー");
+            ui.heading(&texts.players);
 
             // プレイヤー一覧
             ScrollArea::vertical().show(ui, |ui| {
@@ -53,8 +58,8 @@ impl Sidebar {
                 }
             });
         } else {
-            ui.label("ゲームを開始してください");
-            if ui.button("新規ゲーム").clicked() {
+            ui.label(&texts.start_game_prompt);
+            if ui.button(&common.button_new_game).clicked() {
                 state.start_new_game();
             }
         }
@@ -68,6 +73,27 @@ impl Sidebar {
         }
         if let Some(user_idx) = selected_user {
             state.select_user(user_idx);
+        }
+    }
+}
+
+// サイドバー固有のテキスト
+struct SidebarTexts {
+    pub turn_management: String,
+    pub add_new_turn: String,
+    pub players: String,
+    pub start_game_prompt: String,
+    pub current_turn_prefix: String,
+}
+
+impl SidebarTexts {
+    fn get(state: &AppState) -> Self {
+        Self {
+            turn_management: state.t(SIDEBAR_TURN_MANAGEMENT).to_string(),
+            add_new_turn: state.t(SIDEBAR_ADD_NEW_TURN).to_string(),
+            players: state.t(SIDEBAR_PLAYERS).to_string(),
+            start_game_prompt: state.t(SIDEBAR_START_GAME_PROMPT).to_string(),
+            current_turn_prefix: state.t(SIDEBAR_CURRENT_TURN_PREFIX).to_string(),
         }
     }
 }
