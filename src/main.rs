@@ -28,55 +28,61 @@ fn setup_custom_fonts(ctx: &egui::Context) {
     
     let mut fonts = egui::FontDefinitions::default();
     
-    // 日本語フォントを追加
-    // macOSの場合、ヒラギノやNoto Sans CJKなどを試す
-    // Windowsの場合、MS GothicやYu Gothicなどを試す
-    // Linuxの場合、Noto Sans CJKなどを試す
-    
-    // システムフォントのパスを試す
+    // 日本語フォントのパス（優先順位順）
     let font_paths = vec![
-        // macOS
-        "/System/Library/Fonts/Helvetica.ttc",
+        // macOS - ヒラギノ角ゴシック（標準でインストールされている）
+        "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
+        "/System/Library/Fonts/ヒラギノ角ゴ ProN W3.ttc",
         "/System/Library/Fonts/Hiragino Sans GB.ttc",
-        "/Library/Fonts/AppleGothic.ttf",
-        // Windows (例)
+        // macOS - その他の日本語フォント
+        "/System/Library/Fonts/AppleGothic.ttf",
+        // Windows
         "C:/Windows/Fonts/msgothic.ttc",
         "C:/Windows/Fonts/yugothic.ttf",
-        // Linux (例)
+        "C:/Windows/Fonts/meiryo.ttc",
+        // Linux
         "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
     ];
     
     // 利用可能なフォントを探す
     let mut japanese_font_found = false;
     for font_path in font_paths {
-        if std::path::Path::new(font_path).exists() {
-            if let Ok(font_data) = std::fs::read(font_path) {
+        let path = std::path::Path::new(font_path);
+        if path.exists() {
+            if let Ok(font_data) = std::fs::read(path) {
+                println!("日本語フォントを読み込みました: {}", font_path);
                 fonts.font_data.insert(
                     "japanese".to_owned(),
                     egui::FontData::from_owned(font_data),
                 );
-                fonts
-                    .families
-                    .entry(FontFamily::Proportional)
-                    .or_insert_with(Vec::new)
-                    .insert(0, "japanese".to_owned());
-                fonts
-                    .families
-                    .entry(FontFamily::Monospace)
-                    .or_insert_with(Vec::new)
-                    .insert(0, "japanese".to_owned());
+                
+                // 既存のフォントファミリーを取得して、日本語フォントを先頭に追加
+                // プロポーショナルフォントファミリー
+                let proportional = fonts.families.get_mut(&FontFamily::Proportional)
+                    .expect("Proportional font family should exist");
+                if !proportional.contains(&"japanese".to_owned()) {
+                    proportional.insert(0, "japanese".to_owned());
+                }
+                
+                // 等幅フォントファミリー
+                let monospace = fonts.families.get_mut(&FontFamily::Monospace)
+                    .expect("Monospace font family should exist");
+                if !monospace.contains(&"japanese".to_owned()) {
+                    monospace.insert(0, "japanese".to_owned());
+                }
+                
                 japanese_font_found = true;
                 break;
+            } else {
+                eprintln!("フォントファイルの読み込みに失敗しました: {}", font_path);
             }
         }
     }
     
-    // フォントが見つからない場合、Noto Sans CJKをダウンロードして使用
-    // または、システムのデフォルトフォントを使用
     if !japanese_font_found {
-        // フォールバック: システムのデフォルトフォントを使用
-        // この場合、日本語は表示されない可能性があるが、アプリは動作する
         eprintln!("警告: 日本語フォントが見つかりませんでした。日本語が正しく表示されない可能性があります。");
+        eprintln!("利用可能なフォントパスを確認してください。");
     }
     
     ctx.set_fonts(fonts);
