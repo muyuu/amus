@@ -8,33 +8,47 @@ pub enum Role {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum Color {
-    Black,
-    White,
-    Gray,
-    Red,
-    Blue,
-    Green,
-    Yellow,
-    Pink,
-    Purple,
-    Cyan,
-    Magenta,
+    Red = 0,
+    Blue = 1,
+    Green = 2,
+    Pink = 3,
+    Orange = 4,
+    Yellow = 5,
+    Black = 6,
+    White = 7,
+    Purple = 8,
+    Brown = 9,
+    Cyan = 10,
+    Lime = 11,
+    Maroon = 12,
+    Rose = 13,
+    Banana = 14,
+    Gray = 15,
+    Tan = 16,
+    Coral = 17,
 }
 
 impl Color {
     pub fn to_rgb(&self) -> [u8; 3] {
         match self {
-            Color::Black => [0, 0, 0],
-            Color::White => [255, 255, 255],
-            Color::Gray => [128, 128, 128],
             Color::Red => [255, 0, 0],
             Color::Blue => [0, 0, 255],
             Color::Green => [0, 255, 0],
-            Color::Yellow => [255, 255, 0],
             Color::Pink => [255, 192, 203],
+            Color::Orange => [255, 165, 0],
+            Color::Yellow => [255, 255, 0],
+            Color::Black => [0, 0, 0],
+            Color::White => [255, 255, 255],
             Color::Purple => [128, 0, 128],
+            Color::Brown => [165, 42, 42],
             Color::Cyan => [0, 255, 255],
-            Color::Magenta => [255, 0, 255],
+            Color::Lime => [0, 255, 0],
+            Color::Maroon => [128, 0, 0],
+            Color::Rose => [255, 0, 127],
+            Color::Banana => [255, 225, 53],
+            Color::Gray => [128, 128, 128],
+            Color::Tan => [210, 180, 140],
+            Color::Coral => [255, 127, 80],
         }
     }
 

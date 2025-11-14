@@ -122,7 +122,7 @@ impl AmusApp {
                 for (i, user) in game.users.iter().enumerate() {
                     let color = user.color.to_egui_color();
                     let mut label = RichText::new(&user.name).color(color);
-                    
+
                     if !user.alive {
                         label = label.strikethrough();
                     }
@@ -146,7 +146,7 @@ impl AmusApp {
             // 先に必要な情報を取得（エリア名など）
             let area_name = game.area.name.clone();
             let current_wave_index = self.current_wave_index;
-            
+
             // マップ表示エリア（ここにエリア画像と軌跡を描画）
             let response = ui.allocate_response(
                 ui.available_size(),
@@ -157,7 +157,7 @@ impl AmusApp {
             // 必要な情報を先に取得
             let temp_points = self.temp_points.clone();
             let selected_user_id = self.selected_user_id;
-            
+
             if let Some(wave) = game.get_wave(current_wave_index) {
                 let painter = ui.painter_at(response.rect);
                 Self::draw_map_with_data(&painter, &response, game, wave, &temp_points, selected_user_id);
@@ -193,7 +193,7 @@ impl AmusApp {
 
                 // 議論ターン情報
                 ui.heading("議論ターン情報");
-                
+
                 ui.horizontal(|ui| {
                     ui.label("殺害されたプレイヤー:");
                     let mut killed_id = wave.killed;
@@ -282,7 +282,7 @@ impl AmusApp {
         selected_user_id: Option<usize>,
     ) {
         let rect = response.rect;
-        
+
         // 背景（後でエリア画像を表示）
         painter.rect_filled(rect, 0.0, Color32::from_gray(30));
 
@@ -391,7 +391,7 @@ impl AmusApp {
                                 (pos.x - rect.min.x) / rect.width(),
                                 (pos.y - rect.min.y) / rect.height(),
                             );
-                            
+
                             // 既存のルートがあれば削除して新規作成（フリーハンドは新規描画）
                             wave.routes.retain(|r| r.user_id != user_id);
                             let route = Route::new(user_id, point.clone());
@@ -425,7 +425,7 @@ impl AmusApp {
             .show(ctx, |ui| {
                 ui.vertical(|ui| {
                     ui.heading("エリア選択");
-                    
+
                     // エリア一覧（簡易実装、後で拡張可能）
                     let areas = vec![
                         ("The Skeld", "skeld"),
@@ -433,29 +433,29 @@ impl AmusApp {
                         ("Polus", "polus"),
                         ("Airship", "airship"),
                     ];
-                    
+
                     for (name, id) in &areas {
                         if ui.radio_value(&mut self.setup_state.selected_area_id, id.to_string(), *name).clicked() {
                             self.setup_state.selected_area_name = name.to_string();
                         }
                     }
-                    
+
                     ui.separator();
                     ui.heading("プレイヤー設定");
-                    
+
                     ui.horizontal(|ui| {
                         ui.label("プレイヤー数:");
                         ui.add(egui::Slider::new(&mut self.setup_state.player_count, 10..=15));
                     });
-                    
+
                     ui.separator();
-                    
+
                     // プレイヤー一覧の編集（簡易実装）
                     ui.label("各プレイヤーの設定:");
                     ui.label("（実装中: デフォルト設定で開始可能）");
-                    
+
                     ui.separator();
-                    
+
                     ui.horizontal(|ui| {
                         if ui.button("ゲーム開始").clicked() {
                             // 設定に基づいてゲームを作成
@@ -463,18 +463,33 @@ impl AmusApp {
                                 self.setup_state.selected_area_name.clone(),
                                 self.setup_state.selected_area_id.clone(),
                             );
-                            
+
                             // プレイヤーを作成
                             let mut users = Vec::new();
                             let colors = vec![
-                                Color::Red, Color::Blue, Color::Green, Color::Yellow,
-                                Color::Pink, Color::Purple, Color::Cyan, Color::Magenta,
-                                Color::Black, Color::White, Color::Gray,
+                                Color::Red,
+                                Color::Blue,
+                                Color::Green,
+                                Color::Pink,
+                                Color::Orange,
+                                Color::Yellow,
+                                Color::Black,
+                                Color::White,
+                                Color::Purple,
+                                Color::Brown,
+                                Color::Cyan,
+                                Color::Lime,
+                                Color::Maroon,
+                                Color::Rose,
+                                Color::Banana,
+                                Color::Gray,
+                                Color::Tan,
+                                Color::Coral,
                             ];
-                            
+
                             let player_count = self.setup_state.player_count;
                             let imposter_count = (player_count as f32 * 0.2).ceil() as usize; // 約20%をインポスター
-                            
+
                             for i in 0..player_count {
                                 let color = colors.get(i).cloned().unwrap_or(Color::Red);
                                 let name = format!("Player{}", i + 1);
@@ -482,14 +497,14 @@ impl AmusApp {
                                 let role = if i < imposter_count { Role::Imposter } else { Role::Crew };
                                 users.push(User::new(role, color, name));
                             }
-                            
+
                             let mut game = Game::new(area, users);
                             game.add_wave(); // 最初のターンを作成
                             self.game = Some(game);
                             self.current_wave_index = 0;
                             self.show_setup_dialog = false;
                         }
-                        
+
                         if ui.button("キャンセル").clicked() {
                             self.show_setup_dialog = false;
                         }
