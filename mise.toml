@@ -5,6 +5,7 @@ rust = "latest"
 RUST_BACKTRACE = "1"
 
 [tasks]
+default = "cargo run"
 run = "cargo run"
 build = "cargo build"
 test = "cargo test"

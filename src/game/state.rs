@@ -1,0 +1,133 @@
+use crate::models::*;
+
+#[derive(Debug, Clone)]
+pub struct SetupState {
+    pub selected_area_id: String,
+    pub selected_area_name: String,
+    pub player_count: usize,
+}
+
+impl Default for SetupState {
+    fn default() -> Self {
+        Self {
+            selected_area_id: "skeld".to_string(),
+            selected_area_name: "The Skeld".to_string(),
+            player_count: 10,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DrawingMode {
+    None,
+    ClickToLine, // クリックで直線を引く
+    Freehand,    // フリーハンド描画
+}
+
+impl Default for DrawingMode {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+pub struct AppState {
+    pub game: Option<Game>,
+    pub current_wave_index: usize,
+    pub selected_user_id: Option<usize>,
+    pub drawing_mode: DrawingMode,
+    pub temp_points: Vec<Point>, // 描画中の一時的なポイント
+    pub show_setup_dialog: bool,
+    pub setup_state: SetupState, // ゲーム設定の状態
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        Self {
+            game: None,
+            current_wave_index: 0,
+            selected_user_id: None,
+            drawing_mode: DrawingMode::None,
+            temp_points: Vec::new(),
+            show_setup_dialog: false,
+            setup_state: SetupState::default(),
+        }
+    }
+}
+
+impl AppState {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn start_new_game(&mut self) {
+        self.show_setup_dialog = true;
+    }
+
+    pub fn create_game_from_setup(&mut self) {
+        let area = Area::new(
+            self.setup_state.selected_area_name.clone(),
+            self.setup_state.selected_area_id.clone(),
+        );
+
+        // プレイヤーを作成
+        let mut users = Vec::new();
+        let colors = vec![
+            Color::Red,
+            Color::Blue,
+            Color::Green,
+            Color::Pink,
+            Color::Orange,
+            Color::Yellow,
+            Color::Black,
+            Color::White,
+            Color::Purple,
+            Color::Brown,
+            Color::Cyan,
+            Color::Lime,
+            Color::Maroon,
+            Color::Rose,
+            Color::Banana,
+            Color::Gray,
+            Color::Tan,
+            Color::Coral,
+        ];
+
+        let player_count = self.setup_state.player_count;
+        let imposter_count = (player_count as f32 * 0.2).ceil() as usize; // 約20%をインポスター
+
+        for i in 0..player_count {
+            let color = colors.get(i).cloned().unwrap_or(Color::Red);
+            let name = format!("Player{}", i + 1);
+            // 最初の数人をインポスター、残りをクルーとする
+            let role = if i < imposter_count { Role::Imposter } else { Role::Crew };
+            users.push(User::new(role, color, name));
+        }
+
+        let mut game = Game::new(area, users);
+        game.add_wave(); // 最初のターンを作成
+        self.game = Some(game);
+        self.current_wave_index = 0;
+        self.show_setup_dialog = false;
+    }
+
+    pub fn cancel_setup(&mut self) {
+        self.show_setup_dialog = false;
+    }
+
+    pub fn select_wave(&mut self, index: usize) {
+        self.current_wave_index = index;
+        self.drawing_mode = DrawingMode::None;
+        self.temp_points.clear();
+    }
+
+    pub fn add_new_wave(&mut self) {
+        if let Some(game) = &mut self.game {
+            game.add_wave();
+            self.current_wave_index = game.waves.len() - 1;
+        }
+    }
+
+    pub fn select_user(&mut self, user_id: usize) {
+        self.selected_user_id = Some(user_id);
+    }
+}

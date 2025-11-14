@@ -1,5 +1,7 @@
 mod app;
 mod models;
+mod ui;
+mod game;
 
 use app::AmusApp;
 use eframe::egui;
