@@ -56,11 +56,7 @@ impl SetupDialog {
                             }
                         });
 
-                        ui.separator();
-
                         // プレイヤー一覧の編集
-                        ui.heading(&texts.player_list);
-
                         let available_colors = Color::all();
                         let player_count = state.setup_state.player_count;
 
@@ -151,7 +147,6 @@ struct SetupTexts {
     pub area_selection: String,
     pub player_settings: String,
     pub player_count: String,
-    pub player_list: String,
     pub player_name: String,
     pub player_color: String,
 }
@@ -163,7 +158,6 @@ impl SetupTexts {
             area_selection: state.t(SETUP_AREA_SELECTION).to_string(),
             player_settings: state.t(SETUP_PLAYER_SETTINGS).to_string(),
             player_count: state.t(SETUP_PLAYER_COUNT).to_string(),
-            player_list: state.t(SETUP_PLAYER_LIST).to_string(),
             player_name: state.t(SETUP_PLAYER_NAME).to_string(),
             player_color: state.t(SETUP_PLAYER_COLOR).to_string(),
         }
