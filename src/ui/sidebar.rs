@@ -18,19 +18,21 @@ impl Sidebar {
 
         if let Some(game) = &state.game {
             // ターン一覧
-            ScrollArea::vertical().show(ui, |ui| {
-                for (i, _wave) in game.waves.iter().enumerate() {
-                    let label = if i == state.current_wave_index {
-                        format!("{} {}", texts.current_turn_prefix, i + 1)
-                    } else {
-                        format!("{} {}", common.label_turn_prefix, i + 1)
-                    };
+            ScrollArea::vertical()
+                .id_source("turns_scroll")
+                .show(ui, |ui| {
+                    for (i, _wave) in game.waves.iter().enumerate() {
+                        let label = if i == state.current_wave_index {
+                            format!("{} {}", texts.current_turn_prefix, i + 1)
+                        } else {
+                            format!("{} {}", common.label_turn_prefix, i + 1)
+                        };
 
-                    if ui.selectable_label(i == state.current_wave_index, label).clicked() {
-                        selected_wave = Some(i);
+                        if ui.selectable_label(i == state.current_wave_index, label).clicked() {
+                            selected_wave = Some(i);
+                        }
                     }
-                }
-            });
+                });
 
             ui.separator();
 
@@ -42,21 +44,23 @@ impl Sidebar {
             ui.heading(&texts.players);
 
             // プレイヤー一覧
-            ScrollArea::vertical().show(ui, |ui| {
-                for (i, user) in game.users.iter().enumerate() {
-                    let color = user.color.to_egui_color();
-                    let mut label = RichText::new(&user.name).color(color);
+            ScrollArea::vertical()
+                .id_source("players_scroll")
+                .show(ui, |ui| {
+                    for (i, user) in game.users.iter().enumerate() {
+                        let color = user.color.to_egui_color();
+                        let mut label = RichText::new(&user.name).color(color);
 
-                    if !user.alive {
-                        label = label.strikethrough();
-                    }
+                        if !user.alive {
+                            label = label.strikethrough();
+                        }
 
-                    let is_selected = state.selected_user_id == Some(i);
-                    if ui.selectable_label(is_selected, label).clicked() {
-                        selected_user = Some(i);
+                        let is_selected = state.selected_user_id == Some(i);
+                        if ui.selectable_label(is_selected, label).clicked() {
+                            selected_user = Some(i);
+                        }
                     }
-                }
-            });
+                });
         } else {
             ui.label(&texts.start_game_prompt);
             if ui.button(&common.button_new_game).clicked() {
