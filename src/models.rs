@@ -163,10 +163,6 @@ impl Game {
         self.waves.push(Wave::new());
     }
 
-    pub fn current_wave(&mut self) -> Option<&mut Wave> {
-        self.waves.last_mut()
-    }
-
     pub fn get_wave(&self, index: usize) -> Option<&Wave> {
         self.waves.get(index)
     }

@@ -1,7 +1,6 @@
 use super::common_texts::CommonTexts;
 use crate::game::state::AppState;
 use crate::i18n::keys::*;
-use egui::*;
 
 pub struct SetupDialog;
 
