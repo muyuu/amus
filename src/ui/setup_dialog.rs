@@ -14,6 +14,7 @@ impl SetupDialog {
             .collapsible(false)
             .resizable(true)
             .default_size([600.0, 700.0])
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .show(ctx, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     ui.vertical(|ui| {
