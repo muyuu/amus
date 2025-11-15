@@ -2,18 +2,63 @@ use crate::i18n::{Language, Translator};
 use crate::models::*;
 
 #[derive(Debug, Clone)]
+pub struct PlayerSetup {
+    pub name: String,
+    pub color: Color,
+    #[allow(dead_code)]
+    pub role: Option<Role>, // セットアップ時は未決定
+}
+
+impl PlayerSetup {
+    pub fn new(index: usize, color: Color) -> Self {
+        Self {
+            name: format!("Player{}", index + 1),
+            color,
+            role: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct SetupState {
     pub selected_area_id: String,
     pub selected_area_name: String,
     pub player_count: usize,
+    pub players: Vec<PlayerSetup>,
 }
 
 impl Default for SetupState {
     fn default() -> Self {
+        let default_colors = [
+            Color::Red,
+            Color::Blue,
+            Color::Green,
+            Color::Pink,
+            Color::Orange,
+            Color::Yellow,
+            Color::Black,
+            Color::White,
+            Color::Purple,
+            Color::Brown,
+            Color::Cyan,
+            Color::Lime,
+            Color::Maroon,
+            Color::Rose,
+            Color::Banana,
+        ];
+
+        let mut players = Vec::new();
+        for i in 0..10 {
+            // デフォルトの10人分
+            let color = default_colors.get(i).cloned().unwrap_or(Color::Red);
+            players.push(PlayerSetup::new(i, color));
+        }
+
         Self {
             selected_area_id: "skeld".to_string(),
             selected_area_name: "The Skeld".to_string(),
             player_count: 10,
+            players,
         }
     }
 }
@@ -84,42 +129,29 @@ impl AppState {
             self.setup_state.selected_area_id.clone(),
         );
 
-        // プレイヤーを作成
+        // セットアップ済みプレイヤーからゲーム用ユーザーを作成
         let mut users = Vec::new();
-        let colors = vec![
-            Color::Red,
-            Color::Blue,
-            Color::Green,
-            Color::Pink,
-            Color::Orange,
-            Color::Yellow,
-            Color::Black,
-            Color::White,
-            Color::Purple,
-            Color::Brown,
-            Color::Cyan,
-            Color::Lime,
-            Color::Maroon,
-            Color::Rose,
-            Color::Banana,
-            Color::Gray,
-            Color::Tan,
-            Color::Coral,
-        ];
-
         let player_count = self.setup_state.player_count;
         let imposter_count = (player_count as f32 * 0.2).ceil() as usize; // 約20%をインポスター
 
-        for i in 0..player_count {
-            let color = colors.get(i).cloned().unwrap_or(Color::Red);
-            let name = format!("Player{}", i + 1);
+        for (i, player_setup) in self
+            .setup_state
+            .players
+            .iter()
+            .enumerate()
+            .take(player_count)
+        {
             // 最初の数人をインポスター、残りをクルーとする
             let role = if i < imposter_count {
                 Role::Imposter
             } else {
                 Role::Crew
             };
-            users.push(User::new(role, color, name));
+            users.push(User::new(
+                role,
+                player_setup.color.clone(),
+                player_setup.name.clone(),
+            ));
         }
 
         let mut game = Game::new(area, users);
@@ -131,6 +163,43 @@ impl AppState {
 
     pub fn cancel_setup(&mut self) {
         self.show_setup_dialog = false;
+    }
+
+    pub fn adjust_player_count(&mut self, new_count: usize) {
+        let old_count = self.setup_state.players.len();
+        self.setup_state.player_count = new_count;
+
+        if new_count > old_count {
+            // プレイヤーを追加
+            let available_colors = [
+                Color::Red,
+                Color::Blue,
+                Color::Green,
+                Color::Pink,
+                Color::Orange,
+                Color::Yellow,
+                Color::Black,
+                Color::White,
+                Color::Purple,
+                Color::Brown,
+                Color::Cyan,
+                Color::Lime,
+                Color::Maroon,
+                Color::Rose,
+                Color::Banana,
+                Color::Gray,
+                Color::Tan,
+                Color::Coral,
+            ];
+
+            for i in old_count..new_count {
+                let color = available_colors.get(i).cloned().unwrap_or(Color::Red);
+                self.setup_state.players.push(PlayerSetup::new(i, color));
+            }
+        } else if new_count < old_count {
+            // プレイヤーを削除
+            self.setup_state.players.truncate(new_count);
+        }
     }
 
     pub fn select_wave(&mut self, index: usize) {

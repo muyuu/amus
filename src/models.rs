@@ -56,6 +56,52 @@ impl Color {
         let rgb = self.to_rgb();
         egui::Color32::from_rgb(rgb[0], rgb[1], rgb[2])
     }
+
+    pub fn all() -> Vec<Color> {
+        vec![
+            Color::Red,
+            Color::Blue,
+            Color::Green,
+            Color::Pink,
+            Color::Orange,
+            Color::Yellow,
+            Color::Black,
+            Color::White,
+            Color::Purple,
+            Color::Brown,
+            Color::Cyan,
+            Color::Lime,
+            Color::Maroon,
+            Color::Rose,
+            Color::Banana,
+            Color::Gray,
+            Color::Tan,
+            Color::Coral,
+        ]
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            Color::Red => "Red",
+            Color::Blue => "Blue",
+            Color::Green => "Green",
+            Color::Pink => "Pink",
+            Color::Orange => "Orange",
+            Color::Yellow => "Yellow",
+            Color::Black => "Black",
+            Color::White => "White",
+            Color::Purple => "Purple",
+            Color::Brown => "Brown",
+            Color::Cyan => "Cyan",
+            Color::Lime => "Lime",
+            Color::Maroon => "Maroon",
+            Color::Rose => "Rose",
+            Color::Banana => "Banana",
+            Color::Gray => "Gray",
+            Color::Tan => "Tan",
+            Color::Coral => "Coral",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

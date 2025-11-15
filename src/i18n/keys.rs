@@ -26,6 +26,9 @@ pub const SETUP_PLAYER_SETTINGS: &str = "setup.player_settings";
 pub const SETUP_PLAYER_COUNT: &str = "setup.player_count";
 pub const SETUP_PLAYER_CONFIG: &str = "setup.player_config";
 pub const SETUP_CONFIG_NOTE: &str = "setup.config_note";
+pub const SETUP_PLAYER_LIST: &str = "setup.player_list";
+pub const SETUP_PLAYER_NAME: &str = "setup.player_name";
+pub const SETUP_PLAYER_COLOR: &str = "setup.player_color";
 pub const SETUP_START_GAME: &str = "setup.start_game";
 pub const SETUP_CANCEL: &str = "setup.cancel";
 

@@ -48,6 +48,9 @@ pub fn get_translations() -> HashMap<&'static str, String> {
         SETUP_CONFIG_NOTE,
         "（実装中: デフォルト設定で開始可能）".to_string(),
     );
+    translations.insert(SETUP_PLAYER_LIST, format!("{}一覧", W::PLAYER));
+    translations.insert(SETUP_PLAYER_NAME, W::NAME.to_string());
+    translations.insert(SETUP_PLAYER_COLOR, W::COLOR.to_string());
     translations.insert(SETUP_START_GAME, format!("{}{}", W::GAME, W::START));
     translations.insert(SETUP_CANCEL, W::CANCEL.to_string());
 

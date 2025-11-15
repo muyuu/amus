@@ -28,6 +28,8 @@ impl JapaneseWords {
     pub const MODE: &'static str = "モード";
     pub const DRAWING: &'static str = "描画";
     pub const DISCUSSION: &'static str = "議論";
+    pub const NAME: &'static str = "名前";
+    pub const COLOR: &'static str = "色";
 
     // 状態・形容詞
     pub const ALIVE: &'static str = "生存";
