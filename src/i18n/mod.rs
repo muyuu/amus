@@ -12,13 +12,6 @@ pub enum Language {
 }
 
 impl Language {
-    pub fn code(&self) -> &'static str {
-        match self {
-            Language::Japanese => "ja",
-            Language::English => "en",
-        }
-    }
-
     pub fn name(&self) -> &'static str {
         match self {
             Language::Japanese => "日本語",
@@ -82,18 +75,5 @@ impl Translator {
 
         // 最終フォールバック: キーをそのまま返す（これは問題があるので修正が必要）
         "Missing translation"
-    }
-
-    // 動的な値を含む翻訳用のヘルパー
-    pub fn t_with_number(&self, key: &str, number: usize) -> String {
-        format!("{} {}", self.t(key), number)
-    }
-
-    pub fn t_with_params(&self, key: &str, params: &[&str]) -> String {
-        let mut result = self.t(key).to_string();
-        for (i, param) in params.iter().enumerate() {
-            result = result.replace(&format!("{{{}}}", i), param);
-        }
-        result
     }
 }
