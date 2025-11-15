@@ -14,12 +14,14 @@ impl SetupDialog {
             .collapsible(false)
             .resizable(true)
             .default_size([600.0, 700.0])
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .show(ctx, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     ui.vertical(|ui| {
                         ui.heading(&texts.area_selection);
+                        ui.add_space(8.0); // ヘッディング後の余白
 
-                        // エリア一覧（簡易実装、後で拡張可能）
+                        // エリア一覧（ComboBox形式）
                         let areas = vec![
                             ("The Skeld", "skeld"),
                             ("Mira HQ", "mira"),
@@ -27,21 +29,29 @@ impl SetupDialog {
                             ("Airship", "airship"),
                         ];
 
-                        for (name, id) in &areas {
-                            if ui
-                                .radio_value(
-                                    &mut state.setup_state.selected_area_id,
-                                    id.to_string(),
-                                    *name,
-                                )
-                                .clicked()
-                            {
-                                state.setup_state.selected_area_name = name.to_string();
-                            }
-                        }
+                        egui::ComboBox::from_label("")
+                            .selected_text(&state.setup_state.selected_area_name)
+                            .show_ui(ui, |ui| {
+                                for (name, id) in &areas {
+                                    if ui
+                                        .selectable_label(
+                                            state.setup_state.selected_area_id == *id,
+                                            *name,
+                                        )
+                                        .clicked()
+                                    {
+                                        state.setup_state.selected_area_id = id.to_string();
+                                        state.setup_state.selected_area_name = name.to_string();
+                                    }
+                                }
+                            });
 
+                        ui.add_space(12.0);
                         ui.separator();
+                        ui.add_space(8.0);
+
                         ui.heading(&texts.player_settings);
+                        ui.add_space(8.0);
 
                         ui.horizontal(|ui| {
                             ui.label(&texts.player_count);
@@ -51,11 +61,9 @@ impl SetupDialog {
                             }
                         });
 
-                        ui.separator();
+                        ui.add_space(8.0);
 
                         // プレイヤー一覧の編集
-                        ui.heading(&texts.player_list);
-
                         let available_colors = Color::all();
                         let player_count = state.setup_state.player_count;
 
@@ -120,10 +128,13 @@ impl SetupDialog {
                                             }
                                         });
                                 });
+                                ui.add_space(4.0); // 各プレイヤー行間の余白
                             }
                         }
 
+                        ui.add_space(16.0); // プレイヤーリストとボタン間の余白
                         ui.separator();
+                        ui.add_space(12.0); // セパレーター後の余白
 
                         ui.horizontal(|ui| {
                             if ui.button(&common.button_start_game).clicked() {
@@ -146,7 +157,6 @@ struct SetupTexts {
     pub area_selection: String,
     pub player_settings: String,
     pub player_count: String,
-    pub player_list: String,
     pub player_name: String,
     pub player_color: String,
 }
@@ -158,7 +168,6 @@ impl SetupTexts {
             area_selection: state.t(SETUP_AREA_SELECTION).to_string(),
             player_settings: state.t(SETUP_PLAYER_SETTINGS).to_string(),
             player_count: state.t(SETUP_PLAYER_COUNT).to_string(),
-            player_list: state.t(SETUP_PLAYER_LIST).to_string(),
             player_name: state.t(SETUP_PLAYER_NAME).to_string(),
             player_color: state.t(SETUP_PLAYER_COLOR).to_string(),
         }
