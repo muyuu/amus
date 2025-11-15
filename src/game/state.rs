@@ -1,6 +1,9 @@
 use crate::i18n::{Language, Translator};
 use crate::models::*;
 
+// デフォルトのプレイヤー人数定数
+const DEFAULT_PLAYER_COUNT: usize = 18;
+
 #[derive(Debug, Clone)]
 pub struct PlayerSetup {
     pub name: String,
@@ -48,16 +51,19 @@ impl Default for SetupState {
         ];
 
         let mut players = Vec::new();
-        for i in 0..10 {
-            // デフォルトの10人分
-            let color = default_colors.get(i).cloned().unwrap_or(Color::Red);
+        for i in 0..DEFAULT_PLAYER_COUNT {
+            // デフォルトの人数分
+            let color = default_colors
+                .get(i % default_colors.len())
+                .cloned()
+                .unwrap_or(Color::Red);
             players.push(PlayerSetup::new(i, color));
         }
 
         Self {
             selected_area_id: "skeld".to_string(),
             selected_area_name: "The Skeld".to_string(),
-            player_count: 10,
+            player_count: DEFAULT_PLAYER_COUNT,
             players,
         }
     }
