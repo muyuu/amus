@@ -1,5 +1,5 @@
-use crate::models::*;
 use crate::i18n::{Language, Translator};
+use crate::models::*;
 
 #[derive(Debug, Clone)]
 pub struct SetupState {
@@ -114,7 +114,11 @@ impl AppState {
             let color = colors.get(i).cloned().unwrap_or(Color::Red);
             let name = format!("Player{}", i + 1);
             // 最初の数人をインポスター、残りをクルーとする
-            let role = if i < imposter_count { Role::Imposter } else { Role::Crew };
+            let role = if i < imposter_count {
+                Role::Imposter
+            } else {
+                Role::Crew
+            };
             users.push(User::new(role, color, name));
         }
 

@@ -1,8 +1,8 @@
 mod app;
-mod models;
-mod ui;
 mod game;
 mod i18n;
+mod models;
+mod ui;
 
 use app::AmusApp;
 use eframe::egui;
@@ -55,21 +55,24 @@ fn setup_custom_fonts(ctx: &egui::Context) {
         if path.exists() {
             if let Ok(font_data) = std::fs::read(path) {
                 println!("日本語フォントを読み込みました: {}", font_path);
-                fonts.font_data.insert(
-                    "japanese".to_owned(),
-                    egui::FontData::from_owned(font_data),
-                );
+                fonts
+                    .font_data
+                    .insert("japanese".to_owned(), egui::FontData::from_owned(font_data));
 
                 // 既存のフォントファミリーを取得して、日本語フォントを先頭に追加
                 // プロポーショナルフォントファミリー
-                let proportional = fonts.families.get_mut(&FontFamily::Proportional)
+                let proportional = fonts
+                    .families
+                    .get_mut(&FontFamily::Proportional)
                     .expect("Proportional font family should exist");
                 if !proportional.contains(&"japanese".to_owned()) {
                     proportional.insert(0, "japanese".to_owned());
                 }
 
                 // 等幅フォントファミリー
-                let monospace = fonts.families.get_mut(&FontFamily::Monospace)
+                let monospace = fonts
+                    .families
+                    .get_mut(&FontFamily::Monospace)
                     .expect("Monospace font family should exist");
                 if !monospace.contains(&"japanese".to_owned()) {
                     monospace.insert(0, "japanese".to_owned());
@@ -90,4 +93,3 @@ fn setup_custom_fonts(ctx: &egui::Context) {
 
     ctx.set_fonts(fonts);
 }
-

@@ -1,6 +1,6 @@
+use super::common_texts::CommonTexts;
 use crate::game::state::AppState;
 use crate::i18n::keys::*;
-use super::common_texts::CommonTexts;
 use egui::*;
 
 pub struct SetupDialog;
@@ -27,7 +27,14 @@ impl SetupDialog {
                     ];
 
                     for (name, id) in &areas {
-                        if ui.radio_value(&mut state.setup_state.selected_area_id, id.to_string(), *name).clicked() {
+                        if ui
+                            .radio_value(
+                                &mut state.setup_state.selected_area_id,
+                                id.to_string(),
+                                *name,
+                            )
+                            .clicked()
+                        {
                             state.setup_state.selected_area_name = name.to_string();
                         }
                     }
@@ -37,7 +44,10 @@ impl SetupDialog {
 
                     ui.horizontal(|ui| {
                         ui.label(&texts.player_count);
-                        ui.add(egui::Slider::new(&mut state.setup_state.player_count, 10..=15));
+                        ui.add(egui::Slider::new(
+                            &mut state.setup_state.player_count,
+                            10..=15,
+                        ));
                     });
 
                     ui.separator();

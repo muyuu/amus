@@ -1,2 +1,2 @@
-pub mod ja;
 pub mod en;
+pub mod ja;

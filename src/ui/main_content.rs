@@ -1,7 +1,7 @@
-use crate::game::state::{AppState, DrawingMode};
-use crate::models::*;
-use crate::i18n::keys::*;
 use super::common_texts::CommonTexts;
+use crate::game::state::{AppState, DrawingMode};
+use crate::i18n::keys::*;
+use crate::models::*;
 use egui::*;
 
 pub struct MainContent;
@@ -18,10 +18,7 @@ impl MainContent {
             let current_wave_index = state.current_wave_index;
 
             // マップ表示エリア（ここにエリア画像と軌跡を描画）
-            let response = ui.allocate_response(
-                ui.available_size(),
-                egui::Sense::click_and_drag(),
-            );
+            let response = ui.allocate_response(ui.available_size(), egui::Sense::click_and_drag());
 
             // マップ描画（不変参照で描画）
             // 必要な情報を先に取得
@@ -30,25 +27,51 @@ impl MainContent {
 
             if let Some(wave) = game.get_wave(current_wave_index) {
                 let painter = ui.painter_at(response.rect);
-                Self::draw_map_with_data(&painter, &response, game, wave, &temp_points, selected_user_id);
+                Self::draw_map_with_data(
+                    &painter,
+                    &response,
+                    game,
+                    wave,
+                    &temp_points,
+                    selected_user_id,
+                );
             }
 
             // 先にusersの情報を取得（借用チェッカーの問題を回避）
-            let users_info: Vec<(usize, String, bool)> = game.users.iter()
+            let users_info: Vec<(usize, String, bool)> = game
+                .users
+                .iter()
                 .enumerate()
                 .map(|(i, u)| (i, u.name.clone(), u.alive))
                 .collect();
 
             // その後、可変参照を取得して編集
             if let Some(wave) = game.get_wave_mut(current_wave_index) {
-                ui.heading(format!("{} {} - {}", common.label_turn_prefix, current_wave_index + 1, area_name));
+                ui.heading(format!(
+                    "{} {} - {}",
+                    common.label_turn_prefix,
+                    current_wave_index + 1,
+                    area_name
+                ));
 
                 // 描画モード選択
                 ui.horizontal(|ui| {
                     ui.label(&texts.drawing_mode);
-                    ui.radio_value(&mut state.drawing_mode, DrawingMode::None, &texts.drawing_none);
-                    ui.radio_value(&mut state.drawing_mode, DrawingMode::ClickToLine, &texts.drawing_click_line);
-                    ui.radio_value(&mut state.drawing_mode, DrawingMode::Freehand, &texts.drawing_freehand);
+                    ui.radio_value(
+                        &mut state.drawing_mode,
+                        DrawingMode::None,
+                        &texts.drawing_none,
+                    );
+                    ui.radio_value(
+                        &mut state.drawing_mode,
+                        DrawingMode::ClickToLine,
+                        &texts.drawing_click_line,
+                    );
+                    ui.radio_value(
+                        &mut state.drawing_mode,
+                        DrawingMode::Freehand,
+                        &texts.drawing_freehand,
+                    );
                 });
 
                 ui.separator();
@@ -68,26 +91,46 @@ impl MainContent {
                     ui.label(&texts.killed_player);
                     let mut killed_id = wave.killed;
                     egui::ComboBox::from_id_source("killed_player")
-                        .selected_text(
-                            if let Some(id) = killed_id {
-                                if let Some((_, name, alive)) = users_info.get(id) {
-                                    format!("{} ({})", name, if *alive { &common.status_alive } else { &common.status_dead })
-                                } else {
-                                    common.select_prompt.clone()
-                                }
+                        .selected_text(if let Some(id) = killed_id {
+                            if let Some((_, name, alive)) = users_info.get(id) {
+                                format!(
+                                    "{} ({})",
+                                    name,
+                                    if *alive {
+                                        &common.status_alive
+                                    } else {
+                                        &common.status_dead
+                                    }
+                                )
                             } else {
-                                common.select_no_selection.clone()
+                                common.select_prompt.clone()
                             }
-                        )
+                        } else {
+                            common.select_no_selection.clone()
+                        })
                         .show_ui(ui, |ui| {
-                            if ui.selectable_label(killed_id.is_none(), &common.select_no_selection).clicked() {
+                            if ui
+                                .selectable_label(killed_id.is_none(), &common.select_no_selection)
+                                .clicked()
+                            {
                                 killed_id = None;
                             }
                             for (i, (_, name, alive)) in users_info.iter().enumerate() {
-                                if ui.selectable_label(
-                                    killed_id == Some(i),
-                                    format!("{} ({})", name, if *alive { &common.status_alive } else { &common.status_dead })
-                                ).clicked() {
+                                if ui
+                                    .selectable_label(
+                                        killed_id == Some(i),
+                                        format!(
+                                            "{} ({})",
+                                            name,
+                                            if *alive {
+                                                &common.status_alive
+                                            } else {
+                                                &common.status_dead
+                                            }
+                                        ),
+                                    )
+                                    .clicked()
+                                {
                                     killed_id = Some(i);
                                 }
                             }
@@ -237,8 +280,7 @@ impl MainContent {
                         );
 
                         // 既存のルートを探すか、新規作成
-                        if let Some(route) = wave.routes.iter_mut()
-                            .find(|r| r.user_id == user_id) {
+                        if let Some(route) = wave.routes.iter_mut().find(|r| r.user_id == user_id) {
                             // 既存のルートがある場合はポイントを追加
                             route.add_point(point);
                         } else {
@@ -273,8 +315,7 @@ impl MainContent {
                             (pos.y - rect.min.y) / rect.size().y,
                         );
 
-                        if let Some(route) = wave.routes.iter_mut()
-                            .find(|r| r.user_id == user_id) {
+                        if let Some(route) = wave.routes.iter_mut().find(|r| r.user_id == user_id) {
                             route.add_point(point);
                         }
                     }

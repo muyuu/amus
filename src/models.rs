@@ -127,9 +127,9 @@ impl Route {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Wave {
     pub routes: Vec<Route>,
-    pub killed: Option<usize>, // 殺害されたユーザーのID
+    pub killed: Option<usize>,        // 殺害されたユーザーのID
     pub kill_location: Option<Point>, // 殺害場所（証言ベース）
-    pub notes: String, // 議論ターンでのメモ
+    pub notes: String,                // 議論ターンでのメモ
 }
 
 impl Wave {
@@ -175,4 +175,3 @@ impl Game {
         self.waves.get_mut(index)
     }
 }
-

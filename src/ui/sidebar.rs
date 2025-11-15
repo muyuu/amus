@@ -1,6 +1,6 @@
+use super::common_texts::CommonTexts;
 use crate::game::state::AppState;
 use crate::i18n::keys::*;
-use super::common_texts::CommonTexts;
 use egui::*;
 
 pub struct Sidebar;
@@ -28,7 +28,10 @@ impl Sidebar {
                             format!("{} {}", common.label_turn_prefix, i + 1)
                         };
 
-                        if ui.selectable_label(i == state.current_wave_index, label).clicked() {
+                        if ui
+                            .selectable_label(i == state.current_wave_index, label)
+                            .clicked()
+                        {
                             selected_wave = Some(i);
                         }
                     }

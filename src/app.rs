@@ -1,6 +1,6 @@
 use crate::game::state::AppState;
-use crate::ui::{sidebar::Sidebar, setup_dialog::SetupDialog, main_content::MainContent};
-use crate::i18n::{Language, keys::*};
+use crate::i18n::{keys::*, Language};
+use crate::ui::{main_content::MainContent, setup_dialog::SetupDialog, sidebar::Sidebar};
 
 pub struct AmusApp {
     state: AppState,
@@ -40,7 +40,10 @@ impl eframe::App for AmusApp {
                 ui.menu_button(&texts.language_menu, |ui| {
                     let current_lang = self.state.current_language();
                     for lang in Language::all() {
-                        if ui.selectable_label(current_lang == lang, lang.name()).clicked() {
+                        if ui
+                            .selectable_label(current_lang == lang, lang.name())
+                            .clicked()
+                        {
                             self.state.set_language(lang);
                             ui.close_menu();
                         }
@@ -89,4 +92,3 @@ impl AppTexts {
         }
     }
 }
-
