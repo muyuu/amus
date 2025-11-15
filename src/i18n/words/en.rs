@@ -29,6 +29,8 @@ impl EnglishWords {
     pub const DRAWING: &'static str = "Drawing";
     pub const DISCUSSION: &'static str = "Discussion";
     pub const INFORMATION: &'static str = "Information";
+    pub const NAME: &'static str = "Name";
+    pub const COLOR: &'static str = "Color";
 
     // 状態・形容詞
     pub const ALIVE: &'static str = "Alive";

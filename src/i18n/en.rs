@@ -52,6 +52,9 @@ pub fn get_translations() -> HashMap<&'static str, String> {
         SETUP_CONFIG_NOTE,
         "(In development: Default settings available)".to_string(),
     );
+    translations.insert(SETUP_PLAYER_LIST, W::PLAYER.to_string());
+    translations.insert(SETUP_PLAYER_NAME, W::NAME.to_string());
+    translations.insert(SETUP_PLAYER_COLOR, W::COLOR.to_string());
     translations.insert(SETUP_START_GAME, format!("{} {}", W::START, W::GAME));
     translations.insert(SETUP_CANCEL, W::CANCEL.to_string());
 
