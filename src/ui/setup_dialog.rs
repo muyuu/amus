@@ -20,7 +20,7 @@ impl SetupDialog {
                     ui.vertical(|ui| {
                         ui.heading(&texts.area_selection);
 
-                        // エリア一覧（簡易実装、後で拡張可能）
+                        // エリア一覧（ComboBox形式）
                         let areas = vec![
                             ("The Skeld", "skeld"),
                             ("Mira HQ", "mira"),
@@ -28,18 +28,22 @@ impl SetupDialog {
                             ("Airship", "airship"),
                         ];
 
-                        for (name, id) in &areas {
-                            if ui
-                                .radio_value(
-                                    &mut state.setup_state.selected_area_id,
-                                    id.to_string(),
-                                    *name,
-                                )
-                                .clicked()
-                            {
-                                state.setup_state.selected_area_name = name.to_string();
-                            }
-                        }
+                        egui::ComboBox::from_label("")
+                            .selected_text(&state.setup_state.selected_area_name)
+                            .show_ui(ui, |ui| {
+                                for (name, id) in &areas {
+                                    if ui
+                                        .selectable_label(
+                                            state.setup_state.selected_area_id == *id,
+                                            *name,
+                                        )
+                                        .clicked()
+                                    {
+                                        state.setup_state.selected_area_id = id.to_string();
+                                        state.setup_state.selected_area_name = name.to_string();
+                                    }
+                                }
+                            });
 
                         ui.separator();
                         ui.heading(&texts.player_settings);
