@@ -19,6 +19,7 @@ impl SetupDialog {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     ui.vertical(|ui| {
                         ui.heading(&texts.area_selection);
+                        ui.add_space(8.0); // ヘッディング後の余白
 
                         // エリア一覧（ComboBox形式）
                         let areas = vec![
@@ -45,8 +46,12 @@ impl SetupDialog {
                                 }
                             });
 
+                        ui.add_space(12.0);
                         ui.separator();
+                        ui.add_space(8.0);
+
                         ui.heading(&texts.player_settings);
+                        ui.add_space(8.0);
 
                         ui.horizontal(|ui| {
                             ui.label(&texts.player_count);
@@ -55,6 +60,8 @@ impl SetupDialog {
                                 state.adjust_player_count(new_count);
                             }
                         });
+
+                        ui.add_space(8.0);
 
                         // プレイヤー一覧の編集
                         let available_colors = Color::all();
@@ -121,10 +128,13 @@ impl SetupDialog {
                                             }
                                         });
                                 });
+                                ui.add_space(4.0); // 各プレイヤー行間の余白
                             }
                         }
 
+                        ui.add_space(16.0); // プレイヤーリストとボタン間の余白
                         ui.separator();
+                        ui.add_space(12.0); // セパレーター後の余白
 
                         ui.horizontal(|ui| {
                             if ui.button(&common.button_start_game).clicked() {
