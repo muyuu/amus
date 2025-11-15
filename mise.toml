@@ -15,14 +15,17 @@ run = "cargo install cargo-watch"
 [tasks.run]
 description = "アプリケーションを一度だけ実行する"
 run = "cargo run"
+depends = ["fmt"]
 
 [tasks.watch]
 description = "ファイル変更を監視して自動的にアプリを再実行する"
 run = "cargo watch -c -w src -x run"
+depends = ["fmt"]
 
 [tasks.build]
 description = "アプリケーションをビルドする"
 run = "cargo build"
+depends = ["fmt"]
 
 [tasks.check]
 description = "コードの構文チェックを行う"
@@ -31,6 +34,7 @@ run = "cargo check"
 [tasks.test]
 description = "テストを実行する"
 run = "cargo test"
+depends = ["fmt"]
 
 [tasks.fmt]
 description = "コードをフォーマットする"
@@ -39,6 +43,7 @@ run = "cargo fmt"
 [tasks.clippy]
 description = "Clippyによるコード解析を行う"
 run = "cargo clippy"
+depends = ["fmt"]
 
 [tasks.clean]
 description = "ビルドの成果物を削除する"
