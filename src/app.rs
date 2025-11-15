@@ -9,7 +9,7 @@ pub struct AmusApp {
 impl Default for AmusApp {
     fn default() -> Self {
         Self {
-            state: AppState::default(),
+            state: AppState::new(),
         }
     }
 }
