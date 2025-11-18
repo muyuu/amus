@@ -16,6 +16,9 @@ impl Default for AmusApp {
 
 impl eframe::App for AmusApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // AssetManagerが初期化されていなければ初期化
+        self.state.init_assets(ctx);
+
         // メインメニューバー
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {

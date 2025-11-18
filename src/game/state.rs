@@ -1,3 +1,4 @@
+use crate::assets::AssetManager;
 use crate::i18n::{Language, Translator};
 use crate::models::*;
 
@@ -91,6 +92,7 @@ pub struct AppState {
     pub show_setup_dialog: bool,
     pub setup_state: SetupState, // ゲーム設定の状態
     pub translator: Translator,
+    pub asset_manager: Option<AssetManager>, // 画像リソース管理
 }
 
 impl Default for AppState {
@@ -104,6 +106,7 @@ impl Default for AppState {
             show_setup_dialog: false,
             setup_state: SetupState::default(),
             translator: Translator::new(Language::Japanese),
+            asset_manager: None, // 後でeGuiのコンテキストから初期化
         }
     }
 }
@@ -111,6 +114,12 @@ impl Default for AppState {
 impl AppState {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn init_assets(&mut self, ctx: &egui::Context) {
+        if self.asset_manager.is_none() {
+            self.asset_manager = Some(AssetManager::new(ctx));
+        }
     }
 
     pub fn set_language(&mut self, language: Language) {
