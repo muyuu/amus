@@ -93,6 +93,8 @@ pub struct AppState {
     pub setup_state: SetupState, // ゲーム設定の状態
     pub translator: Translator,
     pub asset_manager: Option<AssetManager>, // 画像リソース管理
+    #[allow(dead_code)]
+    pub show_turn_menu: bool, // ターンメニューの表示状態
 }
 
 impl Default for AppState {
@@ -103,10 +105,11 @@ impl Default for AppState {
             selected_user_id: None,
             drawing_mode: DrawingMode::None,
             temp_points: Vec::new(),
-            show_setup_dialog: false,
+            show_setup_dialog: true, // 起動時はセットアップダイアログを表示
             setup_state: SetupState::default(),
-            translator: Translator::new(Language::Japanese),
-            asset_manager: None, // 後でeGuiのコンテキストから初期化
+            translator: Translator::new(Language::Japanese), // デフォルトは日本語
+            asset_manager: None,                             // 後で初期化
+            show_turn_menu: false,                           // 初期状態では非表示
         }
     }
 }
