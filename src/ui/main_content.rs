@@ -12,175 +12,190 @@ impl MainContent {
         let texts = MainContentTexts::get(state);
         let common = CommonTexts::get(state);
 
-        if let Some(game) = &mut state.game {
-            // 先に必要な情報を取得
-            let area_name = game.area.name.clone();
-            let current_wave_index = state.current_wave_index;
+        // ゲームがない場合はウェルカムメッセージを表示して早期リターン
+        let game = match &mut state.game {
+            Some(game) => game,
+            None => {
+                Self::show_welcome_message(ui, &texts, &common, state);
+                return;
+            }
+        };
 
-            // マップ表示エリア（ここにエリア画像と軌跡を描画）
-            let response = ui.allocate_response(ui.available_size(), egui::Sense::click_and_drag());
+        // 先に必要な情報を取得
+        let area_name = game.area.name.clone();
+        let current_wave_index = state.current_wave_index;
 
-            // マップ描画（不変参照で描画）
-            // 必要な情報を先に取得
-            let temp_points = state.temp_points.clone();
-            let selected_user_id = state.selected_user_id;
+        // マップ表示エリア（ここにエリア画像と軌跡を描画）
+        let response = ui.allocate_response(ui.available_size(), egui::Sense::click_and_drag());
 
-            if let Some(wave) = game.get_wave(current_wave_index) {
-                let painter = ui.painter_at(response.rect);
-                Self::draw_map_with_data(
-                    &painter,
-                    &response,
-                    game,
-                    wave,
-                    &temp_points,
-                    selected_user_id,
+        // マップ描画（不変参照で描画）
+        // 必要な情報を先に取得
+        let temp_points = state.temp_points.clone();
+        let selected_user_id = state.selected_user_id;
+
+        if let Some(wave) = game.get_wave(current_wave_index) {
+            let painter = ui.painter_at(response.rect);
+            Self::draw_map_with_data(
+                &painter,
+                &response,
+                game,
+                wave,
+                &temp_points,
+                selected_user_id,
+                state.asset_manager.as_ref(),
+            );
+        }
+
+        // 先にusersの情報を取得（借用チェッカーの問題を回避）
+        let users_info: Vec<(usize, String, bool)> = game
+            .users
+            .iter()
+            .enumerate()
+            .map(|(i, u)| (i, u.name.clone(), u.alive))
+            .collect();
+
+        // その後、可変参照を取得して編集
+        if let Some(wave) = game.get_wave_mut(current_wave_index) {
+            ui.heading(format!(
+                "{} {} - {}",
+                common.label_turn_prefix,
+                current_wave_index + 1,
+                area_name
+            ));
+
+            // 描画モード選択
+            ui.horizontal(|ui| {
+                ui.label(&texts.drawing_mode);
+                ui.radio_value(
+                    &mut state.drawing_mode,
+                    DrawingMode::None,
+                    &texts.drawing_none,
                 );
+                ui.radio_value(
+                    &mut state.drawing_mode,
+                    DrawingMode::ClickToLine,
+                    &texts.drawing_click_line,
+                );
+                ui.radio_value(
+                    &mut state.drawing_mode,
+                    DrawingMode::Freehand,
+                    &texts.drawing_freehand,
+                );
+            });
+
+            ui.separator();
+
+            // マウス操作の処理
+            if let Some(user_id) = state.selected_user_id {
+                let drawing_mode = state.drawing_mode;
+                Self::handle_map_interaction(&response, wave, user_id, drawing_mode);
             }
 
-            // 先にusersの情報を取得（借用チェッカーの問題を回避）
-            let users_info: Vec<(usize, String, bool)> = game
-                .users
-                .iter()
-                .enumerate()
-                .map(|(i, u)| (i, u.name.clone(), u.alive))
-                .collect();
+            ui.separator();
 
-            // その後、可変参照を取得して編集
-            if let Some(wave) = game.get_wave_mut(current_wave_index) {
-                ui.heading(format!(
-                    "{} {} - {}",
-                    common.label_turn_prefix,
-                    current_wave_index + 1,
-                    area_name
-                ));
+            // 議論ターン情報
+            ui.heading(&texts.discussion_info);
 
-                // 描画モード選択
-                ui.horizontal(|ui| {
-                    ui.label(&texts.drawing_mode);
-                    ui.radio_value(
-                        &mut state.drawing_mode,
-                        DrawingMode::None,
-                        &texts.drawing_none,
-                    );
-                    ui.radio_value(
-                        &mut state.drawing_mode,
-                        DrawingMode::ClickToLine,
-                        &texts.drawing_click_line,
-                    );
-                    ui.radio_value(
-                        &mut state.drawing_mode,
-                        DrawingMode::Freehand,
-                        &texts.drawing_freehand,
-                    );
-                });
-
-                ui.separator();
-
-                // マウス操作の処理
-                if let Some(user_id) = state.selected_user_id {
-                    let drawing_mode = state.drawing_mode;
-                    Self::handle_map_interaction(&response, wave, user_id, drawing_mode);
-                }
-
-                ui.separator();
-
-                // 議論ターン情報
-                ui.heading(&texts.discussion_info);
-
-                ui.horizontal(|ui| {
-                    ui.label(&texts.killed_player);
-                    let mut killed_id = wave.killed;
-                    egui::ComboBox::from_id_source("killed_player")
-                        .selected_text(if let Some(id) = killed_id {
-                            if let Some((_, name, alive)) = users_info.get(id) {
-                                format!(
-                                    "{} ({})",
-                                    name,
-                                    if *alive {
-                                        &common.status_alive
-                                    } else {
-                                        &common.status_dead
-                                    }
-                                )
-                            } else {
-                                common.select_prompt.clone()
-                            }
+            ui.horizontal(|ui| {
+                ui.label(&texts.killed_player);
+                let mut killed_id = wave.killed;
+                egui::ComboBox::from_id_source("killed_player")
+                    .selected_text(if let Some(id) = killed_id {
+                        if let Some((_, name, alive)) = users_info.get(id) {
+                            format!(
+                                "{} ({})",
+                                name,
+                                if *alive {
+                                    &common.status_alive
+                                } else {
+                                    &common.status_dead
+                                }
+                            )
                         } else {
-                            common.select_no_selection.clone()
-                        })
-                        .show_ui(ui, |ui| {
+                            common.select_prompt.clone()
+                        }
+                    } else {
+                        common.select_no_selection.clone()
+                    })
+                    .show_ui(ui, |ui| {
+                        if ui
+                            .selectable_label(killed_id.is_none(), &common.select_no_selection)
+                            .clicked()
+                        {
+                            killed_id = None;
+                        }
+                        for (i, (_, name, alive)) in users_info.iter().enumerate() {
                             if ui
-                                .selectable_label(killed_id.is_none(), &common.select_no_selection)
+                                .selectable_label(
+                                    killed_id == Some(i),
+                                    format!(
+                                        "{} ({})",
+                                        name,
+                                        if *alive {
+                                            &common.status_alive
+                                        } else {
+                                            &common.status_dead
+                                        }
+                                    ),
+                                )
                                 .clicked()
                             {
-                                killed_id = None;
+                                killed_id = Some(i);
                             }
-                            for (i, (_, name, alive)) in users_info.iter().enumerate() {
-                                if ui
-                                    .selectable_label(
-                                        killed_id == Some(i),
-                                        format!(
-                                            "{} ({})",
-                                            name,
-                                            if *alive {
-                                                &common.status_alive
-                                            } else {
-                                                &common.status_dead
-                                            }
-                                        ),
-                                    )
-                                    .clicked()
-                                {
-                                    killed_id = Some(i);
-                                }
-                            }
-                        });
-                    if killed_id != wave.killed {
-                        wave.killed = killed_id;
-                    }
-                });
-            } // waveの可変借用を解放
-
-            // 殺害されたプレイヤーを死亡状態にする（waveの借用を解放した後）
-            if let Some(wave_ref) = game.get_wave(current_wave_index) {
-                if let Some(killed_id) = wave_ref.killed {
-                    if let Some(user) = game.users.get_mut(killed_id) {
-                        if user.alive {
-                            user.alive = false;
-                            user.death = Some(current_wave_index + 1);
                         }
-                    }
-                }
-            }
-
-            // waveを再度取得して続きの処理
-            if let Some(wave) = game.get_wave_mut(current_wave_index) {
-                ui.horizontal(|ui| {
-                    ui.label(&texts.kill_location);
-                    if let Some(loc) = &wave.kill_location {
-                        ui.label(format!("({:.2}, {:.2})", loc.x, loc.y));
-                    } else {
-                        ui.label(&texts.location_unset);
-                    }
-                    if ui.button(&texts.set_location_btn).clicked() {
-                        // マップ上でクリックした位置を殺害場所として設定
-                        // これは別のモードとして実装する必要がある
-                        ui.label(&texts.location_note);
-                    }
-                });
-
-                ui.label(&common.label_notes);
-                ui.text_edit_multiline(&mut wave.notes);
-            }
-        } else {
-            ui.vertical_centered(|ui| {
-                ui.heading(&texts.welcome_title);
-                ui.label(&texts.welcome_message);
-                if ui.button(&common.button_new_game).clicked() {
-                    state.start_new_game();
+                    });
+                if killed_id != wave.killed {
+                    wave.killed = killed_id;
                 }
             });
+        } // waveの可変借用を解放
+
+        // 殺害されたプレイヤーを死亡状態にする（waveの借用を解放した後）
+        if let Some(wave_ref) = game.get_wave(current_wave_index) {
+            if let Some(killed_id) = wave_ref.killed {
+                if let Some(user) = game.users.get_mut(killed_id) {
+                    if user.alive {
+                        user.alive = false;
+                        user.death = Some(current_wave_index + 1);
+                    }
+                }
+            }
         }
+
+        // waveを再度取得して続きの処理
+        if let Some(wave) = game.get_wave_mut(current_wave_index) {
+            ui.horizontal(|ui| {
+                ui.label(&texts.kill_location);
+                if let Some(loc) = &wave.kill_location {
+                    ui.label(format!("({:.2}, {:.2})", loc.x, loc.y));
+                } else {
+                    ui.label(&texts.location_unset);
+                }
+                if ui.button(&texts.set_location_btn).clicked() {
+                    // マップ上でクリックした位置を殺害場所として設定
+                    // これは別のモードとして実装する必要がある
+                    ui.label(&texts.location_note);
+                }
+            });
+
+            ui.label(&common.label_notes);
+            ui.text_edit_multiline(&mut wave.notes);
+        }
+    }
+
+    fn show_welcome_message(
+        ui: &mut egui::Ui,
+        texts: &MainContentTexts,
+        common: &CommonTexts,
+        state: &mut AppState,
+    ) {
+        ui.vertical_centered(|ui| {
+            ui.heading(&texts.welcome_title);
+            ui.label(&texts.welcome_message);
+            if ui.button(&common.button_new_game).clicked() {
+                state.start_new_game();
+            }
+        });
     }
 
     fn draw_map_with_data(
@@ -190,6 +205,7 @@ impl MainContent {
         wave: &Wave,
         temp_points: &[Point],
         selected_user_id: Option<usize>,
+        asset_manager: Option<&crate::assets::AssetManager>,
     ) {
         let rect = response.rect;
 
