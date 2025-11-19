@@ -42,43 +42,15 @@ impl MainContent {
         }
 
         // ドラッグ開始の検出（gameの不変参照を使用）
-        if response.drag_started() && state.dragging_location.is_none() {
-            if let Some(pointer_pos) = response.interact_pointer_pos() {
-                let hit_size = 15.0;
-                if let Some(wave) = game.get_wave(current_wave_index) {
-                    // 出現位置をチェック
-                    for (user_id, spawn_point) in &wave.spawn_locations {
-                        let spawn_pos = egui::pos2(
-                            response.rect.min.x + spawn_point.x * response.rect.size().x,
-                            response.rect.min.y + spawn_point.y * response.rect.size().y,
-                        );
-                        let distance = (pointer_pos - spawn_pos).length();
-                        if distance <= hit_size {
-                            state.dragging_location = Some(DraggingLocation {
-                                location_type: LocationType::Spawn,
-                                user_id: *user_id,
-                            });
-                            break;
-                        }
-                    }
-
-                    // 終了時位置をチェック
-                    if state.dragging_location.is_none() {
-                        for (user_id, end_point) in &wave.end_locations {
-                            let end_pos = egui::pos2(
-                                response.rect.min.x + end_point.x * response.rect.size().x,
-                                response.rect.min.y + end_point.y * response.rect.size().y,
-                            );
-                            let distance = (pointer_pos - end_pos).length();
-                            if distance <= hit_size {
-                                state.dragging_location = Some(DraggingLocation {
-                                    location_type: LocationType::End,
-                                    user_id: *user_id,
-                                });
-                                break;
-                            }
-                        }
-                    }
+        if response.drag_started() {
+            let dragging_location = state.dragging_location;
+            if dragging_location.is_none() {
+                // gameの不変参照を取得（gameの可変借用を一時的に解放）
+                let game_ref: &Game = &*game;
+                let location =
+                    Self::detect_location_drag_start(game_ref, current_wave_index, &response);
+                if let Some(location) = location {
+                    state.dragging_location = Some(location);
                 }
             }
         }
@@ -442,30 +414,79 @@ impl MainContent {
         }
     }
 
-    // ユーザーをドラッグ&ドロップした時の処理（終了時位置を設定）
-    fn handle_user_drag_and_drop(
-        game: &mut Game,
+    // ドラッグ開始の検出（出現位置または終了時位置の上でドラッグ開始）
+    fn detect_location_drag_start(
+        game: &Game,
         current_wave_index: usize,
-        dragging_user_id: usize,
         response: &egui::Response,
-        ctx: &egui::Context,
-    ) {
-        let pointer_pos = match ctx.pointer_latest_pos() {
+    ) -> Option<DraggingLocation> {
+        let pointer_pos = match response.interact_pointer_pos() {
             Some(pos) => pos,
-            None => return,
+            None => return None,
         };
 
-        if !response.rect.contains(pointer_pos) {
-            return;
+        let wave = match game.get_wave(current_wave_index) {
+            Some(wave) => wave,
+            None => return None,
+        };
+
+        let hit_size = 15.0;
+
+        // 出現位置をチェック
+        if let Some(location) =
+            Self::find_hit_spawn_location(&wave, pointer_pos, response.rect, hit_size)
+        {
+            return Some(location);
         }
 
-        let wave = match game.get_wave_mut(current_wave_index) {
-            Some(wave) => wave,
-            None => return,
-        };
+        // 終了時位置をチェック
+        Self::find_hit_end_location(&wave, pointer_pos, response.rect, hit_size)
+    }
 
-        let point = Self::screen_to_normalized_point(pointer_pos, response.rect);
-        wave.end_locations.insert(dragging_user_id, point);
+    // 出現位置のヒット判定
+    fn find_hit_spawn_location(
+        wave: &Wave,
+        pointer_pos: egui::Pos2,
+        rect: egui::Rect,
+        hit_size: f32,
+    ) -> Option<DraggingLocation> {
+        for (user_id, spawn_point) in &wave.spawn_locations {
+            let spawn_pos = egui::pos2(
+                rect.min.x + spawn_point.x * rect.size().x,
+                rect.min.y + spawn_point.y * rect.size().y,
+            );
+            let distance = (pointer_pos - spawn_pos).length();
+            if distance <= hit_size {
+                return Some(DraggingLocation {
+                    location_type: LocationType::Spawn,
+                    user_id: *user_id,
+                });
+            }
+        }
+        None
+    }
+
+    // 終了時位置のヒット判定
+    fn find_hit_end_location(
+        wave: &Wave,
+        pointer_pos: egui::Pos2,
+        rect: egui::Rect,
+        hit_size: f32,
+    ) -> Option<DraggingLocation> {
+        for (user_id, end_point) in &wave.end_locations {
+            let end_pos = egui::pos2(
+                rect.min.x + end_point.x * rect.size().x,
+                rect.min.y + end_point.y * rect.size().y,
+            );
+            let distance = (pointer_pos - end_pos).length();
+            if distance <= hit_size {
+                return Some(DraggingLocation {
+                    location_type: LocationType::End,
+                    user_id: *user_id,
+                });
+            }
+        }
+        None
     }
 
     // ドラッグ中の位置を更新
@@ -500,6 +521,32 @@ impl MainContent {
                 wave.end_locations.insert(dragging_location.user_id, point);
             }
         }
+    }
+
+    // ユーザーをドラッグ&ドロップした時の処理（終了時位置を設定）
+    fn handle_user_drag_and_drop(
+        game: &mut Game,
+        current_wave_index: usize,
+        dragging_user_id: usize,
+        response: &egui::Response,
+        ctx: &egui::Context,
+    ) {
+        let pointer_pos = match ctx.pointer_latest_pos() {
+            Some(pos) => pos,
+            None => return,
+        };
+
+        if !response.rect.contains(pointer_pos) {
+            return;
+        }
+
+        let wave = match game.get_wave_mut(current_wave_index) {
+            Some(wave) => wave,
+            None => return,
+        };
+
+        let point = Self::screen_to_normalized_point(pointer_pos, response.rect);
+        wave.end_locations.insert(dragging_user_id, point);
     }
 
     // スクリーン座標を正規化座標（0.0-1.0）に変換
