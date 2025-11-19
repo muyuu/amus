@@ -1,7 +1,14 @@
+use crate::models::Game;
+
 pub struct DebugView;
 
 impl DebugView {
-    pub fn show(ctx: &egui::Context, dragging_user_id: Option<usize>) {
+    pub fn show(
+        ctx: &egui::Context,
+        dragging_user_id: Option<usize>,
+        selected_user_id: Option<usize>,
+        game: &Game,
+    ) {
         let screen_rect = ctx.screen_rect();
         let window_width = 300.0; // 固定幅
         let window_pos = egui::pos2(
@@ -12,7 +19,14 @@ impl DebugView {
         egui::Area::new(egui::Id::new("debug_view"))
             .fixed_pos(window_pos)
             .show(ctx, |ui| {
-                Self::show_content(ui, ctx, dragging_user_id, window_width);
+                Self::show_content(
+                    ui,
+                    ctx,
+                    dragging_user_id,
+                    selected_user_id,
+                    game,
+                    window_width,
+                );
             });
     }
 
@@ -20,6 +34,8 @@ impl DebugView {
         ui: &mut egui::Ui,
         ctx: &egui::Context,
         dragging_user_id: Option<usize>,
+        selected_user_id: Option<usize>,
+        game: &Game,
         window_width: f32,
     ) {
         egui::Frame::popup(&ui.style())
@@ -29,16 +45,35 @@ impl DebugView {
                 ui.heading("🐛 デバッグ情報");
                 ui.separator();
 
-                Self::show_debug_table(ui, ctx, dragging_user_id);
+                Self::show_debug_table(ui, ctx, dragging_user_id, selected_user_id, game);
             });
     }
 
-    fn show_debug_table(ui: &mut egui::Ui, ctx: &egui::Context, dragging_user_id: Option<usize>) {
+    fn show_debug_table(
+        ui: &mut egui::Ui,
+        ctx: &egui::Context,
+        dragging_user_id: Option<usize>,
+        selected_user_id: Option<usize>,
+        game: &Game,
+    ) {
         // 2列のテーブル形式で表示
         egui::Grid::new("debug_grid")
             .num_columns(2)
             .spacing([10.0, 5.0])
             .show(ui, |ui| {
+                // 選択中ユーザー
+                ui.label("選択中ユーザー:");
+                if let Some(user_id) = selected_user_id {
+                    if let Some(user) = game.users.get(user_id) {
+                        ui.label(format!("{} (user_id={})", user.name, user_id));
+                    } else {
+                        ui.label(format!("user_id={} (存在しない)", user_id));
+                    }
+                } else {
+                    ui.label("なし");
+                }
+                ui.end_row();
+
                 // ドラッグ中ユーザー
                 ui.label("ドラッグ中ユーザー:");
                 if let Some(user_id) = dragging_user_id {

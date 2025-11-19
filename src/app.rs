@@ -132,32 +132,46 @@ impl AmusApp {
                                     egui::Color32::GRAY // デフォルト色
                                 };
 
-                                // カラー矩形（正方形）をドラッグ可能にする
+                                // カラー矩形（正方形）をクリック/ドラッグ可能にする
                                 let (rect, response) = ui.allocate_exact_size(
                                     egui::Vec2::new(40.0, 40.0),
                                     egui::Sense::click_and_drag(),
                                 );
 
-                                // ドラッグ開始時にユーザーIDを設定
-                                if response.drag_started() {
-                                    self.state.dragging_user_id = Some(user_id);
+                                // クリックまたはドラッグ開始時にユーザーを選択
+                                if response.clicked() || response.drag_started() {
+                                    self.state.selected_user_id = Some(user_id);
+                                    if response.drag_started() {
+                                        self.state.dragging_user_id = Some(user_id);
+                                    }
                                 }
 
-                                // ドラッグ終了時にクリア
+                                // ドラッグ終了時にクリア（選択状態は保持）
                                 if response.drag_stopped() {
                                     self.state.dragging_user_id = None;
                                 }
 
-                                // ドラッグ中の視覚的フィードバック
-                                let color = if response.dragged()
-                                    || self.state.dragging_user_id == Some(user_id)
-                                {
+                                // 選択中またはドラッグ中の視覚的フィードバック
+                                let is_selected = self.state.selected_user_id == Some(user_id);
+                                let is_dragging = self.state.dragging_user_id == Some(user_id);
+                                let color = if is_dragging || (is_selected && response.hovered()) {
                                     user_color.linear_multiply(0.7) // 少し暗くする
+                                } else if is_selected {
+                                    user_color.linear_multiply(0.9) // 選択中は少し暗く
                                 } else {
                                     user_color
                                 };
 
                                 ui.painter().rect_filled(rect, 4.0, color);
+
+                                // 選択中のユーザーには枠線を表示
+                                if is_selected {
+                                    ui.painter().rect_stroke(
+                                        rect,
+                                        4.0,
+                                        (2.0, egui::Color32::WHITE),
+                                    );
+                                }
 
                                 // ユーザー名（矩形の下に配置）
                                 ui.label(&user.name);

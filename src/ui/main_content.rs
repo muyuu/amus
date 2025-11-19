@@ -1,6 +1,6 @@
 use super::common_texts::CommonTexts;
 use super::debug_view::DebugView;
-use crate::game::state::{AppState, DrawingMode};
+use crate::game::state::{AppState, DraggingLocation, DrawingMode, LocationType};
 use crate::i18n::keys::*;
 use crate::models::*;
 use egui::*;
@@ -29,22 +29,139 @@ impl MainContent {
         // マップ表示エリア（ここにエリア画像と軌跡を描画）
         let response = ui.allocate_response(ui.available_size(), egui::Sense::click_and_drag());
 
-        // ドラッグ&ドロップの処理：ユーザーをドロップした位置に出現位置を設定
-        if let Some(dragging_user_id) = state.dragging_user_id {
-            Self::handle_drag_and_drop(
+        // 位置（出現位置・終了時位置）のドラッグ処理（先に処理）
+        // dragging_location だけを可変借用して処理
+        // gameの可変借用を一時的に解放するため、dragging_locationを先に取得
+        let dragging_location_value = state.dragging_location;
+        let needs_location_update = dragging_location_value.is_some();
+
+        // ドラッグ中の位置を更新
+        if needs_location_update {
+            if let Some(pointer_pos) = ui.ctx().pointer_latest_pos() {
+                if response.rect.contains(pointer_pos) {
+                    let point = Self::screen_to_normalized_point(pointer_pos, response.rect);
+                    if let Some(dragging_location) = dragging_location_value {
+                        if let Some(wave) = game.get_wave_mut(current_wave_index) {
+                            match dragging_location.location_type {
+                                LocationType::Spawn => {
+                                    wave.spawn_locations
+                                        .insert(dragging_location.user_id, point);
+                                }
+                                LocationType::End => {
+                                    wave.end_locations.insert(dragging_location.user_id, point);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ドラッグ開始の検出（gameの不変参照を使用）
+        if response.drag_started() && !needs_location_update {
+            if let Some(pointer_pos) = response.interact_pointer_pos() {
+                let hit_size = 15.0;
+                if let Some(wave) = game.get_wave(current_wave_index) {
+                    // 出現位置をチェック
+                    for (user_id, spawn_point) in &wave.spawn_locations {
+                        let spawn_pos = egui::pos2(
+                            response.rect.min.x + spawn_point.x * response.rect.size().x,
+                            response.rect.min.y + spawn_point.y * response.rect.size().y,
+                        );
+                        let distance = (pointer_pos - spawn_pos).length();
+                        if distance <= hit_size {
+                            state.dragging_location = Some(DraggingLocation {
+                                location_type: LocationType::Spawn,
+                                user_id: *user_id,
+                            });
+                            break;
+                        }
+                    }
+
+                    // 終了時位置をチェック
+                    if state.dragging_location.is_none() {
+                        for (user_id, end_point) in &wave.end_locations {
+                            let end_pos = egui::pos2(
+                                response.rect.min.x + end_point.x * response.rect.size().x,
+                                response.rect.min.y + end_point.y * response.rect.size().y,
+                            );
+                            let distance = (pointer_pos - end_pos).length();
+                            if distance <= hit_size {
+                                state.dragging_location = Some(DraggingLocation {
+                                    location_type: LocationType::End,
+                                    user_id: *user_id,
+                                });
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ドラッグ&ドロップの処理
+        let dragging_user_id = state.dragging_user_id;
+        if let Some(dragging_user_id) = dragging_user_id {
+            // ユーザーをドロップした位置に終了時位置を設定
+            Self::handle_user_drag_and_drop(
                 game,
                 current_wave_index,
                 dragging_user_id,
                 &response,
                 ui.ctx(),
             );
-            // ドラッグ中のユーザーを選択状態にする
-            state.selected_user_id = Some(dragging_user_id);
+        }
+
+        // エリアのクリック/ドラッグ処理（選択中のユーザーがいる場合）
+        // 位置ドラッグ中でない場合のみ処理
+        if state.dragging_location.is_none() {
+            let selected_user_id = state.selected_user_id;
+            let dragging_user_id_for_area = state.dragging_user_id;
+            if let Some(selected_user_id) = selected_user_id {
+                // まずgameの可変借用を解放するため、必要な情報を取得
+                let needs_spawn_update = response.clicked();
+                let needs_drag_tracking = response.drag_started() || response.dragged();
+
+                if needs_spawn_update || needs_drag_tracking {
+                    // gameの可変借用を一時的に解放
+                    let point_opt = if needs_spawn_update || needs_drag_tracking {
+                        response
+                            .interact_pointer_pos()
+                            .map(|pos| Self::screen_to_normalized_point(pos, response.rect))
+                    } else {
+                        None
+                    };
+
+                    // gameを再度可変借用して更新
+                    if needs_spawn_update {
+                        if let Some(point) = &point_opt {
+                            if let Some(wave) = game.get_wave_mut(current_wave_index) {
+                                wave.spawn_locations.insert(selected_user_id, point.clone());
+                            }
+                        }
+                    }
+
+                    // stateを可変借用してtemp_pointsを更新
+                    if needs_drag_tracking && dragging_user_id_for_area.is_none() {
+                        if let Some(point) = point_opt {
+                            if response.drag_started() {
+                                state.temp_points.clear();
+                                state.temp_points.push(point);
+                            } else if response.dragged() {
+                                state.temp_points.push(point);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // ドラッグ終了時にクリア（マウスボタンが離された時）
         if state.dragging_user_id.is_some() && ui.ctx().input(|i| i.pointer.any_released()) {
             state.dragging_user_id = None;
+        }
+        if state.dragging_location.is_some() && ui.ctx().input(|i| i.pointer.any_released()) {
+            state.dragging_location = None;
         }
 
         // マップ描画（不変参照で描画）
@@ -205,7 +322,8 @@ impl MainContent {
 
         // デバッグビューの表示（stateの可変借用を解放した後）
         if show_debug_view {
-            DebugView::show(ui.ctx(), dragging_user_id);
+            let selected_user_id = state.selected_user_id;
+            DebugView::show(ui.ctx(), dragging_user_id, selected_user_id, game);
         }
     }
 
@@ -268,7 +386,42 @@ impl MainContent {
             }
         }
 
-        // 描画中の一時的なポイント
+        // 出現場所を描画（四角）
+        for (user_id, point) in &wave.spawn_locations {
+            if let Some(user) = game.users.get(*user_id) {
+                let color = user.color.to_egui_color();
+                let pos = pos2(
+                    rect.min.x + point.x * rect.size().x,
+                    rect.min.y + point.y * rect.size().y,
+                );
+                let size = 12.0;
+                painter.rect_filled(
+                    Rect::from_center_size(pos, egui::Vec2::new(size, size)),
+                    2.0,
+                    color,
+                );
+                painter.rect_stroke(
+                    Rect::from_center_size(pos, egui::Vec2::new(size, size)),
+                    2.0,
+                    (2.0, Color32::WHITE),
+                );
+            }
+        }
+
+        // 終了時位置を描画（丸）
+        for (user_id, point) in &wave.end_locations {
+            if let Some(user) = game.users.get(*user_id) {
+                let color = user.color.to_egui_color();
+                let pos = pos2(
+                    rect.min.x + point.x * rect.size().x,
+                    rect.min.y + point.y * rect.size().y,
+                );
+                painter.circle_filled(pos, 8.0, color);
+                painter.circle_stroke(pos, 8.0, (2.0, Color32::WHITE));
+            }
+        }
+
+        // 描画中の一時的なポイント（選択中のユーザーの色で線を描画）
         if !temp_points.is_empty() {
             let color = if let Some(user_id) = selected_user_id {
                 if let Some(user) = game.users.get(user_id) {
@@ -305,6 +458,99 @@ impl MainContent {
         }
     }
 
+    // ユーザーをドラッグ&ドロップした時の処理（終了時位置を設定）
+    fn handle_user_drag_and_drop(
+        game: &mut Game,
+        current_wave_index: usize,
+        dragging_user_id: usize,
+        response: &egui::Response,
+        ctx: &egui::Context,
+    ) {
+        let pointer_pos = match ctx.pointer_latest_pos() {
+            Some(pos) => pos,
+            None => return,
+        };
+
+        if !response.rect.contains(pointer_pos) {
+            return;
+        }
+
+        let wave = match game.get_wave_mut(current_wave_index) {
+            Some(wave) => wave,
+            None => return,
+        };
+
+        let point = Self::screen_to_normalized_point(pointer_pos, response.rect);
+        wave.end_locations.insert(dragging_user_id, point);
+    }
+
+    // スクリーン座標を正規化座標（0.0-1.0）に変換
+    fn screen_to_normalized_point(screen_pos: egui::Pos2, rect: egui::Rect) -> Point {
+        Point::new(
+            (screen_pos.x - rect.min.x) / rect.size().x,
+            (screen_pos.y - rect.min.y) / rect.size().y,
+        )
+    }
+
+    fn handle_map_interaction(
+        response: &egui::Response,
+        wave: &mut Wave,
+        user_id: usize,
+        drawing_mode: DrawingMode,
+    ) {
+        match drawing_mode {
+            DrawingMode::ClickToLine => {
+                if response.clicked() {
+                    if let Some(pos) = response.interact_pointer_pos() {
+                        let rect = response.rect;
+                        let point = Self::screen_to_normalized_point(pos, rect);
+
+                        // 既存のルートを探すか、新規作成
+                        if let Some(route) = wave.routes.iter_mut().find(|r| r.user_id == user_id) {
+                            // 既存のルートがある場合はポイントを追加
+                            route.add_point(point);
+                        } else {
+                            // 新規ルートの場合は最初のポイントをstartとして設定
+                            let route = Route::new(user_id, point.clone());
+                            wave.routes.push(route);
+                        }
+                    }
+                }
+            }
+            DrawingMode::Freehand => {
+                if response.drag_started() {
+                    // ドラッグ開始時に新しいルートを作成
+                    // このユーザーの既存のルートをすべて削除（1ユーザー1本にするため）
+                    wave.routes.retain(|r| r.user_id != user_id);
+
+                    if let Some(pos) = response.interact_pointer_pos() {
+                        let rect = response.rect;
+                        let point = Self::screen_to_normalized_point(pos, rect);
+
+                        let route = Route::new(user_id, point.clone());
+                        wave.routes.push(route);
+                    }
+                } else if response.dragged() {
+                    // ドラッグ中はポイントを追加
+                    if let Some(pos) = response.interact_pointer_pos() {
+                        let rect = response.rect;
+                        let point = Self::screen_to_normalized_point(pos, rect);
+
+                        // このユーザーのルートが存在しない場合は作成（念のため）
+                        if let Some(route) = wave.routes.iter_mut().find(|r| r.user_id == user_id) {
+                            route.add_point(point);
+                        } else {
+                            // ルートが存在しない場合は新規作成
+                            let route = Route::new(user_id, point.clone());
+                            wave.routes.push(route);
+                        }
+                    }
+                }
+            }
+            DrawingMode::None => {}
+        }
+    }
+
     fn draw_temp_route(painter: &egui::Painter, points: &[Point], color: Color32, rect: Rect) {
         if points.is_empty() {
             return;
@@ -322,112 +568,6 @@ impl MainContent {
             );
             painter.line_segment([prev_pos, pos], (2.0, color));
             prev_pos = pos;
-        }
-    }
-
-    // ドラッグ&ドロップの処理
-    fn handle_drag_and_drop(
-        game: &mut Game,
-        current_wave_index: usize,
-        dragging_user_id: usize,
-        response: &egui::Response,
-        ctx: &egui::Context,
-    ) {
-        let pointer_pos = match ctx.pointer_latest_pos() {
-            Some(pos) => pos,
-            None => return, // マウス位置が取得できない場合は早期リターン
-        };
-
-        if !response.rect.contains(pointer_pos) {
-            return; // マップエリア外の場合は早期リターン
-        }
-
-        let wave = match game.get_wave_mut(current_wave_index) {
-            Some(wave) => wave,
-            None => return, // waveが存在しない場合は早期リターン
-        };
-
-        let point = Self::screen_to_normalized_point(pointer_pos, response.rect);
-        Self::update_route_start(wave, dragging_user_id, point);
-    }
-
-    // スクリーン座標を正規化座標（0.0-1.0）に変換
-    fn screen_to_normalized_point(screen_pos: egui::Pos2, rect: egui::Rect) -> Point {
-        Point::new(
-            (screen_pos.x - rect.min.x) / rect.size().x,
-            (screen_pos.y - rect.min.y) / rect.size().y,
-        )
-    }
-
-    // ルートの開始位置を更新（既存のルートがあれば更新、なければ新規作成）
-    fn update_route_start(wave: &mut Wave, user_id: usize, point: Point) {
-        if let Some(route) = wave.routes.iter_mut().find(|r| r.user_id == user_id) {
-            route.start = point;
-        } else {
-            let route = Route::new(user_id, point);
-            wave.routes.push(route);
-        }
-    }
-
-    fn handle_map_interaction(
-        response: &egui::Response,
-        wave: &mut Wave,
-        user_id: usize,
-        drawing_mode: DrawingMode,
-    ) {
-        match drawing_mode {
-            DrawingMode::ClickToLine => {
-                if response.clicked() {
-                    if let Some(pos) = response.interact_pointer_pos() {
-                        let rect = response.rect;
-                        let point = Point::new(
-                            (pos.x - rect.min.x) / rect.size().x,
-                            (pos.y - rect.min.y) / rect.size().y,
-                        );
-
-                        // 既存のルートを探すか、新規作成
-                        if let Some(route) = wave.routes.iter_mut().find(|r| r.user_id == user_id) {
-                            // 既存のルートがある場合はポイントを追加
-                            route.add_point(point);
-                        } else {
-                            // 新規ルートの場合は最初のポイントをstartとして設定
-                            let route = Route::new(user_id, point.clone());
-                            wave.routes.push(route);
-                        }
-                    }
-                }
-            }
-            DrawingMode::Freehand => {
-                if response.drag_started() {
-                    // ドラッグ開始時に新しいルートを作成
-                    if let Some(pos) = response.interact_pointer_pos() {
-                        let rect = response.rect;
-                        let point = Point::new(
-                            (pos.x - rect.min.x) / rect.size().x,
-                            (pos.y - rect.min.y) / rect.size().y,
-                        );
-
-                        // 既存のルートがあれば削除して新規作成（フリーハンドは新規描画）
-                        wave.routes.retain(|r| r.user_id != user_id);
-                        let route = Route::new(user_id, point.clone());
-                        wave.routes.push(route);
-                    }
-                } else if response.dragged() {
-                    // ドラッグ中はポイントを追加
-                    if let Some(pos) = response.interact_pointer_pos() {
-                        let rect = response.rect;
-                        let point = Point::new(
-                            (pos.x - rect.min.x) / rect.size().x,
-                            (pos.y - rect.min.y) / rect.size().y,
-                        );
-
-                        if let Some(route) = wave.routes.iter_mut().find(|r| r.user_id == user_id) {
-                            route.add_point(point);
-                        }
-                    }
-                }
-            }
-            DrawingMode::None => {}
         }
     }
 

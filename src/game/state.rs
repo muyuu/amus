@@ -97,6 +97,19 @@ pub struct AppState {
     pub show_turn_menu: bool, // ターンメニューの表示状態
     pub dragging_user_id: Option<usize>,     // ドラッグ中のユーザーID
     pub show_debug_view: bool,               // デバッグビューの表示状態
+    pub dragging_location: Option<DraggingLocation>, // ドラッグ中の位置（出現位置 or 終了時位置）
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LocationType {
+    Spawn, // 出現位置
+    End,   // 終了時位置
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct DraggingLocation {
+    pub location_type: LocationType,
+    pub user_id: usize,
 }
 
 impl Default for AppState {
@@ -114,6 +127,7 @@ impl Default for AppState {
             show_turn_menu: false,                           // 初期状態では非表示
             dragging_user_id: None,                          // ドラッグ中はNone
             show_debug_view: false,                          // 初期状態では非表示
+            dragging_location: None,                         // ドラッグ中の位置はNone
         }
     }
 }
