@@ -4,10 +4,6 @@ rust = "latest"
 [env]
 RUST_BACKTRACE = "1"
 
-[tasks.default]
-description = "アプリケーションを監視モードで実行する"
-run = "mise run watch"
-
 [tasks.setup]
 description = "開発に必要なツールをインストールする"
 run = '''
