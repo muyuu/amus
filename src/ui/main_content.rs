@@ -338,7 +338,8 @@ impl MainContent {
         for route in &wave.routes {
             if let Some(user) = game.users.get(route.user_id) {
                 let color = user.color.to_egui_color();
-                Self::draw_route(painter, route, color, rect);
+                let spawn_location = wave.spawn_locations.get(&route.user_id);
+                Self::draw_route(painter, route, spawn_location, color, rect);
             }
         }
 
@@ -392,25 +393,41 @@ impl MainContent {
         }
     }
 
-    fn draw_route(painter: &egui::Painter, route: &Route, color: Color32, rect: Rect) {
-        // スタート地点を描画（pointsが空でもstartは描画する）
-        let start_pos = pos2(
-            rect.min.x + route.start.x * rect.size().x,
-            rect.min.y + route.start.y * rect.size().y,
-        );
-        painter.circle_filled(start_pos, 8.0, color); // サイズを大きくして見やすく
+    fn draw_route(
+        painter: &egui::Painter,
+        route: &Route,
+        spawn_location: Option<&Point>,
+        color: Color32,
+        rect: Rect,
+    ) {
+        // 開始地点を描画（spawn_locationsから取得）
+        let mut prev_pos = if let Some(spawn_point) = spawn_location {
+            let pos = pos2(
+                rect.min.x + spawn_point.x * rect.size().x,
+                rect.min.y + spawn_point.y * rect.size().y,
+            );
+            painter.circle_filled(pos, 8.0, color);
+            pos
+        } else if let Some(first_point) = route.points.first() {
+            // spawn_locationがない場合は最初のポイントを開始地点として使用
+            let pos = pos2(
+                rect.min.x + first_point.x * rect.size().x,
+                rect.min.y + first_point.y * rect.size().y,
+            );
+            painter.circle_filled(pos, 8.0, color);
+            pos
+        } else {
+            return; // ポイントがない場合は描画しない
+        };
 
-        // 軌跡を描画（pointsがある場合のみ）
-        if !route.points.is_empty() {
-            let mut prev_pos = start_pos;
-            for point in &route.points {
-                let pos = pos2(
-                    rect.min.x + point.x * rect.size().x,
-                    rect.min.y + point.y * rect.size().y,
-                );
-                painter.line_segment([prev_pos, pos], (2.0, color));
-                prev_pos = pos;
-            }
+        // 軌跡を描画
+        for point in &route.points {
+            let pos = pos2(
+                rect.min.x + point.x * rect.size().x,
+                rect.min.y + point.y * rect.size().y,
+            );
+            painter.line_segment([prev_pos, pos], (2.0, color));
+            prev_pos = pos;
         }
     }
 
@@ -575,8 +592,9 @@ impl MainContent {
                             // 既存のルートがある場合はポイントを追加
                             route.add_point(point);
                         } else {
-                            // 新規ルートの場合は最初のポイントをstartとして設定
-                            let route = Route::new(user_id, point.clone());
+                            // 新規ルートを作成
+                            let mut route = Route::new(user_id);
+                            route.add_point(point);
                             wave.routes.push(route);
                         }
                     }
@@ -588,11 +606,8 @@ impl MainContent {
                     // このユーザーの既存のルートをすべて削除（1ユーザー1本にするため）
                     wave.routes.retain(|r| r.user_id != user_id);
 
-                    if let Some(pos) = response.interact_pointer_pos() {
-                        let rect = response.rect;
-                        let point = Self::screen_to_normalized_point(pos, rect);
-
-                        let route = Route::new(user_id, point.clone());
+                    if response.interact_pointer_pos().is_some() {
+                        let route = Route::new(user_id);
                         wave.routes.push(route);
                     }
                 } else if response.dragged() {
@@ -606,7 +621,8 @@ impl MainContent {
                             route.add_point(point);
                         } else {
                             // ルートが存在しない場合は新規作成
-                            let route = Route::new(user_id, point.clone());
+                            let mut route = Route::new(user_id);
+                            route.add_point(point);
                             wave.routes.push(route);
                         }
                     }

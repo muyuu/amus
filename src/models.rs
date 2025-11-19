@@ -151,16 +151,14 @@ impl User {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Route {
-    pub user_id: usize, // Userのインデックス参照
-    pub start: Point,
-    pub points: Vec<Point>,
+    pub user_id: usize,     // Userのインデックス参照
+    pub points: Vec<Point>, // 軌跡のポイント（開始地点はspawn_locationsから取得）
 }
 
 impl Route {
-    pub fn new(user_id: usize, start: Point) -> Self {
+    pub fn new(user_id: usize) -> Self {
         Self {
             user_id,
-            start,
             points: Vec::new(),
         }
     }
