@@ -27,6 +27,10 @@ description = "アプリケーションを一度だけ実行する"
 run = "cargo run"
 depends = ["fmt"]
 
+[tasks.dev]
+description = "開発環境を起動する"
+depends = ["init", "watch"]
+
 [tasks.watch]
 description = "ファイル変更を監視して自動的にアプリを再実行する"
 run = '''
