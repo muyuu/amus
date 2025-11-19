@@ -10,7 +10,21 @@ run = "mise run watch"
 
 [tasks.setup]
 description = "開発に必要なツールをインストールする"
-run = "cargo install cargo-watch"
+run = '''
+  if command -v cargo-watch >/dev/null 2>&1; then
+    echo "cargo-watchは既にインストールされています"
+  else
+    echo "cargo-watchをインストール中..."
+    # AppKitフレームワークをリンクするための環境変数を設定
+    export RUSTFLAGS="-C link-arg=-framework -C link-arg=AppKit"
+    cargo install cargo-watch --locked || {
+      echo "警告: cargo-watchのインストールに失敗しました"
+      echo "代替方法: 以下のコマンドで手動インストールを試してください:"
+      echo "  RUSTFLAGS='-C link-arg=-framework -C link-arg=AppKit' cargo install cargo-watch"
+      echo "または、cargo-watchなしでも開発は可能です（mise run watch は使用できません）"
+    }
+  fi
+'''
 
 [tasks.run]
 description = "アプリケーションを一度だけ実行する"
@@ -19,7 +33,16 @@ depends = ["fmt"]
 
 [tasks.watch]
 description = "ファイル変更を監視して自動的にアプリを再実行する"
-run = "cargo watch -c -w src -x run"
+run = '''
+  if command -v cargo-watch >/dev/null 2>&1; then
+    cargo watch -c -w src -x run
+  else
+    echo "エラー: cargo-watchがインストールされていません"
+    echo "インストールするには: mise run setup"
+    echo "または手動で: cargo install cargo-watch"
+    exit 1
+  fi
+'''
 depends = ["fmt"]
 
 [tasks.build]
