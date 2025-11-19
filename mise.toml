@@ -4,7 +4,7 @@ rust = "latest"
 [env]
 RUST_BACKTRACE = "1"
 
-[tasks.setup]
+[tasks.init]
 description = "開発に必要なツールをインストールする"
 run = '''
   if command -v cargo-watch >/dev/null 2>&1; then
@@ -34,7 +34,7 @@ run = '''
     cargo watch -c -w src -x run
   else
     echo "エラー: cargo-watchがインストールされていません"
-    echo "インストールするには: mise run setup"
+    echo "インストールするには: mise run init"
     echo "または手動で: cargo install cargo-watch"
     exit 1
   fi
