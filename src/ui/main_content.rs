@@ -30,35 +30,19 @@ impl MainContent {
         let response = ui.allocate_response(ui.available_size(), egui::Sense::click_and_drag());
 
         // 位置（出現位置・終了時位置）のドラッグ処理（先に処理）
-        // dragging_location だけを可変借用して処理
-        // gameの可変借用を一時的に解放するため、dragging_locationを先に取得
         let dragging_location_value = state.dragging_location;
-        let needs_location_update = dragging_location_value.is_some();
-
-        // ドラッグ中の位置を更新
-        if needs_location_update {
-            if let Some(pointer_pos) = ui.ctx().pointer_latest_pos() {
-                if response.rect.contains(pointer_pos) {
-                    let point = Self::screen_to_normalized_point(pointer_pos, response.rect);
-                    if let Some(dragging_location) = dragging_location_value {
-                        if let Some(wave) = game.get_wave_mut(current_wave_index) {
-                            match dragging_location.location_type {
-                                LocationType::Spawn => {
-                                    wave.spawn_locations
-                                        .insert(dragging_location.user_id, point);
-                                }
-                                LocationType::End => {
-                                    wave.end_locations.insert(dragging_location.user_id, point);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        if let Some(dragging_location) = dragging_location_value {
+            Self::update_dragging_location(
+                game,
+                current_wave_index,
+                dragging_location,
+                &response,
+                ui.ctx(),
+            );
         }
 
         // ドラッグ開始の検出（gameの不変参照を使用）
-        if response.drag_started() && !needs_location_update {
+        if response.drag_started() && state.dragging_location.is_none() {
             if let Some(pointer_pos) = response.interact_pointer_pos() {
                 let hit_size = 15.0;
                 if let Some(wave) = game.get_wave(current_wave_index) {
@@ -482,6 +466,40 @@ impl MainContent {
 
         let point = Self::screen_to_normalized_point(pointer_pos, response.rect);
         wave.end_locations.insert(dragging_user_id, point);
+    }
+
+    // ドラッグ中の位置を更新
+    fn update_dragging_location(
+        game: &mut Game,
+        current_wave_index: usize,
+        dragging_location: DraggingLocation,
+        response: &egui::Response,
+        ctx: &egui::Context,
+    ) {
+        let pointer_pos = match ctx.pointer_latest_pos() {
+            Some(pos) => pos,
+            None => return,
+        };
+
+        if !response.rect.contains(pointer_pos) {
+            return;
+        }
+
+        let point = Self::screen_to_normalized_point(pointer_pos, response.rect);
+        let wave = match game.get_wave_mut(current_wave_index) {
+            Some(wave) => wave,
+            None => return,
+        };
+
+        match dragging_location.location_type {
+            LocationType::Spawn => {
+                wave.spawn_locations
+                    .insert(dragging_location.user_id, point);
+            }
+            LocationType::End => {
+                wave.end_locations.insert(dragging_location.user_id, point);
+            }
+        }
     }
 
     // スクリーン座標を正規化座標（0.0-1.0）に変換
