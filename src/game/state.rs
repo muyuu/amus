@@ -192,6 +192,7 @@ impl AppState {
 
         let mut game = Game::new(area, users);
         game.add_wave(); // 最初のターンを作成
+        game.add_wave(); // 2番目のターンを作成
         self.game = Some(game);
         self.current_wave_index = 0;
         self.show_setup_dialog = false;
