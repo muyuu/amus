@@ -215,25 +215,40 @@ impl AmusApp {
                                     ui.heading("ターン選択");
                                     ui.separator();
 
-                                    // 4x4のボタングリッド
-                                    egui::Grid::new("turn_grid").spacing([10.0, 10.0]).show(
-                                        ui,
-                                        |ui| {
-                                            for row in 0..4 {
-                                                for col in 0..4 {
-                                                    let turn_number = row * 4 + col + 1;
-                                                    if ui
-                                                        .button(format!("ターン {}", turn_number))
-                                                        .clicked()
-                                                    {
-                                                        // ターンを選択した際の処理をここに追加
+                                    // ターンボタングリッド
+                                    if let Some(game) = &self.state.game {
+                                        let total_waves = game.waves.len();
+                                        egui::Grid::new("turn_grid")
+                                            .num_columns(4)
+                                            .spacing([10.0, 10.0])
+                                            .show(ui, |ui| {
+                                                for turn_index in 0..total_waves {
+                                                    let turn_number = turn_index + 1;
+                                                    let is_current =
+                                                        self.state.current_wave_index == turn_index;
+
+                                                    let button_text = if is_current {
+                                                        format!("ターン {} (現在)", turn_number)
+                                                    } else {
+                                                        format!("ターン {}", turn_number)
+                                                    };
+
+                                                    let button = ui.button(button_text);
+                                                    if button.clicked() {
+                                                        // ターンを選択して該当waveに切り替え
+                                                        self.state.select_wave(turn_index);
                                                         self.state.show_turn_menu = false;
                                                     }
+
+                                                    // 4列で改行
+                                                    if (turn_index + 1) % 4 == 0 {
+                                                        ui.end_row();
+                                                    }
                                                 }
-                                                ui.end_row();
-                                            }
-                                        },
-                                    );
+                                            });
+                                    } else {
+                                        ui.label("ゲームが開始されていません");
+                                    }
                                 });
                         },
                     );
