@@ -28,6 +28,45 @@ impl MainContent {
         // マップ表示エリア（ここにエリア画像と軌跡を描画）
         let response = ui.allocate_response(ui.available_size(), egui::Sense::click_and_drag());
 
+        // ドラッグ&ドロップの処理：ユーザーをドロップした位置に出現位置を設定
+        if let Some(dragging_user_id) = state.dragging_user_id {
+            // ドラッグ中の場合、マウス位置を追跡
+            if let Some(pointer_pos) = ui.ctx().pointer_latest_pos() {
+                // マップエリア内にマウスがあるかチェック
+                if response.rect.contains(pointer_pos) {
+                    // ドラッグ中はリアルタイムで位置を更新
+                    if let Some(wave) = game.get_wave_mut(current_wave_index) {
+                        let rect = response.rect;
+                        let point = Point::new(
+                            (pointer_pos.x - rect.min.x) / rect.size().x,
+                            (pointer_pos.y - rect.min.y) / rect.size().y,
+                        );
+
+                        // 既存のルートを探すか、新規作成
+                        if let Some(route) = wave
+                            .routes
+                            .iter_mut()
+                            .find(|r| r.user_id == dragging_user_id)
+                        {
+                            // 既存のルートがある場合は start を更新
+                            route.start = point;
+                        } else {
+                            // 新規ルートを作成
+                            let route = Route::new(dragging_user_id, point);
+                            wave.routes.push(route);
+                        }
+                        // ドラッグ中のユーザーを選択状態にする
+                        state.selected_user_id = Some(dragging_user_id);
+                    }
+                }
+            }
+
+            // ドラッグ終了時にクリア（マウスボタンが離された時）
+            if ui.ctx().input(|i| i.pointer.any_released()) {
+                state.dragging_user_id = None;
+            }
+        }
+
         // マップ描画（不変参照で描画）
         // 必要な情報を先に取得
         let temp_points = state.temp_points.clone();
@@ -258,26 +297,24 @@ impl MainContent {
     }
 
     fn draw_route(painter: &egui::Painter, route: &Route, color: Color32, rect: Rect) {
-        if route.points.is_empty() {
-            return;
-        }
-
-        // スタート地点
+        // スタート地点を描画（pointsが空でもstartは描画する）
         let start_pos = pos2(
             rect.min.x + route.start.x * rect.size().x,
             rect.min.y + route.start.y * rect.size().y,
         );
-        painter.circle_filled(start_pos, 5.0, color);
+        painter.circle_filled(start_pos, 8.0, color); // サイズを大きくして見やすく
 
-        // 軌跡を描画
-        let mut prev_pos = start_pos;
-        for point in &route.points {
-            let pos = pos2(
-                rect.min.x + point.x * rect.size().x,
-                rect.min.y + point.y * rect.size().y,
-            );
-            painter.line_segment([prev_pos, pos], (2.0, color));
-            prev_pos = pos;
+        // 軌跡を描画（pointsがある場合のみ）
+        if !route.points.is_empty() {
+            let mut prev_pos = start_pos;
+            for point in &route.points {
+                let pos = pos2(
+                    rect.min.x + point.x * rect.size().x,
+                    rect.min.y + point.y * rect.size().y,
+                );
+                painter.line_segment([prev_pos, pos], (2.0, color));
+                prev_pos = pos;
+            }
         }
     }
 

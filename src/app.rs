@@ -104,7 +104,7 @@ impl AmusApp {
                             ui.add_space(padding);
                         }
 
-                        for user in &game.users {
+                        for (user_id, user) in game.users.iter().enumerate() {
                             ui.vertical(|ui| {
                                 // ユーザーの色を表示（setup_stateから取得）
                                 let user_color = if let Some(player_config) = self
@@ -119,12 +119,32 @@ impl AmusApp {
                                     egui::Color32::GRAY // デフォルト色
                                 };
 
-                                // カラー矩形（正方形）
-                                let (rect, _) = ui.allocate_exact_size(
+                                // カラー矩形（正方形）をドラッグ可能にする
+                                let (rect, response) = ui.allocate_exact_size(
                                     egui::Vec2::new(40.0, 40.0),
-                                    egui::Sense::hover(),
+                                    egui::Sense::click_and_drag(),
                                 );
-                                ui.painter().rect_filled(rect, 4.0, user_color);
+
+                                // ドラッグ開始時にユーザーIDを設定
+                                if response.drag_started() {
+                                    self.state.dragging_user_id = Some(user_id);
+                                }
+
+                                // ドラッグ終了時にクリア
+                                if response.drag_stopped() {
+                                    self.state.dragging_user_id = None;
+                                }
+
+                                // ドラッグ中の視覚的フィードバック
+                                let color = if response.dragged()
+                                    || self.state.dragging_user_id == Some(user_id)
+                                {
+                                    user_color.linear_multiply(0.7) // 少し暗くする
+                                } else {
+                                    user_color
+                                };
+
+                                ui.painter().rect_filled(rect, 4.0, color);
 
                                 // ユーザー名（矩形の下に配置）
                                 ui.label(&user.name);

@@ -95,6 +95,7 @@ pub struct AppState {
     pub asset_manager: Option<AssetManager>, // 画像リソース管理
     #[allow(dead_code)]
     pub show_turn_menu: bool, // ターンメニューの表示状態
+    pub dragging_user_id: Option<usize>,     // ドラッグ中のユーザーID
 }
 
 impl Default for AppState {
@@ -110,6 +111,7 @@ impl Default for AppState {
             translator: Translator::new(Language::Japanese), // デフォルトは日本語
             asset_manager: None,                             // 後で初期化
             show_turn_menu: false,                           // 初期状態では非表示
+            dragging_user_id: None,                          // ドラッグ中はNone
         }
     }
 }
