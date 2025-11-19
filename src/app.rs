@@ -57,16 +57,29 @@ impl AmusApp {
             .default_height(50.0)
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
+                    // 左側：メニューボタン
                     if ui.button("📋 メニュー").clicked() {
                         self.state.show_turn_menu = !self.state.show_turn_menu;
                     }
 
-                    // 右側にリセットボタンを配置
+                    // 中央：デバッグボタン
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        // 右側：リセットボタン
                         if ui.button("🔄 リセット").clicked() {
                             self.state.show_setup_dialog = true;
                             self.state.show_turn_menu = false; // メニューを閉じる
                         }
+
+                        // 中央：デバッグボタン（スペースで中央に配置）
+                        ui.allocate_ui_with_layout(
+                            ui.available_size(),
+                            egui::Layout::top_down(egui::Align::Center),
+                            |ui| {
+                                if ui.button("🐛 デバッグ").clicked() {
+                                    self.state.show_debug_view = !self.state.show_debug_view;
+                                }
+                            },
+                        );
                     });
                 });
             });

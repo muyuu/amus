@@ -3,7 +3,7 @@ use crate::i18n::{Language, Translator};
 use crate::models::*;
 
 // デフォルトのプレイヤー人数定数
-const DEFAULT_PLAYER_COUNT: usize = 18;
+const DEFAULT_PLAYER_COUNT: usize = 8;
 
 #[derive(Debug, Clone)]
 pub struct PlayerSetup {
@@ -62,8 +62,8 @@ impl Default for SetupState {
         }
 
         Self {
-            selected_area_id: "skeld".to_string(),
-            selected_area_name: "The Skeld".to_string(),
+            selected_area_id: "airship".to_string(),
+            selected_area_name: "Airship".to_string(),
             player_count: DEFAULT_PLAYER_COUNT,
             players,
         }
@@ -96,6 +96,7 @@ pub struct AppState {
     #[allow(dead_code)]
     pub show_turn_menu: bool, // ターンメニューの表示状態
     pub dragging_user_id: Option<usize>,     // ドラッグ中のユーザーID
+    pub show_debug_view: bool,               // デバッグビューの表示状態
 }
 
 impl Default for AppState {
@@ -112,6 +113,7 @@ impl Default for AppState {
             asset_manager: None,                             // 後で初期化
             show_turn_menu: false,                           // 初期状態では非表示
             dragging_user_id: None,                          // ドラッグ中はNone
+            show_debug_view: false,                          // 初期状態では非表示
         }
     }
 }

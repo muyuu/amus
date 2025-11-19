@@ -1,4 +1,5 @@
 use super::common_texts::CommonTexts;
+use super::debug_view::DebugView;
 use crate::game::state::{AppState, DrawingMode};
 use crate::i18n::keys::*;
 use crate::models::*;
@@ -71,6 +72,8 @@ impl MainContent {
         // 必要な情報を先に取得
         let temp_points = state.temp_points.clone();
         let selected_user_id = state.selected_user_id;
+        let show_debug_view = state.show_debug_view;
+        let dragging_user_id = state.dragging_user_id;
 
         if let Some(wave) = game.get_wave(current_wave_index) {
             let painter = ui.painter_at(response.rect);
@@ -219,6 +222,11 @@ impl MainContent {
 
             ui.label(&common.label_notes);
             ui.text_edit_multiline(&mut wave.notes);
+        }
+
+        // デバッグビューの表示（stateの可変借用を解放した後）
+        if show_debug_view {
+            DebugView::show(ui.ctx(), dragging_user_id);
         }
     }
 
