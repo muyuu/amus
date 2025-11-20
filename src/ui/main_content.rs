@@ -144,15 +144,7 @@ impl MainContent {
             );
         }
 
-        // 先にusersの情報を取得（借用チェッカーの問題を回避）
-        let users_info: Vec<(usize, String, bool)> = game
-            .users
-            .iter()
-            .enumerate()
-            .map(|(i, u)| (i, u.name.clone(), u.alive))
-            .collect();
-
-        // その後、可変参照を取得して編集
+        // 可変参照を取得して編集
         if let Some(wave) = game.get_wave_mut(current_wave_index) {
             ui.heading(format!(
                 "{} {} - {}",
@@ -165,97 +157,7 @@ impl MainContent {
             if let Some(user_id) = state.selected_user_id {
                 RouteDrawingInteraction::handle_freehand_drawing(&response, wave, user_id);
             }
-
-            ui.separator();
-
-            // 議論ターン情報
-            ui.heading(&texts.discussion_info);
-
-            ui.horizontal(|ui| {
-                ui.label(&texts.killed_player);
-                let mut killed_id = wave.killed;
-                egui::ComboBox::from_id_source("killed_player")
-                    .selected_text(if let Some(id) = killed_id {
-                        if let Some((_, name, alive)) = users_info.get(id) {
-                            format!(
-                                "{} ({})",
-                                name,
-                                if *alive {
-                                    &common.status_alive
-                                } else {
-                                    &common.status_dead
-                                }
-                            )
-                        } else {
-                            common.select_prompt.clone()
-                        }
-                    } else {
-                        common.select_no_selection.clone()
-                    })
-                    .show_ui(ui, |ui| {
-                        if ui
-                            .selectable_label(killed_id.is_none(), &common.select_no_selection)
-                            .clicked()
-                        {
-                            killed_id = None;
-                        }
-                        for (i, (_, name, alive)) in users_info.iter().enumerate() {
-                            if ui
-                                .selectable_label(
-                                    killed_id == Some(i),
-                                    format!(
-                                        "{} ({})",
-                                        name,
-                                        if *alive {
-                                            &common.status_alive
-                                        } else {
-                                            &common.status_dead
-                                        }
-                                    ),
-                                )
-                                .clicked()
-                            {
-                                killed_id = Some(i);
-                            }
-                        }
-                    });
-                if killed_id != wave.killed {
-                    wave.killed = killed_id;
-                }
-            });
         } // waveの可変借用を解放
-
-        // 殺害されたプレイヤーを死亡状態にする（waveの借用を解放した後）
-        if let Some(wave_ref) = game.get_wave(current_wave_index) {
-            if let Some(killed_id) = wave_ref.killed {
-                if let Some(user) = game.users.get_mut(killed_id) {
-                    if user.alive {
-                        user.alive = false;
-                        user.death = Some(current_wave_index + 1);
-                    }
-                }
-            }
-        }
-
-        // waveを再度取得して続きの処理
-        if let Some(wave) = game.get_wave_mut(current_wave_index) {
-            ui.horizontal(|ui| {
-                ui.label(&texts.kill_location);
-                if let Some(loc) = &wave.kill_location {
-                    ui.label(format!("({:.2}, {:.2})", loc.x, loc.y));
-                } else {
-                    ui.label(&texts.location_unset);
-                }
-                if ui.button(&texts.set_location_btn).clicked() {
-                    // マップ上でクリックした位置を殺害場所として設定
-                    // これは別のモードとして実装する必要がある
-                    ui.label(&texts.location_note);
-                }
-            });
-
-            ui.label(&common.label_notes);
-            ui.text_edit_multiline(&mut wave.notes);
-        }
 
         // デバッグビューの表示（stateの可変借用を解放した後）
         if show_debug_view {
@@ -282,12 +184,6 @@ impl MainContent {
 
 // メインコンテンツ固有のテキスト
 struct MainContentTexts {
-    pub discussion_info: String,
-    pub killed_player: String,
-    pub kill_location: String,
-    pub location_unset: String,
-    pub set_location_btn: String,
-    pub location_note: String,
     pub welcome_title: String,
     pub welcome_message: String,
 }
@@ -295,12 +191,6 @@ struct MainContentTexts {
 impl MainContentTexts {
     fn get(state: &AppState) -> Self {
         Self {
-            discussion_info: state.t(MAIN_DISCUSSION_INFO).to_string(),
-            killed_player: state.t(MAIN_KILLED_PLAYER).to_string(),
-            kill_location: state.t(MAIN_KILL_LOCATION).to_string(),
-            location_unset: state.t(MAIN_LOCATION_UNSET).to_string(),
-            set_location_btn: state.t(MAIN_SET_LOCATION_BTN).to_string(),
-            location_note: state.t(MAIN_LOCATION_NOTE).to_string(),
             welcome_title: state.t(MAIN_WELCOME_TITLE).to_string(),
             welcome_message: state.t(MAIN_WELCOME_MESSAGE).to_string(),
         }
