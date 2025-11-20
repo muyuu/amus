@@ -1,5 +1,6 @@
 mod app;
 mod assets;
+mod features;
 mod i18n;
 mod models;
 mod state;
