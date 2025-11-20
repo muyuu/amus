@@ -20,7 +20,8 @@ impl MainContent {
             }
         };
 
-        // 先に必要な情報を取得
+        // 先に必要な情報を取得（借用チェッカーの問題を回避）
+        let common = CommonTexts::get(state);
         let area_name = game.area.name.clone();
         let current_wave_index = state.current_wave_index;
 
@@ -141,7 +142,6 @@ impl MainContent {
         }
 
         // 可変参照を取得して編集
-        let common = CommonTexts::get(state);
         if let Some(wave) = game.get_wave_mut(current_wave_index) {
             ui.heading(format!(
                 "{} {} - {}",
