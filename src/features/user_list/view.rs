@@ -1,4 +1,3 @@
-use crate::models::Game;
 use crate::state::AppState;
 
 pub struct UserListView;

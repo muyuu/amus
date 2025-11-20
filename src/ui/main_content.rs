@@ -3,7 +3,7 @@ use crate::features::debug_view::DebugView;
 use crate::features::location::LocationInteraction;
 use crate::features::map::MapView;
 use crate::features::route_drawing::RouteDrawingInteraction;
-use crate::i18n::keys::*;
+use crate::features::welcome::WelcomeView;
 use crate::models::*;
 use crate::state::AppState;
 
@@ -11,15 +11,11 @@ pub struct MainContent;
 
 impl MainContent {
     pub fn show(state: &mut AppState, ui: &mut egui::Ui) {
-        // テキストをまとめて取得（borrowing conflicts回避）
-        let texts = MainContentTexts::get(state);
-        let common = CommonTexts::get(state);
-
         // ゲームがない場合はウェルカムメッセージを表示して早期リターン
         let game = match &mut state.game {
             Some(game) => game,
             None => {
-                Self::show_welcome_message(ui, &texts, &common, state);
+                WelcomeView::show(ui, state);
                 return;
             }
         };
@@ -145,6 +141,7 @@ impl MainContent {
         }
 
         // 可変参照を取得して編集
+        let common = CommonTexts::get(state);
         if let Some(wave) = game.get_wave_mut(current_wave_index) {
             ui.heading(format!(
                 "{} {} - {}",
@@ -163,36 +160,6 @@ impl MainContent {
         if show_debug_view {
             let selected_user_id = state.selected_user_id;
             DebugView::show(ui.ctx(), dragging_user_id, selected_user_id, game);
-        }
-    }
-
-    fn show_welcome_message(
-        ui: &mut egui::Ui,
-        texts: &MainContentTexts,
-        common: &CommonTexts,
-        state: &mut AppState,
-    ) {
-        ui.vertical_centered(|ui| {
-            ui.heading(&texts.welcome_title);
-            ui.label(&texts.welcome_message);
-            if ui.button(&common.button_new_game).clicked() {
-                state.start_new_game();
-            }
-        });
-    }
-}
-
-// メインコンテンツ固有のテキスト
-struct MainContentTexts {
-    pub welcome_title: String,
-    pub welcome_message: String,
-}
-
-impl MainContentTexts {
-    fn get(state: &AppState) -> Self {
-        Self {
-            welcome_title: state.t(MAIN_WELCOME_TITLE).to_string(),
-            welcome_message: state.t(MAIN_WELCOME_MESSAGE).to_string(),
         }
     }
 }
