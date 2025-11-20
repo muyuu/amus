@@ -1,6 +1,7 @@
 use crate::common::CommonTexts;
 use crate::features::debug_view::DebugView;
 use crate::features::location::{LocationInteraction, LocationView};
+use crate::features::route_drawing::{RouteDrawingInteraction, RouteDrawingView};
 use crate::i18n::keys::*;
 use crate::models::*;
 use crate::state::{AppState, DrawingMode};
@@ -101,15 +102,14 @@ impl MainContent {
                         }
                     }
 
-                    // stateを可変借用してtemp_pointsを更新
+                    // temp_pointsを更新（フリーハンド描画のプレビュー用）
                     if needs_drag_tracking && dragging_user_id_for_area.is_none() {
                         if let Some(point) = point_opt {
-                            if response.drag_started() {
-                                state.temp_points.clear();
-                                state.temp_points.push(point);
-                            } else if response.dragged() {
-                                state.temp_points.push(point);
-                            }
+                            RouteDrawingInteraction::update_temp_points(
+                                &mut state.temp_points,
+                                &response,
+                                point,
+                            );
                         }
                     }
                 }
@@ -186,7 +186,12 @@ impl MainContent {
             // マウス操作の処理
             if let Some(user_id) = state.selected_user_id {
                 let drawing_mode = state.drawing_mode;
-                Self::handle_map_interaction(&response, wave, user_id, drawing_mode);
+                RouteDrawingInteraction::handle_map_interaction(
+                    &response,
+                    wave,
+                    user_id,
+                    drawing_mode,
+                );
             }
 
             ui.separator();
@@ -343,7 +348,7 @@ impl MainContent {
             if let Some(user) = game.users.get(route.user_id) {
                 let color = user.color.to_egui_color();
                 let spawn_location = wave.spawn_locations.get(&route.user_id);
-                Self::draw_route(painter, route, spawn_location, color, rect);
+                RouteDrawingView::draw_route(painter, route, spawn_location, color, rect);
             }
         }
 
@@ -361,123 +366,7 @@ impl MainContent {
             } else {
                 Color32::WHITE
             };
-            Self::draw_temp_route(painter, temp_points, color, rect);
-        }
-    }
-
-    fn draw_route(
-        painter: &egui::Painter,
-        route: &Route,
-        spawn_location: Option<&Point>,
-        color: Color32,
-        rect: Rect,
-    ) {
-        // 開始地点を描画（spawn_locationsから取得）
-        let mut prev_pos = if let Some(spawn_point) = spawn_location {
-            let pos = pos2(
-                rect.min.x + spawn_point.x * rect.size().x,
-                rect.min.y + spawn_point.y * rect.size().y,
-            );
-            painter.circle_filled(pos, 8.0, color);
-            pos
-        } else if let Some(first_point) = route.points.first() {
-            // spawn_locationがない場合は最初のポイントを開始地点として使用
-            let pos = pos2(
-                rect.min.x + first_point.x * rect.size().x,
-                rect.min.y + first_point.y * rect.size().y,
-            );
-            painter.circle_filled(pos, 8.0, color);
-            pos
-        } else {
-            return; // ポイントがない場合は描画しない
-        };
-
-        // 軌跡を描画
-        for point in &route.points {
-            let pos = pos2(
-                rect.min.x + point.x * rect.size().x,
-                rect.min.y + point.y * rect.size().y,
-            );
-            painter.line_segment([prev_pos, pos], (2.0, color));
-            prev_pos = pos;
-        }
-    }
-
-    fn handle_map_interaction(
-        response: &egui::Response,
-        wave: &mut Wave,
-        user_id: usize,
-        drawing_mode: DrawingMode,
-    ) {
-        match drawing_mode {
-            DrawingMode::ClickToLine => {
-                if response.clicked() {
-                    if let Some(pos) = response.interact_pointer_pos() {
-                        let rect = response.rect;
-                        let point = LocationInteraction::screen_to_normalized_point(pos, rect);
-
-                        // 既存のルートを探すか、新規作成
-                        if let Some(route) = wave.routes.iter_mut().find(|r| r.user_id == user_id) {
-                            // 既存のルートがある場合はポイントを追加
-                            route.add_point(point);
-                        } else {
-                            // 新規ルートを作成
-                            let mut route = Route::new(user_id);
-                            route.add_point(point);
-                            wave.routes.push(route);
-                        }
-                    }
-                }
-            }
-            DrawingMode::Freehand => {
-                if response.drag_started() {
-                    // ドラッグ開始時に新しいルートを作成
-                    // このユーザーの既存のルートをすべて削除（1ユーザー1本にするため）
-                    wave.routes.retain(|r| r.user_id != user_id);
-
-                    if response.interact_pointer_pos().is_some() {
-                        let route = Route::new(user_id);
-                        wave.routes.push(route);
-                    }
-                } else if response.dragged() {
-                    // ドラッグ中はポイントを追加
-                    if let Some(pos) = response.interact_pointer_pos() {
-                        let rect = response.rect;
-                        let point = LocationInteraction::screen_to_normalized_point(pos, rect);
-
-                        // このユーザーのルートが存在しない場合は作成（念のため）
-                        if let Some(route) = wave.routes.iter_mut().find(|r| r.user_id == user_id) {
-                            route.add_point(point);
-                        } else {
-                            // ルートが存在しない場合は新規作成
-                            let mut route = Route::new(user_id);
-                            route.add_point(point);
-                            wave.routes.push(route);
-                        }
-                    }
-                }
-            }
-            DrawingMode::None => {}
-        }
-    }
-
-    fn draw_temp_route(painter: &egui::Painter, points: &[Point], color: Color32, rect: Rect) {
-        if points.is_empty() {
-            return;
-        }
-
-        let mut prev_pos = pos2(
-            rect.min.x + points[0].x * rect.size().x,
-            rect.min.y + points[0].y * rect.size().y,
-        );
-
-        for point in points.iter().skip(1) {
-            let pos = pos2(
-                rect.min.x + point.x * rect.size().x,
-                rect.min.y + point.y * rect.size().y,
-            );
-            painter.line_segment([prev_pos, pos], (2.0, color));
-            prev_pos = pos;
+            RouteDrawingView::draw_temp_route(painter, temp_points, color, rect);
         }
     }
 
