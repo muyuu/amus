@@ -343,6 +343,25 @@ impl MainContent {
             }
         }
 
+        // 出現場所・終了時位置を描画
+        Self::show_location_view(painter, game, wave, rect);
+
+        // 描画中の一時的なポイント（選択中のユーザーの色で線を描画）
+        if !temp_points.is_empty() {
+            let color = if let Some(user_id) = selected_user_id {
+                if let Some(user) = game.users.get(user_id) {
+                    user.color.to_egui_color()
+                } else {
+                    Color32::WHITE
+                }
+            } else {
+                Color32::WHITE
+            };
+            Self::draw_temp_route(painter, temp_points, color, rect);
+        }
+    }
+
+    fn show_location_view(painter: &egui::Painter, game: &Game, wave: &Wave, rect: Rect) {
         // 出現場所を描画（四角）
         for (user_id, point) in &wave.spawn_locations {
             if let Some(user) = game.users.get(*user_id) {
@@ -376,20 +395,6 @@ impl MainContent {
                 painter.circle_filled(pos, 8.0, color);
                 painter.circle_stroke(pos, 8.0, (2.0, Color32::WHITE));
             }
-        }
-
-        // 描画中の一時的なポイント（選択中のユーザーの色で線を描画）
-        if !temp_points.is_empty() {
-            let color = if let Some(user_id) = selected_user_id {
-                if let Some(user) = game.users.get(user_id) {
-                    user.color.to_egui_color()
-                } else {
-                    Color32::WHITE
-                }
-            } else {
-                Color32::WHITE
-            };
-            Self::draw_temp_route(painter, temp_points, color, rect);
         }
     }
 
