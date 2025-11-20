@@ -70,7 +70,7 @@ impl Default for SetupState {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct AppState {
     pub game: Option<Game>,
     pub current_wave_index: usize,
