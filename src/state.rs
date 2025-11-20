@@ -72,17 +72,32 @@ impl Default for SetupState {
 
 pub struct AppState {
     pub game: Option<Game>,
+
+    // 画像リソース管理
+    pub asset_manager: Option<AssetManager>,
+
     pub current_wave_index: usize,
+
+    // ドラッグ中のユーザーID
+    pub dragging_user_id: Option<usize>,
+
+    // ドラッグ中の位置（出現位置 or 終了時位置）
+    pub dragging_location: Option<DraggingLocation>,
+
     pub selected_user_id: Option<usize>,
+
+    // ゲーム設定の状態
+    pub setup_state: SetupState,
+
+    // デバッグビューの表示状態
+    pub show_debug_view: bool,
+
     pub show_setup_dialog: bool,
-    pub setup_state: SetupState, // ゲーム設定の状態
-    pub translator: Translator,
-    pub asset_manager: Option<AssetManager>, // 画像リソース管理
+
     #[allow(dead_code)]
     pub show_turn_menu: bool, // ターンメニューの表示状態
-    pub dragging_user_id: Option<usize>,     // ドラッグ中のユーザーID
-    pub show_debug_view: bool,               // デバッグビューの表示状態
-    pub dragging_location: Option<DraggingLocation>, // ドラッグ中の位置（出現位置 or 終了時位置）
+
+    pub translator: Translator,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
