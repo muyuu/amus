@@ -1,49 +1,9 @@
 use crate::features::location::LocationInteraction;
 use crate::models::{Point, Route, Wave};
-use crate::state::DrawingMode;
 
 pub struct RouteDrawingInteraction;
 
 impl RouteDrawingInteraction {
-    /// マップのインタラクション処理（描画モードに応じて処理を分岐）
-    pub fn handle_map_interaction(
-        response: &egui::Response,
-        wave: &mut Wave,
-        user_id: usize,
-        drawing_mode: DrawingMode,
-    ) {
-        match drawing_mode {
-            DrawingMode::ClickToLine => {
-                Self::handle_click_to_line(response, wave, user_id);
-            }
-            DrawingMode::Freehand => {
-                Self::handle_freehand_drawing(response, wave, user_id);
-            }
-            DrawingMode::None => {}
-        }
-    }
-
-    /// クリックで線を描くモードの処理
-    fn handle_click_to_line(response: &egui::Response, wave: &mut Wave, user_id: usize) {
-        if response.clicked() {
-            if let Some(pos) = response.interact_pointer_pos() {
-                let rect = response.rect;
-                let point = LocationInteraction::screen_to_normalized_point(pos, rect);
-
-                // 既存のルートを探すか、新規作成
-                if let Some(route) = wave.routes.iter_mut().find(|r| r.user_id == user_id) {
-                    // 既存のルートがある場合はポイントを追加
-                    route.add_point(point);
-                } else {
-                    // 新規ルートを作成
-                    let mut route = Route::new(user_id);
-                    route.add_point(point);
-                    wave.routes.push(route);
-                }
-            }
-        }
-    }
-
     /// フリーハンド描画の処理
     pub fn handle_freehand_drawing(response: &egui::Response, wave: &mut Wave, user_id: usize) {
         if response.drag_started() {
