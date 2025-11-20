@@ -70,7 +70,6 @@ impl Default for SetupState {
     }
 }
 
-#[derive(Clone)]
 pub struct AppState {
     pub game: Option<Game>,
     pub current_wave_index: usize,
