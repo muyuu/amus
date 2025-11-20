@@ -38,7 +38,7 @@ impl DebugView {
         game: &Game,
         window_width: f32,
     ) {
-        egui::Frame::popup(&ui.style())
+        egui::Frame::popup(ui.style())
             .inner_margin(egui::Margin::same(10.0))
             .show(ui, |ui| {
                 ui.set_width(window_width);

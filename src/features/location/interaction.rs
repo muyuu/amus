@@ -18,27 +18,21 @@ impl LocationInteraction {
         current_wave_index: usize,
         response: &egui::Response,
     ) -> Option<DraggingLocation> {
-        let pointer_pos = match response.interact_pointer_pos() {
-            Some(pos) => pos,
-            None => return None,
-        };
+        let pointer_pos = response.interact_pointer_pos()?;
 
-        let wave = match game.get_wave(current_wave_index) {
-            Some(wave) => wave,
-            None => return None,
-        };
+        let wave = game.get_wave(current_wave_index)?;
 
         let hit_size = 15.0;
 
         // 出現位置をチェック
         if let Some(location) =
-            Self::find_hit_spawn_location(&wave, pointer_pos, response.rect, hit_size)
+            Self::find_hit_spawn_location(wave, pointer_pos, response.rect, hit_size)
         {
             return Some(location);
         }
 
         // 終了時位置をチェック
-        Self::find_hit_end_location(&wave, pointer_pos, response.rect, hit_size)
+        Self::find_hit_end_location(wave, pointer_pos, response.rect, hit_size)
     }
 
     /// 出現位置のヒット判定
