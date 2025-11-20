@@ -22,27 +22,29 @@ impl RouteDrawingView {
         }
 
         // 軌跡を描画（route.pointsの各ポイント間のみ）
-        if route.points.is_empty() {
+        if route.lines.is_empty() {
             return;
         }
 
-        let mut prev_pos = if let Some(first_point) = route.points.first() {
-            pos2(
-                rect.min.x + first_point.x * rect.size().x,
-                rect.min.y + first_point.y * rect.size().y,
-            )
-        } else {
-            return;
-        };
+        for line in route.lines.iter() {
+            let mut prev_pos = if let Some(first_point) = line.first() {
+                pos2(
+                    rect.min.x + first_point.x * rect.size().x,
+                    rect.min.y + first_point.y * rect.size().y,
+                )
+            } else {
+                return;
+            };
 
-        // 最初のポイントから線を引く（spawn_locationからではない）
-        for point in route.points.iter().skip(1) {
-            let pos = pos2(
-                rect.min.x + point.x * rect.size().x,
-                rect.min.y + point.y * rect.size().y,
-            );
-            painter.line_segment([prev_pos, pos], (2.0, color));
-            prev_pos = pos;
+            // 最初のポイントから線を引く（spawn_locationからではない）
+            for point in line.iter().skip(1) {
+                let pos = pos2(
+                    rect.min.x + point.x * rect.size().x,
+                    rect.min.y + point.y * rect.size().y,
+                );
+                painter.line_segment([prev_pos, pos], (2.0, color));
+                prev_pos = pos;
+            }
         }
     }
 }

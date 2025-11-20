@@ -9,11 +9,14 @@ impl RouteDrawingInteraction {
         if response.drag_started() {
             // ドラッグ開始時に新しいルートを作成
             // このユーザーの既存のルートをすべて削除（1ユーザー1本にするため）
-            wave.routes.retain(|r| r.user_id != user_id);
-
             if response.interact_pointer_pos().is_some() {
                 let route = Route::new(user_id);
                 wave.routes.push(route);
+            }
+
+            // ドラッグ開始で line を追加
+            if let Some(route) = wave.routes.iter_mut().find(|r| r.user_id == user_id) {
+                route.add_line(vec![]);
             }
         } else if response.dragged() {
             // ドラッグ中はポイントを追加
