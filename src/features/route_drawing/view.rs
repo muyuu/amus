@@ -12,28 +12,31 @@ impl RouteDrawingView {
         color: Color32,
         rect: Rect,
     ) {
-        // 開始地点を描画（spawn_locationsから取得）
-        let mut prev_pos = if let Some(spawn_point) = spawn_location {
+        // 開始地点を描画（spawn_locationsから取得、マーカーのみ）
+        if let Some(spawn_point) = spawn_location {
             let pos = pos2(
                 rect.min.x + spawn_point.x * rect.size().x,
                 rect.min.y + spawn_point.y * rect.size().y,
             );
             painter.circle_filled(pos, 8.0, color);
-            pos
-        } else if let Some(first_point) = route.points.first() {
-            // spawn_locationがない場合は最初のポイントを開始地点として使用
-            let pos = pos2(
+        }
+
+        // 軌跡を描画（route.pointsの各ポイント間のみ）
+        if route.points.is_empty() {
+            return;
+        }
+
+        let mut prev_pos = if let Some(first_point) = route.points.first() {
+            pos2(
                 rect.min.x + first_point.x * rect.size().x,
                 rect.min.y + first_point.y * rect.size().y,
-            );
-            painter.circle_filled(pos, 8.0, color);
-            pos
+            )
         } else {
-            return; // ポイントがない場合は描画しない
+            return;
         };
 
-        // 軌跡を描画
-        for point in &route.points {
+        // 最初のポイントから線を引く（spawn_locationからではない）
+        for point in route.points.iter().skip(1) {
             let pos = pos2(
                 rect.min.x + point.x * rect.size().x,
                 rect.min.y + point.y * rect.size().y,

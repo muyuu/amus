@@ -1,19 +1,18 @@
 use crate::features::location::LocationView;
 use crate::features::route_drawing::RouteDrawingView;
-use crate::models::{Game, Point, Wave};
+use crate::models::{Game, Wave};
 use egui::*;
 
 pub struct MapView;
 
 impl MapView {
-    /// マップ全体を描画（背景画像、ルート、位置、一時的なポイント）
+    /// マップ全体を描画（背景画像、ルート、位置）
     pub fn draw(
         painter: &egui::Painter,
         response: &egui::Response,
         game: &Game,
         wave: &Wave,
-        temp_points: &[Point],
-        selected_user_id: Option<usize>,
+        _selected_user_id: Option<usize>,
         asset_manager: Option<&crate::assets::AssetManager>,
     ) {
         let rect = response.rect;
@@ -54,20 +53,6 @@ impl MapView {
 
         // 出現場所・終了時位置を描画
         LocationView::show(painter, game, wave, rect);
-
-        // 描画中の一時的なポイント（選択中のユーザーの色で線を描画）
-        if !temp_points.is_empty() {
-            let color = if let Some(user_id) = selected_user_id {
-                if let Some(user) = game.users.get(user_id) {
-                    user.color.to_egui_color()
-                } else {
-                    Color32::WHITE
-                }
-            } else {
-                Color32::WHITE
-            };
-            RouteDrawingView::draw_temp_route(painter, temp_points, color, rect);
-        }
     }
 
     /// 画像の縦横比を維持して中央配置するための矩形を計算

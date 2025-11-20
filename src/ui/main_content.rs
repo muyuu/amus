@@ -69,47 +69,22 @@ impl MainContent {
             );
         }
 
-        // エリアのクリック/ドラッグ処理（選択中のユーザーがいる場合）
+        // エリアのクリック処理（選択中のユーザーがいる場合）
         // 位置ドラッグ中でない場合のみ処理
         if state.dragging_location.is_none() {
             let selected_user_id = state.selected_user_id;
-            let dragging_user_id_for_area = state.dragging_user_id;
             if let Some(selected_user_id) = selected_user_id {
-                // まずgameの可変借用を解放するため、必要な情報を取得
-                let needs_spawn_update = response.clicked();
-                let needs_drag_tracking = response.drag_started() || response.dragged();
-
-                if needs_spawn_update || needs_drag_tracking {
-                    // gameの可変借用を一時的に解放
-                    let point_opt = if needs_spawn_update || needs_drag_tracking {
-                        response.interact_pointer_pos().map(|pos| {
-                            LocationInteraction::screen_to_normalized_point(pos, response.rect)
-                        })
-                    } else {
-                        None
-                    };
-
-                    // gameを再度可変借用して更新
-                    if needs_spawn_update {
-                        if let Some(point) = point_opt.clone() {
-                            LocationInteraction::set_spawn_location(
-                                game,
-                                current_wave_index,
-                                selected_user_id,
-                                point,
-                            );
-                        }
-                    }
-
-                    // temp_pointsを更新（フリーハンド描画のプレビュー用）
-                    if needs_drag_tracking && dragging_user_id_for_area.is_none() {
-                        if let Some(point) = point_opt {
-                            RouteDrawingInteraction::update_temp_points(
-                                &mut state.temp_points,
-                                &response,
-                                point,
-                            );
-                        }
+                // クリックで出現位置を設定
+                if response.clicked() {
+                    if let Some(pos) = response.interact_pointer_pos() {
+                        let point =
+                            LocationInteraction::screen_to_normalized_point(pos, response.rect);
+                        LocationInteraction::set_spawn_location(
+                            game,
+                            current_wave_index,
+                            selected_user_id,
+                            point,
+                        );
                     }
                 }
             }
@@ -125,7 +100,6 @@ impl MainContent {
 
         // マップ描画（不変参照で描画）
         // 必要な情報を先に取得
-        let temp_points = state.temp_points.clone();
         let selected_user_id = state.selected_user_id;
         let show_debug_view = state.show_debug_view;
         let dragging_user_id = state.dragging_user_id;
@@ -137,7 +111,6 @@ impl MainContent {
                 &response,
                 game,
                 wave,
-                &temp_points,
                 selected_user_id,
                 state.asset_manager.as_ref(),
             );
