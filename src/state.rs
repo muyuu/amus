@@ -74,7 +74,6 @@ pub struct AppState {
     pub game: Option<Game>,
     pub current_wave_index: usize,
     pub selected_user_id: Option<usize>,
-    pub temp_points: Vec<Point>, // 描画中の一時的なポイント
     pub show_setup_dialog: bool,
     pub setup_state: SetupState, // ゲーム設定の状態
     pub translator: Translator,
@@ -104,7 +103,6 @@ impl Default for AppState {
             game: None,
             current_wave_index: 0,
             selected_user_id: None,
-            temp_points: Vec::new(),
             show_setup_dialog: true, // 起動時はセットアップダイアログを表示
             setup_state: SetupState::default(),
             translator: Translator::new(Language::Japanese), // デフォルトは日本語
@@ -226,7 +224,6 @@ impl AppState {
 
     pub fn select_wave(&mut self, index: usize) {
         self.current_wave_index = index;
-        self.temp_points.clear();
     }
 
     pub fn add_new_wave(&mut self) {

@@ -33,18 +33,4 @@ impl RouteDrawingInteraction {
             }
         }
     }
-
-    /// 一時的なポイントを更新（フリーハンド描画中のプレビュー用）
-    pub fn update_temp_points(
-        temp_points: &mut Vec<Point>,
-        response: &egui::Response,
-        point: Point,
-    ) {
-        if response.drag_started() {
-            temp_points.clear();
-            temp_points.push(point);
-        } else if response.dragged() {
-            temp_points.push(point);
-        }
-    }
 }
