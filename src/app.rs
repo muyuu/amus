@@ -1,6 +1,7 @@
 use crate::assets::AssetManager;
+use crate::features::setup_dialog::SetupView;
 use crate::state::AppState;
-use crate::ui::{main_content::MainContent, setup_dialog::SetupDialog};
+use crate::ui::main_content::MainContent;
 
 pub struct AmusApp {
     state: AppState,
@@ -24,7 +25,7 @@ impl eframe::App for AmusApp {
 
         // セットアップダイアログの表示
         if self.state.show_setup_dialog {
-            SetupDialog::show(&mut self.state, ctx);
+            SetupView::show(&mut self.state, ctx);
             return;
         }
 
