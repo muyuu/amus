@@ -1,5 +1,5 @@
 use crate::features::location::LocationInteraction;
-use crate::models::{Point, Route, Wave};
+use crate::models::{Route, Wave};
 
 pub struct RouteDrawingInteraction;
 

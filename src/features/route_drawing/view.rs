@@ -45,25 +45,4 @@ impl RouteDrawingView {
             prev_pos = pos;
         }
     }
-
-    /// 一時的なルート（描画中）を描画
-    pub fn draw_temp_route(painter: &egui::Painter, points: &[Point], color: Color32, rect: Rect) {
-        if points.is_empty() {
-            return;
-        }
-
-        let mut prev_pos = pos2(
-            rect.min.x + points[0].x * rect.size().x,
-            rect.min.y + points[0].y * rect.size().y,
-        );
-
-        for point in points.iter().skip(1) {
-            let pos = pos2(
-                rect.min.x + point.x * rect.size().x,
-                rect.min.y + point.y * rect.size().y,
-            );
-            painter.line_segment([prev_pos, pos], (2.0, color));
-            prev_pos = pos;
-        }
-    }
 }

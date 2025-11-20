@@ -25,17 +25,20 @@ impl MainInteraction {
         );
 
         // ユーザードロップ処理（必要な値を先に取得）
-        let dragging_user_id = state.dragging_user_id;
-        Self::handle_user_drop(game, current_wave_index, dragging_user_id, response, ctx);
+        Self::handle_user_drop(
+            game,
+            current_wave_index,
+            state.dragging_user_id,
+            response,
+            ctx,
+        );
 
         // エリアクリック処理（必要な値を先に取得）
-        let dragging_location_for_click = state.dragging_location;
-        let selected_user_id = state.selected_user_id;
         Self::handle_area_click(
             game,
             current_wave_index,
-            dragging_location_for_click,
-            selected_user_id,
+            state.dragging_location,
+            state.selected_user_id,
             response,
         );
 

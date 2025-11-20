@@ -11,19 +11,6 @@ pub enum Language {
     English,
 }
 
-impl Language {
-    pub fn name(&self) -> &'static str {
-        match self {
-            Language::Japanese => "日本語",
-            Language::English => "English",
-        }
-    }
-
-    pub fn all() -> Vec<Language> {
-        vec![Language::Japanese, Language::English]
-    }
-}
-
 impl Default for Language {
     fn default() -> Self {
         Language::Japanese
@@ -47,14 +34,6 @@ impl Translator {
             current_language: language,
             translations,
         }
-    }
-
-    pub fn set_language(&mut self, language: Language) {
-        self.current_language = language;
-    }
-
-    pub fn current_language(&self) -> Language {
-        self.current_language
     }
 
     pub fn t<'a>(&'a self, key: &str) -> &'a str {

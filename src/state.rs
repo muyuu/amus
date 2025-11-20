@@ -135,20 +135,6 @@ impl AppState {
         Self::default()
     }
 
-    pub fn init_assets(&mut self, ctx: &egui::Context) {
-        if self.asset_manager.is_none() {
-            self.asset_manager = Some(AssetManager::new(ctx));
-        }
-    }
-
-    pub fn set_language(&mut self, language: Language) {
-        self.translator.set_language(language);
-    }
-
-    pub fn current_language(&self) -> Language {
-        self.translator.current_language()
-    }
-
     pub fn t<'a>(&'a self, key: &'a str) -> &'a str {
         self.translator.t(key)
     }
@@ -239,16 +225,5 @@ impl AppState {
 
     pub fn select_wave(&mut self, index: usize) {
         self.current_wave_index = index;
-    }
-
-    pub fn add_new_wave(&mut self) {
-        if let Some(game) = &mut self.game {
-            game.add_wave();
-            self.current_wave_index = game.waves.len() - 1;
-        }
-    }
-
-    pub fn select_user(&mut self, user_id: usize) {
-        self.selected_user_id = Some(user_id);
     }
 }
