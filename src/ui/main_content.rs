@@ -11,6 +11,9 @@ pub struct MainContent;
 
 impl MainContent {
     pub fn show(state: &mut AppState, ui: &mut egui::Ui) {
+        // 先に必要な情報を取得（借用チェッカーの問題を回避）
+        let common = CommonTexts::get(state);
+
         // ゲームがない場合はウェルカムメッセージを表示して早期リターン
         let game = match &mut state.game {
             Some(game) => game,
@@ -20,8 +23,7 @@ impl MainContent {
             }
         };
 
-        // 先に必要な情報を取得（借用チェッカーの問題を回避）
-        let common = CommonTexts::get(state);
+        // 先に必要な情報を取得
         let area_name = game.area.name.clone();
         let current_wave_index = state.current_wave_index;
 
