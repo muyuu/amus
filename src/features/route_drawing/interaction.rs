@@ -45,7 +45,7 @@ impl RouteDrawingInteraction {
     }
 
     /// フリーハンド描画の処理
-    fn handle_freehand_drawing(response: &egui::Response, wave: &mut Wave, user_id: usize) {
+    pub fn handle_freehand_drawing(response: &egui::Response, wave: &mut Wave, user_id: usize) {
         if response.drag_started() {
             // ドラッグ開始時に新しいルートを作成
             // このユーザーの既存のルートをすべて削除（1ユーザー1本にするため）

@@ -5,7 +5,7 @@ use crate::features::map::MapView;
 use crate::features::route_drawing::RouteDrawingInteraction;
 use crate::i18n::keys::*;
 use crate::models::*;
-use crate::state::{AppState, DrawingMode};
+use crate::state::AppState;
 
 pub struct MainContent;
 
@@ -161,37 +161,9 @@ impl MainContent {
                 area_name
             ));
 
-            // 描画モード選択
-            ui.horizontal(|ui| {
-                ui.label(&texts.drawing_mode);
-                ui.radio_value(
-                    &mut state.drawing_mode,
-                    DrawingMode::None,
-                    &texts.drawing_none,
-                );
-                ui.radio_value(
-                    &mut state.drawing_mode,
-                    DrawingMode::ClickToLine,
-                    &texts.drawing_click_line,
-                );
-                ui.radio_value(
-                    &mut state.drawing_mode,
-                    DrawingMode::Freehand,
-                    &texts.drawing_freehand,
-                );
-            });
-
-            ui.separator();
-
-            // マウス操作の処理
+            // マウス操作の処理（常にフリーハンド描画）
             if let Some(user_id) = state.selected_user_id {
-                let drawing_mode = state.drawing_mode;
-                RouteDrawingInteraction::handle_map_interaction(
-                    &response,
-                    wave,
-                    user_id,
-                    drawing_mode,
-                );
+                RouteDrawingInteraction::handle_freehand_drawing(&response, wave, user_id);
             }
 
             ui.separator();
@@ -310,10 +282,6 @@ impl MainContent {
 
 // メインコンテンツ固有のテキスト
 struct MainContentTexts {
-    pub drawing_mode: String,
-    pub drawing_none: String,
-    pub drawing_click_line: String,
-    pub drawing_freehand: String,
     pub discussion_info: String,
     pub killed_player: String,
     pub kill_location: String,
@@ -327,10 +295,6 @@ struct MainContentTexts {
 impl MainContentTexts {
     fn get(state: &AppState) -> Self {
         Self {
-            drawing_mode: state.t(MAIN_DRAWING_MODE).to_string(),
-            drawing_none: state.t(MAIN_DRAWING_NONE).to_string(),
-            drawing_click_line: state.t(MAIN_DRAWING_CLICK_LINE).to_string(),
-            drawing_freehand: state.t(MAIN_DRAWING_FREEHAND).to_string(),
             discussion_info: state.t(MAIN_DISCUSSION_INFO).to_string(),
             killed_player: state.t(MAIN_KILLED_PLAYER).to_string(),
             kill_location: state.t(MAIN_KILL_LOCATION).to_string(),
