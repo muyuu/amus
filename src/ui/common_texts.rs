@@ -1,5 +1,5 @@
-use crate::game::state::AppState;
 use crate::i18n::keys::*;
+use crate::state::AppState;
 
 /// 複数のUIコンポーネント間で共通して使用されるテキスト
 pub struct CommonTexts {

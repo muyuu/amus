@@ -1,5 +1,5 @@
 use crate::assets::AssetManager;
-use crate::game::state::AppState;
+use crate::state::AppState;
 use crate::ui::{main_content::MainContent, setup_dialog::SetupDialog};
 
 pub struct AmusApp {

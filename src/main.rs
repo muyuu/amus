@@ -1,8 +1,8 @@
 mod app;
 mod assets;
-mod game;
 mod i18n;
 mod models;
+mod state;
 mod ui;
 
 use app::AmusApp;

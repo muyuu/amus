@@ -1,7 +1,7 @@
 use super::common_texts::CommonTexts;
-use crate::game::state::AppState;
 use crate::i18n::keys::*;
 use crate::models::Color;
+use crate::state::AppState;
 
 pub struct SetupDialog;
 
