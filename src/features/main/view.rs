@@ -96,17 +96,20 @@ impl MainView {
         response: &egui::Response,
         ui: &mut egui::Ui,
     ) {
-        if let Some(wave) = game.get_wave(current_wave_index) {
-            let painter = ui.painter_at(response.rect);
-            MapView::draw(
-                &painter,
-                response,
-                game,
-                wave,
-                selected_user_id,
-                asset_manager,
-            );
-        }
+        let wave = match game.get_wave(current_wave_index) {
+            Some(wave) => wave,
+            None => return,
+        };
+
+        let painter = ui.painter_at(response.rect);
+        MapView::draw(
+            &painter,
+            response,
+            game,
+            wave,
+            selected_user_id,
+            asset_manager,
+        );
     }
 
     /// UI表示とフリーハンド描画
@@ -119,21 +122,27 @@ impl MainView {
         response: &egui::Response,
         ui: &mut egui::Ui,
     ) {
-        if let Some(wave) = game.get_wave_mut(current_wave_index) {
-            ui.heading(format!(
-                "{} {} - {}",
-                common.label_turn_prefix,
-                current_wave_index + 1,
-                area_name
-            ));
+        let wave = match game.get_wave_mut(current_wave_index) {
+            Some(wave) => wave,
+            None => return,
+        };
 
-            // マウス操作の処理（常にフリーハンド描画）
-            if let Some(user_id) = selected_user_id {
-                crate::features::route_drawing::RouteDrawingInteraction::handle_freehand_drawing(
-                    response, wave, user_id,
-                );
-            }
-        }
+        ui.heading(format!(
+            "{} {} - {}",
+            common.label_turn_prefix,
+            current_wave_index + 1,
+            area_name
+        ));
+
+        let user_id = match selected_user_id {
+            Some(user_id) => user_id,
+            None => return,
+        };
+
+        // マウス操作の処理（常にフリーハンド描画）
+        crate::features::route_drawing::RouteDrawingInteraction::handle_freehand_drawing(
+            response, wave, user_id,
+        );
     }
 
     /// デバッグビューの表示
