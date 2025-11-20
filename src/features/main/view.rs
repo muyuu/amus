@@ -45,9 +45,7 @@ impl MainView {
         // gameを再度取得
         let game = match &mut state.game {
             Some(game) => game,
-            None => {
-                return; // この時点でgameがないことはないが、安全性のため
-            }
+            None => return,
         };
 
         let area_name = game.area.name.clone();
