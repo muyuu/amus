@@ -1,8 +1,9 @@
 use crate::common::CommonTexts;
 use crate::features::debug_view::DebugView;
+use crate::features::location::{LocationInteraction, LocationView};
 use crate::i18n::keys::*;
 use crate::models::*;
-use crate::state::{AppState, DraggingLocation, DrawingMode, LocationType};
+use crate::state::{AppState, DrawingMode};
 use egui::*;
 
 pub struct MainContent;
@@ -32,7 +33,7 @@ impl MainContent {
         // 位置（出現位置・終了時位置）のドラッグ処理（先に処理）
         let dragging_location_value = state.dragging_location;
         if let Some(dragging_location) = dragging_location_value {
-            Self::update_dragging_location(
+            LocationInteraction::update_dragging_location(
                 game,
                 current_wave_index,
                 dragging_location,
@@ -48,7 +49,7 @@ impl MainContent {
                 // gameの不変参照を取得（gameの可変借用を一時的に解放）
                 let game_ref: &Game = &*game;
                 let location =
-                    Self::detect_location_drag_start(game_ref, current_wave_index, &response);
+                    LocationInteraction::detect_drag_start(game_ref, current_wave_index, &response);
                 if let Some(location) = location {
                     state.dragging_location = Some(location);
                 }
@@ -59,7 +60,7 @@ impl MainContent {
         let dragging_user_id = state.dragging_user_id;
         if let Some(dragging_user_id) = dragging_user_id {
             // ユーザーをドロップした位置に終了時位置を設定
-            Self::handle_user_drag_and_drop(
+            LocationInteraction::handle_user_drop(
                 game,
                 current_wave_index,
                 dragging_user_id,
@@ -81,19 +82,22 @@ impl MainContent {
                 if needs_spawn_update || needs_drag_tracking {
                     // gameの可変借用を一時的に解放
                     let point_opt = if needs_spawn_update || needs_drag_tracking {
-                        response
-                            .interact_pointer_pos()
-                            .map(|pos| Self::screen_to_normalized_point(pos, response.rect))
+                        response.interact_pointer_pos().map(|pos| {
+                            LocationInteraction::screen_to_normalized_point(pos, response.rect)
+                        })
                     } else {
                         None
                     };
 
                     // gameを再度可変借用して更新
                     if needs_spawn_update {
-                        if let Some(point) = &point_opt {
-                            if let Some(wave) = game.get_wave_mut(current_wave_index) {
-                                wave.spawn_locations.insert(selected_user_id, point.clone());
-                            }
+                        if let Some(point) = point_opt.clone() {
+                            LocationInteraction::set_spawn_location(
+                                game,
+                                current_wave_index,
+                                selected_user_id,
+                                point,
+                            );
                         }
                     }
 
@@ -344,7 +348,7 @@ impl MainContent {
         }
 
         // 出現場所・終了時位置を描画
-        Self::show_location_view(painter, game, wave, rect);
+        LocationView::show(painter, game, wave, rect);
 
         // 描画中の一時的なポイント（選択中のユーザーの色で線を描画）
         if !temp_points.is_empty() {
@@ -358,43 +362,6 @@ impl MainContent {
                 Color32::WHITE
             };
             Self::draw_temp_route(painter, temp_points, color, rect);
-        }
-    }
-
-    fn show_location_view(painter: &egui::Painter, game: &Game, wave: &Wave, rect: Rect) {
-        // 出現場所を描画（四角）
-        for (user_id, point) in &wave.spawn_locations {
-            if let Some(user) = game.users.get(*user_id) {
-                let color = user.color.to_egui_color();
-                let pos = pos2(
-                    rect.min.x + point.x * rect.size().x,
-                    rect.min.y + point.y * rect.size().y,
-                );
-                let size = 12.0;
-                painter.rect_filled(
-                    Rect::from_center_size(pos, egui::Vec2::new(size, size)),
-                    2.0,
-                    color,
-                );
-                painter.rect_stroke(
-                    Rect::from_center_size(pos, egui::Vec2::new(size, size)),
-                    2.0,
-                    (2.0, Color32::WHITE),
-                );
-            }
-        }
-
-        // 終了時位置を描画（丸）
-        for (user_id, point) in &wave.end_locations {
-            if let Some(user) = game.users.get(*user_id) {
-                let color = user.color.to_egui_color();
-                let pos = pos2(
-                    rect.min.x + point.x * rect.size().x,
-                    rect.min.y + point.y * rect.size().y,
-                );
-                painter.circle_filled(pos, 8.0, color);
-                painter.circle_stroke(pos, 8.0, (2.0, Color32::WHITE));
-            }
         }
     }
 
@@ -436,149 +403,6 @@ impl MainContent {
         }
     }
 
-    // ドラッグ開始の検出（出現位置または終了時位置の上でドラッグ開始）
-    fn detect_location_drag_start(
-        game: &Game,
-        current_wave_index: usize,
-        response: &egui::Response,
-    ) -> Option<DraggingLocation> {
-        let pointer_pos = match response.interact_pointer_pos() {
-            Some(pos) => pos,
-            None => return None,
-        };
-
-        let wave = match game.get_wave(current_wave_index) {
-            Some(wave) => wave,
-            None => return None,
-        };
-
-        let hit_size = 15.0;
-
-        // 出現位置をチェック
-        if let Some(location) =
-            Self::find_hit_spawn_location(&wave, pointer_pos, response.rect, hit_size)
-        {
-            return Some(location);
-        }
-
-        // 終了時位置をチェック
-        Self::find_hit_end_location(&wave, pointer_pos, response.rect, hit_size)
-    }
-
-    // 出現位置のヒット判定
-    fn find_hit_spawn_location(
-        wave: &Wave,
-        pointer_pos: egui::Pos2,
-        rect: egui::Rect,
-        hit_size: f32,
-    ) -> Option<DraggingLocation> {
-        for (user_id, spawn_point) in &wave.spawn_locations {
-            let spawn_pos = egui::pos2(
-                rect.min.x + spawn_point.x * rect.size().x,
-                rect.min.y + spawn_point.y * rect.size().y,
-            );
-            let distance = (pointer_pos - spawn_pos).length();
-            if distance <= hit_size {
-                return Some(DraggingLocation {
-                    location_type: LocationType::Spawn,
-                    user_id: *user_id,
-                });
-            }
-        }
-        None
-    }
-
-    // 終了時位置のヒット判定
-    fn find_hit_end_location(
-        wave: &Wave,
-        pointer_pos: egui::Pos2,
-        rect: egui::Rect,
-        hit_size: f32,
-    ) -> Option<DraggingLocation> {
-        for (user_id, end_point) in &wave.end_locations {
-            let end_pos = egui::pos2(
-                rect.min.x + end_point.x * rect.size().x,
-                rect.min.y + end_point.y * rect.size().y,
-            );
-            let distance = (pointer_pos - end_pos).length();
-            if distance <= hit_size {
-                return Some(DraggingLocation {
-                    location_type: LocationType::End,
-                    user_id: *user_id,
-                });
-            }
-        }
-        None
-    }
-
-    // ドラッグ中の位置を更新
-    fn update_dragging_location(
-        game: &mut Game,
-        current_wave_index: usize,
-        dragging_location: DraggingLocation,
-        response: &egui::Response,
-        ctx: &egui::Context,
-    ) {
-        let pointer_pos = match ctx.pointer_latest_pos() {
-            Some(pos) => pos,
-            None => return,
-        };
-
-        if !response.rect.contains(pointer_pos) {
-            return;
-        }
-
-        let point = Self::screen_to_normalized_point(pointer_pos, response.rect);
-        let wave = match game.get_wave_mut(current_wave_index) {
-            Some(wave) => wave,
-            None => return,
-        };
-
-        match dragging_location.location_type {
-            LocationType::Spawn => {
-                wave.spawn_locations
-                    .insert(dragging_location.user_id, point);
-            }
-            LocationType::End => {
-                wave.end_locations.insert(dragging_location.user_id, point);
-            }
-        }
-    }
-
-    // ユーザーをドラッグ&ドロップした時の処理（終了時位置を設定）
-    fn handle_user_drag_and_drop(
-        game: &mut Game,
-        current_wave_index: usize,
-        dragging_user_id: usize,
-        response: &egui::Response,
-        ctx: &egui::Context,
-    ) {
-        let pointer_pos = match ctx.pointer_latest_pos() {
-            Some(pos) => pos,
-            None => return,
-        };
-
-        if !response.rect.contains(pointer_pos) {
-            return;
-        }
-
-        let wave = match game.get_wave_mut(current_wave_index) {
-            Some(wave) => wave,
-            None => return,
-        };
-
-        let point = Self::screen_to_normalized_point(pointer_pos, response.rect);
-        wave.end_locations.insert(dragging_user_id, point);
-    }
-
-    // スクリーン座標を正規化座標（0.0-1.0）に変換
-    fn screen_to_normalized_point(screen_pos: egui::Pos2, rect: egui::Rect) -> Point {
-        Point::new(
-            (screen_pos.x - rect.min.x) / rect.size().x,
-            (screen_pos.y - rect.min.y) / rect.size().y,
-        )
-    }
-
     fn handle_map_interaction(
         response: &egui::Response,
         wave: &mut Wave,
@@ -590,7 +414,7 @@ impl MainContent {
                 if response.clicked() {
                     if let Some(pos) = response.interact_pointer_pos() {
                         let rect = response.rect;
-                        let point = Self::screen_to_normalized_point(pos, rect);
+                        let point = LocationInteraction::screen_to_normalized_point(pos, rect);
 
                         // 既存のルートを探すか、新規作成
                         if let Some(route) = wave.routes.iter_mut().find(|r| r.user_id == user_id) {
@@ -619,7 +443,7 @@ impl MainContent {
                     // ドラッグ中はポイントを追加
                     if let Some(pos) = response.interact_pointer_pos() {
                         let rect = response.rect;
-                        let point = Self::screen_to_normalized_point(pos, rect);
+                        let point = LocationInteraction::screen_to_normalized_point(pos, rect);
 
                         // このユーザーのルートが存在しない場合は作成（念のため）
                         if let Some(route) = wave.routes.iter_mut().find(|r| r.user_id == user_id) {
