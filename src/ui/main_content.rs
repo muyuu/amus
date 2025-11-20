@@ -1,4 +1,4 @@
-use super::common_texts::CommonTexts;
+use crate::common::CommonTexts;
 use crate::features::debug_view::DebugView;
 use crate::i18n::keys::*;
 use crate::models::*;

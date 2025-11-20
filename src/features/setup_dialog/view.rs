@@ -1,8 +1,8 @@
 use super::interaction::SetupInteraction;
+use crate::common::CommonTexts;
 use crate::i18n::keys::*;
 use crate::models::Color;
 use crate::state::AppState;
-use crate::ui::common_texts::CommonTexts;
 
 pub struct SetupView;
 
