@@ -22,6 +22,15 @@ impl MainView {
             return;
         }
 
+        if state.show_debug_view {
+            DebugView::show(
+                ui.ctx(),
+                state.dragging_user_id,
+                state.selected_user_id,
+                state.game.as_ref().unwrap(),
+            );
+        }
+
         // マップ表示エリア（ここにエリア画像と軌跡を描画）
         let response = ui.allocate_response(ui.available_size(), egui::Sense::click_and_drag());
 
@@ -51,38 +60,24 @@ impl MainView {
         let area_name = game.area.name.clone();
 
         // マップ描画（必要な値を先に取得）
-        let selected_user_id = state.selected_user_id;
-        let show_debug_view = state.show_debug_view;
-        let dragging_user_id = state.dragging_user_id;
-        let asset_manager = state.asset_manager.as_ref();
         Self::draw_map(
             game,
             current_wave_index,
-            selected_user_id,
-            asset_manager,
+            state.selected_user_id,
+            state.asset_manager.as_ref(),
             &response,
             ui,
         );
 
         // UI表示とフリーハンド描画（必要な値を先に取得）
-        let selected_user_id_for_ui = state.selected_user_id;
         Self::show_ui_content(
             game,
             current_wave_index,
-            selected_user_id_for_ui,
+            state.selected_user_id,
             &common,
             &area_name,
             &response,
             ui,
-        );
-
-        // デバッグビューの表示
-        Self::show_debug_view_if_needed(
-            show_debug_view,
-            dragging_user_id,
-            selected_user_id,
-            game,
-            ui.ctx(),
         );
     }
 
@@ -140,18 +135,5 @@ impl MainView {
 
         // マウス操作の処理（常にフリーハンド描画）
         RouteDrawingInteraction::handle_freehand_drawing(response, wave, user_id);
-    }
-
-    /// デバッグビューの表示
-    fn show_debug_view_if_needed(
-        show_debug_view: bool,
-        dragging_user_id: Option<usize>,
-        selected_user_id: Option<usize>,
-        game: &Game,
-        ctx: &egui::Context,
-    ) {
-        if show_debug_view {
-            DebugView::show(ctx, dragging_user_id, selected_user_id, game);
-        }
     }
 }
