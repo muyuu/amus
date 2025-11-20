@@ -5,7 +5,6 @@ mod features;
 mod i18n;
 mod models;
 mod state;
-mod ui;
 
 use app::AmusApp;
 use eframe::egui;

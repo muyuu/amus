@@ -1,8 +1,8 @@
 use crate::assets::AssetManager;
+use crate::features::main::MainView;
 use crate::features::setup_dialog::SetupView;
 use crate::features::user_list::UserListView;
 use crate::state::AppState;
-use crate::ui::main_content::MainContent;
 
 pub struct AmusApp {
     state: AppState,
@@ -39,7 +39,7 @@ impl AmusApp {
     fn build_main_ui(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // 全画面のメインコンテンツエリア
         egui::CentralPanel::default().show(ctx, |ui| {
-            MainContent::show(&mut self.state, ui);
+            MainView::show(&mut self.state, ui);
         });
 
         // 下部のユーザー一覧パネル
