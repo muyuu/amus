@@ -1,6 +1,8 @@
 use crate::common::CommonTexts;
 use crate::features::debug_view::DebugView;
+use crate::features::main::MainInteraction;
 use crate::features::map::MapView;
+use crate::features::route_drawing::RouteDrawingInteraction;
 use crate::features::welcome::WelcomeView;
 use crate::models::Game;
 use crate::state::AppState;
@@ -26,7 +28,6 @@ impl MainView {
         // インタラクション処理（別モジュールに分離）
         // gameの可変借用を一時的に解放してから呼び出し
         {
-            use crate::features::main::interaction::MainInteraction;
             // state.gameの可変借用を一時的に解放するため、Noneに置き換えてから再度取得
             let game_opt = state.game.take();
             if let Some(mut game) = game_opt {
@@ -140,9 +141,7 @@ impl MainView {
         };
 
         // マウス操作の処理（常にフリーハンド描画）
-        crate::features::route_drawing::RouteDrawingInteraction::handle_freehand_drawing(
-            response, wave, user_id,
-        );
+        RouteDrawingInteraction::handle_freehand_drawing(response, wave, user_id);
     }
 
     /// デバッグビューの表示
