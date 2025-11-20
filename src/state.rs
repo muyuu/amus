@@ -70,24 +70,10 @@ impl Default for SetupState {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DrawingMode {
-    None,
-    ClickToLine, // クリックで直線を引く
-    Freehand,    // フリーハンド描画
-}
-
-impl Default for DrawingMode {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
 pub struct AppState {
     pub game: Option<Game>,
     pub current_wave_index: usize,
     pub selected_user_id: Option<usize>,
-    pub drawing_mode: DrawingMode,
     pub temp_points: Vec<Point>, // 描画中の一時的なポイント
     pub show_setup_dialog: bool,
     pub setup_state: SetupState, // ゲーム設定の状態
@@ -118,7 +104,6 @@ impl Default for AppState {
             game: None,
             current_wave_index: 0,
             selected_user_id: None,
-            drawing_mode: DrawingMode::None,
             temp_points: Vec::new(),
             show_setup_dialog: true, // 起動時はセットアップダイアログを表示
             setup_state: SetupState::default(),
@@ -241,7 +226,6 @@ impl AppState {
 
     pub fn select_wave(&mut self, index: usize) {
         self.current_wave_index = index;
-        self.drawing_mode = DrawingMode::None;
         self.temp_points.clear();
     }
 

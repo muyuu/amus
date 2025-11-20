@@ -1,11 +1,12 @@
-use super::common_texts::CommonTexts;
-use crate::game::state::AppState;
+use super::interaction::SetupInteraction;
+use crate::common::CommonTexts;
 use crate::i18n::keys::*;
 use crate::models::Color;
+use crate::state::AppState;
 
-pub struct SetupDialog;
+pub struct SetupView;
 
-impl SetupDialog {
+impl SetupView {
     pub fn show(state: &mut AppState, ctx: &egui::Context) {
         let texts = SetupTexts::get(state);
         let common = CommonTexts::get(state);
@@ -19,7 +20,7 @@ impl SetupDialog {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     ui.vertical(|ui| {
                         ui.heading(&texts.area_selection);
-                        ui.add_space(8.0); // ヘッディング後の余白
+                        ui.add_space(8.0);
 
                         // エリア一覧（ComboBox形式）
                         let areas = vec![
@@ -40,8 +41,11 @@ impl SetupDialog {
                                         )
                                         .clicked()
                                     {
-                                        state.setup_state.selected_area_id = id.to_string();
-                                        state.setup_state.selected_area_name = name.to_string();
+                                        SetupInteraction::select_area(
+                                            state,
+                                            id.to_string(),
+                                            name.to_string(),
+                                        );
                                     }
                                 }
                             });
@@ -57,7 +61,7 @@ impl SetupDialog {
                             ui.label(&texts.player_count);
                             let mut new_count = state.setup_state.player_count;
                             if ui.add(egui::Slider::new(&mut new_count, 4..=18)).changed() {
-                                state.adjust_player_count(new_count);
+                                SetupInteraction::adjust_player_count(state, new_count);
                             }
                         });
 
@@ -72,14 +76,17 @@ impl SetupDialog {
                                 ui.horizontal(|ui| {
                                     ui.label(&texts.player_name);
                                     ui.add_space(4.0);
-                                    ui.text_edit_singleline(&mut state.setup_state.players[i].name);
+                                    let mut name = state.setup_state.players[i].name.clone();
+                                    if ui.text_edit_singleline(&mut name).changed() {
+                                        SetupInteraction::update_player_name(state, i, name);
+                                    }
 
                                     ui.add_space(8.0);
                                     ui.label(&texts.player_color);
                                     ui.add_space(4.0);
 
-                                    // 現在の色のプレビューをComboBoxの前に表示（アライメント調整）
-                                    let selected_color = &mut state.setup_state.players[i].color;
+                                    // 現在の色のプレビューをComboBoxの前に表示
+                                    let selected_color = state.setup_state.players[i].color.clone();
 
                                     // 色プレビューのサイズと位置を調整
                                     let (rect, _response) = ui.allocate_exact_size(
@@ -117,32 +124,36 @@ impl SetupDialog {
 
                                                     if ui
                                                         .selectable_label(
-                                                            *selected_color == *color,
+                                                            selected_color == *color,
                                                             color.name(),
                                                         )
                                                         .clicked()
                                                     {
-                                                        *selected_color = color.clone();
+                                                        SetupInteraction::select_player_color(
+                                                            state,
+                                                            i,
+                                                            color.clone(),
+                                                        );
                                                     }
                                                 });
                                             }
                                         });
                                 });
-                                ui.add_space(4.0); // 各プレイヤー行間の余白
+                                ui.add_space(4.0);
                             }
                         }
 
-                        ui.add_space(16.0); // プレイヤーリストとボタン間の余白
+                        ui.add_space(16.0);
                         ui.separator();
-                        ui.add_space(12.0); // セパレーター後の余白
+                        ui.add_space(12.0);
 
                         ui.horizontal(|ui| {
                             if ui.button(&common.button_start_game).clicked() {
-                                state.create_game_from_setup();
+                                SetupInteraction::start_game(state);
                             }
 
                             if ui.button(&common.button_cancel).clicked() {
-                                state.cancel_setup();
+                                SetupInteraction::cancel(state);
                             }
                         });
                     });
@@ -162,7 +173,7 @@ struct SetupTexts {
 }
 
 impl SetupTexts {
-    fn get(state: &AppState) -> Self {
+    fn get(state: &mut AppState) -> Self {
         Self {
             title: state.t(SETUP_TITLE).to_string(),
             area_selection: state.t(SETUP_AREA_SELECTION).to_string(),

@@ -1,9 +1,10 @@
 mod app;
 mod assets;
-mod game;
+mod common;
+mod features;
 mod i18n;
 mod models;
-mod ui;
+mod state;
 
 use app::AmusApp;
 use eframe::egui;
