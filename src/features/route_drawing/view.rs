@@ -14,12 +14,7 @@ impl RouteDrawingView {
     }
 
     /// ルートを描画（開始地点と軌跡）
-    fn draw_route(
-        painter: &egui::Painter,
-        route: &Route,
-        color: Color32,
-        rect: Rect,
-    ) {
+    fn draw_route(painter: &egui::Painter, route: &Route, color: Color32, rect: Rect) {
         if route.lines.is_empty() {
             return;
         }
