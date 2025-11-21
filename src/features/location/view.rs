@@ -5,7 +5,7 @@ pub struct LocationView;
 
 impl LocationView {
     /// 出現位置と終了時位置を描画
-    pub fn show(painter: &egui::Painter, game: &Game, wave: &Wave, rect: Rect) {
+    pub fn render(painter: &egui::Painter, game: &Game, wave: &Wave, rect: Rect) {
         // 出現場所を描画（四角）
         for (user_id, point) in &wave.spawn_locations {
             if let Some(user) = game.users.get(*user_id) {

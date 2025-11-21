@@ -5,7 +5,7 @@ use crate::state::AppState;
 pub struct WelcomeView;
 
 impl WelcomeView {
-    pub fn show(ui: &mut egui::Ui, state: &mut AppState) {
+    pub fn render(ui: &mut egui::Ui, state: &mut AppState) {
         let texts = WelcomeTexts::get(state);
         let common = CommonTexts::get(state);
 

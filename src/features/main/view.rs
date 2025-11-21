@@ -4,30 +4,21 @@ use crate::features::main::MainInteraction;
 use crate::features::map::MapView;
 use crate::features::route_drawing::RouteDrawingView;
 use crate::features::welcome::WelcomeView;
-use crate::models::{Area, Game, Wave};
+use crate::models::{Game, Wave};
 use crate::state::AppState;
 
 pub struct MainView;
 
 impl MainView {
-    pub fn show(state: &mut AppState, ui: &mut egui::Ui) {
+    pub fn render(state: &mut AppState, ui: &mut egui::Ui) {
         // 先に必要な情報を取得（借用チェッカーの問題を回避）
         let current_wave_index = state.current_wave_index;
 
         // ゲームがない場合はウェルカムメッセージを表示して早期リターン
         let has_game = state.game.is_some();
         if !has_game {
-            WelcomeView::show(ui, state);
+            WelcomeView::render(ui, state);
             return;
-        }
-
-        if state.show_debug_view {
-            DebugView::show(
-                ui.ctx(),
-                state.dragging_user_id,
-                state.selected_user_id,
-                state.game.as_ref().unwrap(),
-            );
         }
 
         // マップ表示エリア（ここにエリア画像と軌跡を描画）
@@ -44,18 +35,24 @@ impl MainView {
             None => return,
         };
 
-        Self::render_map(
-            &game.area,
-            state.selected_user_id,
-            state.asset_manager.as_ref(),
-            &response,
-            ui,
-        );
-
         let painter = ui.painter_at(response.rect);
         let rect = response.rect;
-        Self::render_locations(&game, &wave, &painter, rect);
-        Self::render_route(&game, &wave, &painter, rect);
+        MapView::render(
+            &game.area,
+            &painter,
+            &response,
+            state.selected_user_id,
+            state.asset_manager.as_ref(),
+        );
+        LocationView::render(&painter, game, wave, rect);
+        Self::render_route(game, wave, &painter, rect);
+        DebugView::render(
+            state.show_debug_view,
+            ui.ctx(),
+            state.dragging_user_id,
+            state.selected_user_id,
+            state.game.as_ref().unwrap(),
+        );
 
         // インタラクション処理（別モジュールに分離）
         // gameの可変借用を一時的に解放してから呼び出し
@@ -73,18 +70,6 @@ impl MainView {
         }
     }
 
-    /// マップ描画
-    fn render_map(
-        area: &Area,
-        selected_user_id: Option<usize>,
-        asset_manager: Option<&crate::assets::AssetManager>,
-        response: &egui::Response,
-        ui: &mut egui::Ui,
-    ) {
-        let painter = ui.painter_at(response.rect);
-        MapView::render(area, &painter, response, selected_user_id, asset_manager);
-    }
-
     /// 手書きルートの描画
     fn render_route(game: &Game, wave: &Wave, painter: &egui::Painter, rect: egui::Rect) {
         // 既存のルートを描画
@@ -92,13 +77,8 @@ impl MainView {
             if let Some(user) = game.users.get(route.user_id) {
                 let color = user.color.to_egui_color();
                 let spawn_location = wave.spawn_locations.get(&route.user_id);
-                RouteDrawingView::draw_route(&painter, route, spawn_location, color, rect);
+                RouteDrawingView::draw_route(painter, route, spawn_location, color, rect);
             }
         }
-    }
-
-    /// 出現位置・終了位置の描画
-    fn render_locations(game: &Game, wave: &Wave, painter: &egui::Painter, rect: egui::Rect) {
-        LocationView::show(&painter, game, wave, rect);
     }
 }

@@ -3,12 +3,17 @@ use crate::models::Game;
 pub struct DebugView;
 
 impl DebugView {
-    pub fn show(
+    pub fn render(
+        render_flag: bool,
         ctx: &egui::Context,
         dragging_user_id: Option<usize>,
         selected_user_id: Option<usize>,
         game: &Game,
     ) {
+        if !render_flag {
+            return;
+        }
+
         let screen_rect = ctx.screen_rect();
         let window_width = 300.0; // 固定幅
         let window_pos = egui::pos2(

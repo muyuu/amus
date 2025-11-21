@@ -41,7 +41,7 @@ impl AmusApp {
     fn build_main_ui(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // 全画面のメインコンテンツエリア
         egui::CentralPanel::default().show(ctx, |ui| {
-            MainView::show(&mut self.state, ui);
+            MainView::render(&mut self.state, ui);
         });
 
         // 下部のユーザー一覧パネル
