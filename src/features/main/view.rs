@@ -4,7 +4,6 @@ use crate::features::main::MainInteraction;
 use crate::features::map::MapView;
 use crate::features::route_drawing::RouteDrawingView;
 use crate::features::welcome::WelcomeView;
-use crate::models::{Game, Wave};
 use crate::state::AppState;
 
 pub struct MainView;
@@ -25,7 +24,7 @@ impl MainView {
         let response = ui.allocate_response(ui.available_size(), egui::Sense::click_and_drag());
 
         // gameを再度取得
-        let game = match &mut state.game {
+        let game = match &state.game {
             Some(game) => game,
             None => return,
         };
@@ -45,7 +44,7 @@ impl MainView {
             state.asset_manager.as_ref(),
         );
         LocationView::render(&painter, game, wave, rect);
-        Self::render_route(game, wave, &painter, rect);
+        RouteDrawingView::render(game, wave, &painter, rect);
         DebugView::render(
             state.show_debug_view,
             ui.ctx(),
@@ -66,18 +65,6 @@ impl MainView {
                 };
                 MainInteraction::handle_interactions(state, wave, &response, ui.ctx());
                 state.game = Some(game);
-            }
-        }
-    }
-
-    /// 手書きルートの描画
-    fn render_route(game: &Game, wave: &Wave, painter: &egui::Painter, rect: egui::Rect) {
-        // 既存のルートを描画
-        for route in &wave.routes {
-            if let Some(user) = game.users.get(route.user_id) {
-                let color = user.color.to_egui_color();
-                let spawn_location = wave.spawn_locations.get(&route.user_id);
-                RouteDrawingView::draw_route(painter, route, spawn_location, color, rect);
             }
         }
     }
