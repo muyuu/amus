@@ -27,9 +27,13 @@ depends = ["fmt", "lint"]
 description = "テストを実行する"
 run = "cargo test"
 
-[tasks.release]
+[tasks.release-linux]
 description = "Linux用リリースビルドを作成する"
-run = "cargo build --release"
+run = '''
+  cargo build --release --target x86_64-unknown-linux-gnu
+  echo "Linux用バイナリが作成されました:"
+  echo "  target/x86_64-unknown-linux-gnu/release/amus"
+'''
 
 [tasks.release-windows]
 description = "Windows用リリースビルドを作成する（GNU toolchain）"
