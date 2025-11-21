@@ -2,9 +2,9 @@ use crate::common::CommonTexts;
 use crate::features::debug_view::DebugView;
 use crate::features::main::MainInteraction;
 use crate::features::map::MapView;
-use crate::features::route_drawing::RouteDrawingInteraction;
+use crate::features::route_drawing::{RouteDrawingInteraction, RouteDrawingView};
 use crate::features::welcome::WelcomeView;
-use crate::models::Game;
+use crate::models::{Game, Wave};
 use crate::state::AppState;
 
 pub struct MainView;
@@ -57,14 +57,26 @@ impl MainView {
             None => return,
         };
 
+        let wave = match game.get_wave(current_wave_index) {
+            Some(wave) => wave,
+            None => return,
+        };
+
         let area_name = game.area.name();
 
         // マップ描画（必要な値を先に取得）
         Self::draw_map(
             game,
-            current_wave_index,
+            &wave,
             state.selected_user_id,
             state.asset_manager.as_ref(),
+            &response,
+            ui,
+        );
+
+        Self::render_route(
+            &game,
+            &wave,
             &response,
             ui,
         );
@@ -84,17 +96,12 @@ impl MainView {
     /// マップ描画
     fn draw_map(
         game: &Game,
-        current_wave_index: usize,
+        wave: &Wave,
         selected_user_id: Option<usize>,
         asset_manager: Option<&crate::assets::AssetManager>,
         response: &egui::Response,
         ui: &mut egui::Ui,
     ) {
-        let wave = match game.get_wave(current_wave_index) {
-            Some(wave) => wave,
-            None => return,
-        };
-
         let painter = ui.painter_at(response.rect);
         MapView::draw(
             &painter,
@@ -104,6 +111,26 @@ impl MainView {
             selected_user_id,
             asset_manager,
         );
+    }
+
+    /// 手書きルートの描画
+    fn render_route(
+        game: &Game,
+        wave: &Wave,
+        response: &egui::Response,
+        ui: &mut egui::Ui,
+    ) {
+        let painter = ui.painter_at(response.rect);
+        let rect = response.rect;
+
+        // 既存のルートを描画
+        for route in &wave.routes {
+            if let Some(user) = game.users.get(route.user_id) {
+                let color = user.color.to_egui_color();
+                let spawn_location = wave.spawn_locations.get(&route.user_id);
+                RouteDrawingView::draw_route(&painter, route, spawn_location, color, rect);
+            }
+        }
     }
 
     /// UI表示とフリーハンド描画

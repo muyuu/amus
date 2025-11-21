@@ -1,5 +1,4 @@
 use crate::features::location::LocationView;
-use crate::features::route_drawing::RouteDrawingView;
 use crate::models::{Game, Wave};
 use egui::*;
 
@@ -40,15 +39,6 @@ impl MapView {
         } else {
             // AssetManagerが初期化されていない場合はグレーの背景
             painter.rect_filled(rect, 0.0, Color32::from_gray(30));
-        }
-
-        // 既存のルートを描画
-        for route in &wave.routes {
-            if let Some(user) = game.users.get(route.user_id) {
-                let color = user.color.to_egui_color();
-                let spawn_location = wave.spawn_locations.get(&route.user_id);
-                RouteDrawingView::draw_route(painter, route, spawn_location, color, rect);
-            }
         }
 
         // 出現場所・終了時位置を描画
