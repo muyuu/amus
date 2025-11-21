@@ -1,16 +1,12 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Area {
     Skeld = 0,
     Mira = 1,
     Polus = 2,
+    #[default]
     AirShip = 3,
-}
-impl Default for Area {
-    fn default() -> Self {
-        Area::AirShip
-    }
 }
 
 impl Area {

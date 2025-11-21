@@ -5,16 +5,11 @@ pub mod words;
 
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Language {
+    #[default]
     Japanese,
     English,
-}
-
-impl Default for Language {
-    fn default() -> Self {
-        Language::Japanese
-    }
 }
 
 pub struct Translator {

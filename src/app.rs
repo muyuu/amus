@@ -116,7 +116,7 @@ impl AmusApp {
                         |ui| {
                             ui.visuals_mut().panel_fill = egui::Color32::from_gray(240);
 
-                            egui::Frame::popup(&ui.style())
+                            egui::Frame::popup(ui.style())
                                 .inner_margin(egui::Margin::same(20.0))
                                 .show(ui, |ui| {
                                     ui.heading("ターン選択");

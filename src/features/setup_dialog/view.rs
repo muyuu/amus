@@ -23,7 +23,7 @@ impl SetupView {
                         ui.add_space(8.0);
 
                         egui::ComboBox::from_label("")
-                            .selected_text(&state.setup_state.selected_area.name())
+                            .selected_text(state.setup_state.selected_area.name())
                             .show_ui(ui, |ui| {
                                 for area in Area::all() {
                                     if ui
