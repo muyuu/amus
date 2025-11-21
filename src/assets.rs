@@ -20,10 +20,10 @@ impl AssetManager {
 
     fn load_area_images(&mut self, ctx: &egui::Context) {
         let area_configs: [(&str, &str); 4] = [
-            ("skeld", "assets/images/map/skeld.png"),
-            ("mira", "assets/images/map/mira.png"),
-            ("polus", "assets/images/map/polus.png"),
-            ("airship", "assets/images/map/airship.png"),
+            (&Area::Skeld.id(), "assets/images/map/skeld.png"),
+            (&Area::Mira.id(), "assets/images/map/mira.png"),
+            (&Area::Polus.id(), "assets/images/map/polus.png"),
+            (&Area::AirShip.id(), "assets/images/map/airship.png"),
         ];
 
         for (area_id, path) in &area_configs {
