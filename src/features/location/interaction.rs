@@ -1,4 +1,4 @@
-use crate::models::{Game, Point, Wave};
+use crate::models::{Point, Wave};
 use crate::state::{DraggingLocation, LocationType};
 
 pub struct LocationInteraction;
@@ -13,15 +13,8 @@ impl LocationInteraction {
     }
 
     /// ドラッグ開始の検出（出現位置または終了時位置の上でドラッグ開始）
-    pub fn detect_drag_start(
-        game: &Game,
-        current_wave_index: usize,
-        response: &egui::Response,
-    ) -> Option<DraggingLocation> {
+    pub fn detect_drag_start(wave: &Wave, response: &egui::Response) -> Option<DraggingLocation> {
         let pointer_pos = response.interact_pointer_pos()?;
-
-        let wave = game.get_wave(current_wave_index)?;
-
         let hit_size = 15.0;
 
         // 出現位置をチェック
@@ -83,8 +76,7 @@ impl LocationInteraction {
 
     /// ドラッグ中の位置を更新
     pub fn update_dragging_location(
-        game: &mut Game,
-        current_wave_index: usize,
+        wave: &mut Wave,
         dragging_location: DraggingLocation,
         response: &egui::Response,
         ctx: &egui::Context,
@@ -99,10 +91,6 @@ impl LocationInteraction {
         }
 
         let point = Self::screen_to_normalized_point(pointer_pos, response.rect);
-        let wave = match game.get_wave_mut(current_wave_index) {
-            Some(wave) => wave,
-            None => return,
-        };
 
         match dragging_location.location_type {
             LocationType::Spawn => {
@@ -117,8 +105,7 @@ impl LocationInteraction {
 
     /// ユーザーをドラッグ&ドロップした時の処理（終了時位置を設定）
     pub fn handle_user_drop(
-        game: &mut Game,
-        current_wave_index: usize,
+        wave: &mut Wave,
         dragging_user_id: usize,
         response: &egui::Response,
         ctx: &egui::Context,
@@ -132,24 +119,12 @@ impl LocationInteraction {
             return;
         }
 
-        let wave = match game.get_wave_mut(current_wave_index) {
-            Some(wave) => wave,
-            None => return,
-        };
-
         let point = Self::screen_to_normalized_point(pointer_pos, response.rect);
         wave.end_locations.insert(dragging_user_id, point);
     }
 
     /// 出現位置を設定
-    pub fn set_spawn_location(
-        game: &mut Game,
-        current_wave_index: usize,
-        user_id: usize,
-        point: Point,
-    ) {
-        if let Some(wave) = game.get_wave_mut(current_wave_index) {
-            wave.spawn_locations.insert(user_id, point);
-        }
+    pub fn set_spawn_location(wave: &mut Wave, user_id: usize, point: Point) {
+        wave.spawn_locations.insert(user_id, point);
     }
 }

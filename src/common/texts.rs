@@ -7,9 +7,6 @@ pub struct CommonTexts {
     pub button_new_game: String,
     pub button_start_game: String,
     pub button_cancel: String,
-
-    // 汎用ラベル
-    pub label_turn_prefix: String,
 }
 
 impl CommonTexts {
@@ -19,9 +16,6 @@ impl CommonTexts {
             button_new_game: state.t(MENU_NEW_GAME).to_string(),
             button_start_game: state.t(SETUP_START_GAME).to_string(),
             button_cancel: state.t(SETUP_CANCEL).to_string(),
-
-            // 汎用ラベル
-            label_turn_prefix: state.t(SIDEBAR_TURN_PREFIX).to_string(),
         }
     }
 }

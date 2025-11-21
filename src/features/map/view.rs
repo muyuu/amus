@@ -1,4 +1,4 @@
-use crate::models::{Game, Wave};
+use crate::models::Area;
 use egui::*;
 
 pub struct MapView;
@@ -6,10 +6,9 @@ pub struct MapView;
 impl MapView {
     /// マップ全体を描画（背景画像、ルート、位置）
     pub fn render(
+        area: &Area,
         painter: &egui::Painter,
         response: &egui::Response,
-        game: &Game,
-        wave: &Wave,
         _selected_user_id: Option<usize>,
         asset_manager: Option<&crate::assets::AssetManager>,
     ) {
@@ -17,7 +16,7 @@ impl MapView {
 
         // エリア画像を背景として描画
         if let Some(asset_manager) = asset_manager {
-            if let Some(texture) = asset_manager.get_area_texture(&game.area) {
+            if let Some(texture) = asset_manager.get_area_texture(area) {
                 // 画像の縦横比を維持してセンタリング
                 let image_rect = Self::calculate_centered_rect(rect, texture.size_vec2());
                 painter.image(
