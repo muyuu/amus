@@ -31,6 +31,22 @@ run = "cargo test"
 description = "Linux用リリースビルドを作成する"
 run = "cargo build --release"
 
+[tasks.release-windows]
+description = "Windows用リリースビルドを作成する（GNU toolchain）"
+run = '''
+  cargo build --release --target x86_64-pc-windows-gnu
+  echo "Windows用バイナリが作成されました:"
+  echo "  target/x86_64-pc-windows-gnu/release/amus.exe"
+'''
+
+[tasks.release-windows-msvc]
+description = "Windows用リリースビルドを作成する（MSVC toolchain）"
+run = '''
+  cargo build --release --target x86_64-pc-windows-msvc
+  echo "Windows用バイナリが作成されました:"
+  echo "  target/x86_64-pc-windows-msvc/release/amus.exe"
+'''
+
 [tasks.init]
 description = "開発環境の初期設定を行う"
 run = '''
@@ -48,6 +64,23 @@ run = '''
   # Linux用リリースターゲットを追加
   echo "Linux用リリースターゲットを追加中..."
   rustup target add x86_64-unknown-linux-gnu
+
+  # Windows用リリースターゲットを追加
+  echo "Windows用リリースターゲットを追加中..."
+  rustup target add x86_64-pc-windows-gnu
+  rustup target add x86_64-pc-windows-msvc
+
+  # Windows用クロスコンパイルツールをチェック
+  echo "Windows用クロスコンパイルツールをチェック中..."
+  if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
+    echo "mingw-w64は既にインストールされています"
+  else
+    echo "警告: mingw-w64がインストールされていません"
+    echo "Ubuntu/Debian: sudo apt install gcc-mingw-w64-x86-64"
+    echo "Fedora: sudo dnf install mingw64-gcc"
+    echo "Arch: sudo pacman -S mingw-w64-gcc"
+  fi
+
   echo "ターゲット追加完了"
 '''
 
