@@ -76,11 +76,8 @@ impl MainView {
             // gameの可変借用を一時的に解放してから呼び出し
             let game_opt = state.game.take();
             if let Some(mut game) = game_opt {
-                let wave = match game.get_wave_mut(state.current_wave_index) {
-                    Some(wave) => wave,
-                    None => return,
-                };
-                MainInteraction::handle_interactions(state, wave, response, ui.ctx());
+                let (users, wave) = game.get_users_and_wave_mut(state.current_wave_index);
+                MainInteraction::handle_interactions(state, users, wave, response, ui.ctx());
                 state.game = Some(game);
             }
         }

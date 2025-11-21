@@ -1,4 +1,4 @@
-use crate::models::{Point, Wave};
+use crate::models::{Point, User, Wave};
 use crate::state::{DraggingLocation, LocationType};
 
 pub struct LocationInteraction;
@@ -10,6 +10,42 @@ impl LocationInteraction {
             (screen_pos.x - rect.min.x) / rect.size().x,
             (screen_pos.y - rect.min.y) / rect.size().y,
         )
+    }
+
+    /// 終了位置のクリック検出と状態トグル
+    pub fn handle_end_location_click(
+        users: &mut [User],
+        wave: &Wave,
+        response: &egui::Response,
+    ) -> bool {
+        if !response.clicked() {
+            return false;
+        }
+
+        let pointer_pos = match response.interact_pointer_pos() {
+            Some(pos) => pos,
+            None => return false,
+        };
+
+        let hit_size = 24.0;
+
+        // 終了時位置をチェック
+        for (user_id, end_point) in &wave.end_locations {
+            let end_pos = egui::pos2(
+                response.rect.min.x + end_point.x * response.rect.size().x,
+                response.rect.min.y + end_point.y * response.rect.size().y,
+            );
+            let distance = (pointer_pos - end_pos).length();
+            if distance <= hit_size {
+                // ユーザーの生存状態をトグル
+                if let Some(user) = users.get_mut(*user_id) {
+                    user.alive = !user.alive;
+                    return true;
+                }
+            }
+        }
+
+        false
     }
 
     /// ドラッグ開始の検出（出現位置または終了時位置の上でドラッグ開始）
