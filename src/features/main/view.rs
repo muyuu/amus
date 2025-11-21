@@ -63,8 +63,6 @@ impl MainView {
             None => return,
         };
 
-        let area_name = game.area.name();
-
         Self::render_map(
             game,
             &wave,
@@ -75,6 +73,8 @@ impl MainView {
         );
         Self::render_locations(&game, &wave, &response, ui);
         Self::render_route(&game, &wave, &response, ui);
+
+        let area_name = game.area.name();
 
         // UI表示とフリーハンド描画（必要な値を先に取得）
         Self::show_ui_content(
