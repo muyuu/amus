@@ -57,7 +57,7 @@ impl MainView {
             None => return,
         };
 
-        let area_name = game.area.name.clone();
+        let area_name = game.area.name();
 
         // マップ描画（必要な値を先に取得）
         Self::draw_map(

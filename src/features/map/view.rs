@@ -19,7 +19,7 @@ impl MapView {
 
         // エリア画像を背景として描画
         if let Some(asset_manager) = asset_manager {
-            if let Some(texture) = asset_manager.get_area_texture(&game.area.id) {
+            if let Some(texture) = asset_manager.get_area_texture(&game.area) {
                 // 画像の縦横比を維持してセンタリング
                 let image_rect = Self::calculate_centered_rect(rect, texture.size_vec2());
                 painter.image(

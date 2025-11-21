@@ -1,6 +1,8 @@
 use egui::{ColorImage, TextureHandle};
 use std::collections::HashMap;
 
+use crate::models::Area;
+
 pub struct AssetManager {
     area_images: HashMap<String, TextureHandle>,
 }
@@ -81,7 +83,7 @@ impl AssetManager {
         )
     }
 
-    pub fn get_area_texture(&self, area_id: &str) -> Option<&TextureHandle> {
-        self.area_images.get(area_id)
+    pub fn get_area_texture(&self, area: &Area) -> Option<&TextureHandle> {
+        self.area_images.get(&area.id())
     }
 }

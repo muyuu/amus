@@ -1,13 +1,38 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Area {
-    pub name: String,
-    pub id: String,
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum Area {
+    Skeld = 0,
+    Mira = 1,
+    Polus = 2,
+    AirShip = 3,
+}
+impl Default for Area {
+    fn default() -> Self {
+        Area::AirShip
+    }
 }
 
 impl Area {
-    pub fn new(name: String, id: String) -> Self {
-        Self { name, id }
+    pub fn id(&self) -> String {
+        match self {
+            Area::Skeld => "skeld".to_string(),
+            Area::Mira => "mira".to_string(),
+            Area::Polus => "polus".to_string(),
+            Area::AirShip => "airship".to_string(),
+        }
+    }
+
+    pub fn name(&self) -> String {
+        match self {
+            Area::Skeld => "The Skeld".to_string(),
+            Area::Mira => "Mira HQ".to_string(),
+            Area::Polus => "Polus".to_string(),
+            Area::AirShip => "AirShip".to_string(),
+        }
+    }
+
+    pub fn all() -> Vec<Area> {
+        vec![Area::Skeld, Area::Mira, Area::Polus, Area::AirShip]
     }
 }

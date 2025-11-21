@@ -1,12 +1,11 @@
-use crate::models::Color;
+use crate::models::{Area, Color};
 use crate::state::AppState;
 
 pub struct SetupInteraction;
 
 impl SetupInteraction {
-    pub fn select_area(state: &mut AppState, area_id: String, area_name: String) {
-        state.setup_state.selected_area_id = area_id;
-        state.setup_state.selected_area_name = area_name;
+    pub fn select_area(state: &mut AppState, area: Area) {
+        state.setup_state.selected_area = area.clone();
     }
 
     pub fn adjust_player_count(state: &mut AppState, new_count: usize) {

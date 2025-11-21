@@ -25,8 +25,7 @@ impl PlayerSetup {
 
 #[derive(Debug, Clone)]
 pub struct SetupState {
-    pub selected_area_id: String,
-    pub selected_area_name: String,
+    pub selected_area: Area,
     pub player_count: usize,
     pub players: Vec<PlayerSetup>,
 }
@@ -62,8 +61,7 @@ impl Default for SetupState {
         }
 
         Self {
-            selected_area_id: "airship".to_string(),
-            selected_area_name: "Airship".to_string(),
+            selected_area: Area::AirShip,
             player_count: DEFAULT_PLAYER_COUNT,
             players,
         }
@@ -144,10 +142,7 @@ impl AppState {
     }
 
     pub fn create_game_from_setup(&mut self) {
-        let area = Area::new(
-            self.setup_state.selected_area_name.clone(),
-            self.setup_state.selected_area_id.clone(),
-        );
+        let area = self.setup_state.selected_area.clone();
 
         // セットアップ済みプレイヤーからゲーム用ユーザーを作成
         let mut users = Vec::new();

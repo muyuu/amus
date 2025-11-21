@@ -1,7 +1,7 @@
 use super::interaction::SetupInteraction;
 use crate::common::CommonTexts;
 use crate::i18n::keys::*;
-use crate::models::Color;
+use crate::models::{Area, Color};
 use crate::state::AppState;
 
 pub struct SetupView;
@@ -22,30 +22,18 @@ impl SetupView {
                         ui.heading(&texts.area_selection);
                         ui.add_space(8.0);
 
-                        // エリア一覧（ComboBox形式）
-                        let areas = vec![
-                            ("The Skeld", "skeld"),
-                            ("Mira HQ", "mira"),
-                            ("Polus", "polus"),
-                            ("Airship", "airship"),
-                        ];
-
                         egui::ComboBox::from_label("")
-                            .selected_text(&state.setup_state.selected_area_name)
+                            .selected_text(&state.setup_state.selected_area.name())
                             .show_ui(ui, |ui| {
-                                for (name, id) in &areas {
+                                for area in Area::all() {
                                     if ui
                                         .selectable_label(
-                                            state.setup_state.selected_area_id == *id,
-                                            *name,
+                                            state.setup_state.selected_area == area,
+                                            &*area.name(),
                                         )
                                         .clicked()
                                     {
-                                        SetupInteraction::select_area(
-                                            state,
-                                            id.to_string(),
-                                            name.to_string(),
-                                        );
+                                        SetupInteraction::select_area(state, area.clone());
                                     }
                                 }
                             });
