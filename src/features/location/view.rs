@@ -14,16 +14,17 @@ impl LocationView {
                     rect.min.x + point.x * rect.size().x,
                     rect.min.y + point.y * rect.size().y,
                 );
-                let size = 12.0;
+                let size = 28.0;
+                let stroke_width = 3.0;
                 painter.rect_filled(
                     Rect::from_center_size(pos, egui::Vec2::new(size, size)),
-                    2.0,
+                    stroke_width,
                     color,
                 );
                 painter.rect_stroke(
                     Rect::from_center_size(pos, egui::Vec2::new(size, size)),
-                    2.0,
-                    (2.0, Color32::WHITE),
+                    stroke_width,
+                    (stroke_width, Color32::WHITE),
                 );
             }
         }
@@ -36,8 +37,10 @@ impl LocationView {
                     rect.min.x + point.x * rect.size().x,
                     rect.min.y + point.y * rect.size().y,
                 );
-                painter.circle_filled(pos, 8.0, color);
-                painter.circle_stroke(pos, 8.0, (2.0, Color32::WHITE));
+                let size = 16.0;
+                let stroke_width = 3.0;
+                painter.circle_filled(pos, size, color);
+                painter.circle_stroke(pos, size, (stroke_width, Color32::WHITE));
             }
         }
     }
