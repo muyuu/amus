@@ -6,7 +6,7 @@ pub struct MapView;
 
 impl MapView {
     /// マップ全体を描画（背景画像、ルート、位置）
-    pub fn draw(
+    pub fn render(
         painter: &egui::Painter,
         response: &egui::Response,
         game: &Game,

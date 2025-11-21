@@ -64,8 +64,7 @@ impl MainView {
 
         let area_name = game.area.name();
 
-        // マップ描画（必要な値を先に取得）
-        Self::draw_map(
+        Self::render_map(
             game,
             &wave,
             state.selected_user_id,
@@ -94,7 +93,7 @@ impl MainView {
     }
 
     /// マップ描画
-    fn draw_map(
+    fn render_map(
         game: &Game,
         wave: &Wave,
         selected_user_id: Option<usize>,
@@ -103,7 +102,7 @@ impl MainView {
         ui: &mut egui::Ui,
     ) {
         let painter = ui.painter_at(response.rect);
-        MapView::draw(
+        MapView::render(
             &painter,
             response,
             game,
