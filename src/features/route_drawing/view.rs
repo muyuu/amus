@@ -40,7 +40,8 @@ impl RouteDrawingView {
                     rect.min.x + point.x * rect.size().x,
                     rect.min.y + point.y * rect.size().y,
                 );
-                painter.line_segment([prev_pos, pos], (2.0, color));
+                let stroke_width = 6.0;
+                painter.line_segment([prev_pos, pos], (stroke_width, color));
                 prev_pos = pos;
             }
         }
