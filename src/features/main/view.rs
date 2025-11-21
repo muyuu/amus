@@ -4,6 +4,7 @@ use crate::features::main::MainInteraction;
 use crate::features::map::MapView;
 use crate::features::route_drawing::RouteDrawingView;
 use crate::features::welcome::WelcomeView;
+use crate::models::{Game, Wave};
 use crate::state::AppState;
 
 pub struct MainView;
@@ -34,36 +35,52 @@ impl MainView {
             None => return,
         };
 
+        Self::render_children(state, game, wave, &response, ui);
+        Self::setup_interactions(state, &response, ui);
+    }
+
+    fn render_children(
+        state: &AppState,
+        game: &Game,
+        wave: &Wave,
+        response: &egui::Response,
+        ui: &mut egui::Ui,
+    ) {
         let painter = ui.painter_at(response.rect);
         let rect = response.rect;
+        let selected_user_id = state.selected_user_id;
+        let asset_manager = state.asset_manager.as_ref();
+        let dragging_user_id = state.dragging_user_id;
+
         MapView::render(
             &game.area,
             &painter,
-            &response,
-            state.selected_user_id,
-            state.asset_manager.as_ref(),
+            response,
+            selected_user_id,
+            asset_manager,
         );
         LocationView::render(&painter, game, wave, rect);
         RouteDrawingView::render(game, wave, &painter, rect);
         DebugView::render(
             state.show_debug_view,
             ui.ctx(),
-            state.dragging_user_id,
-            state.selected_user_id,
-            state.game.as_ref().unwrap(),
+            dragging_user_id,
+            selected_user_id,
+            game,
         );
+    }
 
-        // インタラクション処理（別モジュールに分離）
-        // gameの可変借用を一時的に解放してから呼び出し
+    fn setup_interactions(state: &mut AppState, response: &egui::Response, ui: &mut egui::Ui) {
         {
-            // state.gameの可変借用を一時的に解放するため、Noneに置き換えてから再度取得
+            // インタラクション処理（別モジュールに分離）
+            // gameの可変借用を一時的に解放してから呼び出し
             let game_opt = state.game.take();
             if let Some(mut game) = game_opt {
-                let wave = match game.get_wave_mut(current_wave_index) {
+                let wave = match game.get_wave_mut(state.current_wave_index) {
                     Some(wave) => wave,
                     None => return,
                 };
-                MainInteraction::handle_interactions(state, wave, &response, ui.ctx());
+                MainInteraction::handle_interactions(state, wave, response, ui.ctx());
                 state.game = Some(game);
             }
         }
