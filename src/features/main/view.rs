@@ -1,5 +1,6 @@
 use crate::common::CommonTexts;
 use crate::features::debug_view::DebugView;
+use crate::features::location::LocationView;
 use crate::features::main::MainInteraction;
 use crate::features::map::MapView;
 use crate::features::route_drawing::{RouteDrawingInteraction, RouteDrawingView};
@@ -72,13 +73,8 @@ impl MainView {
             &response,
             ui,
         );
-
-        Self::render_route(
-            &game,
-            &wave,
-            &response,
-            ui,
-        );
+        Self::render_locations(&game, &wave, &response, ui);
+        Self::render_route(&game, &wave, &response, ui);
 
         // UI表示とフリーハンド描画（必要な値を先に取得）
         Self::show_ui_content(
@@ -113,12 +109,7 @@ impl MainView {
     }
 
     /// 手書きルートの描画
-    fn render_route(
-        game: &Game,
-        wave: &Wave,
-        response: &egui::Response,
-        ui: &mut egui::Ui,
-    ) {
+    fn render_route(game: &Game, wave: &Wave, response: &egui::Response, ui: &mut egui::Ui) {
         let painter = ui.painter_at(response.rect);
         let rect = response.rect;
 
@@ -130,6 +121,15 @@ impl MainView {
                 RouteDrawingView::draw_route(&painter, route, spawn_location, color, rect);
             }
         }
+    }
+
+    /// 出現位置・終了位置の描画
+    fn render_locations(game: &Game, wave: &Wave, response: &egui::Response, ui: &mut egui::Ui) {
+        let painter = ui.painter_at(response.rect);
+        let rect = response.rect;
+
+        // 出現場所・終了時位置を描画
+        LocationView::show(&painter, game, wave, rect);
     }
 
     /// UI表示とフリーハンド描画

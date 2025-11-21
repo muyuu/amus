@@ -1,4 +1,3 @@
-use crate::features::location::LocationView;
 use crate::models::{Game, Wave};
 use egui::*;
 
@@ -40,9 +39,6 @@ impl MapView {
             // AssetManagerが初期化されていない場合はグレーの背景
             painter.rect_filled(rect, 0.0, Color32::from_gray(30));
         }
-
-        // 出現場所・終了時位置を描画
-        LocationView::show(painter, game, wave, rect);
     }
 
     /// 画像の縦横比を維持して中央配置するための矩形を計算
