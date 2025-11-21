@@ -71,8 +71,11 @@ impl MainView {
             &response,
             ui,
         );
-        Self::render_locations(&game, &wave, &response, ui);
-        Self::render_route(&game, &wave, &response, ui);
+
+        let painter = ui.painter_at(response.rect);
+        let rect = response.rect;
+        Self::render_locations(&game, &wave, &painter, rect);
+        Self::render_route(&game, &wave, &painter, rect);
 
         let area_name = game.area.name();
 
@@ -109,10 +112,7 @@ impl MainView {
     }
 
     /// 手書きルートの描画
-    fn render_route(game: &Game, wave: &Wave, response: &egui::Response, ui: &mut egui::Ui) {
-        let painter = ui.painter_at(response.rect);
-        let rect = response.rect;
-
+    fn render_route(game: &Game, wave: &Wave, painter: &egui::Painter, rect: egui::Rect) {
         // 既存のルートを描画
         for route in &wave.routes {
             if let Some(user) = game.users.get(route.user_id) {
@@ -124,11 +124,7 @@ impl MainView {
     }
 
     /// 出現位置・終了位置の描画
-    fn render_locations(game: &Game, wave: &Wave, response: &egui::Response, ui: &mut egui::Ui) {
-        let painter = ui.painter_at(response.rect);
-        let rect = response.rect;
-
-        // 出現場所・終了時位置を描画
+    fn render_locations(game: &Game, wave: &Wave, painter: &egui::Painter, rect: egui::Rect) {
         LocationView::show(&painter, game, wave, rect);
     }
 
