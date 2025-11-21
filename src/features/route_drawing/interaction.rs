@@ -14,6 +14,11 @@ impl RouteDrawingInteraction {
     }
 
     fn handle_drag_start(response: &egui::Response, wave: &mut Wave, user_id: usize) {
+        // 開始地点・終了時地点からドラッグ開始した場合は無視する
+        if LocationInteraction::detect_drag_start(wave, response).is_some() {
+            return;
+        };
+
         // ドラッグ開始時に新しいルートを作成
         if response.interact_pointer_pos().is_some() {
             let route = Route::new(user_id);
@@ -27,6 +32,10 @@ impl RouteDrawingInteraction {
     }
 
     fn handle_dragging(response: &egui::Response, wave: &mut Wave, user_id: usize) {
+        if LocationInteraction::detect_drag_start(wave, response).is_some() {
+            return;
+        };
+
         let pos = match response.interact_pointer_pos() {
             Some(p) => p,
             None => return,

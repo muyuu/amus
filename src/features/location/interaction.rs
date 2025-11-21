@@ -15,7 +15,7 @@ impl LocationInteraction {
     /// ドラッグ開始の検出（出現位置または終了時位置の上でドラッグ開始）
     pub fn detect_drag_start(wave: &Wave, response: &egui::Response) -> Option<DraggingLocation> {
         let pointer_pos = response.interact_pointer_pos()?;
-        let hit_size = 15.0;
+        let hit_size = 24.0;
 
         // 出現位置をチェック
         if let Some(location) =
