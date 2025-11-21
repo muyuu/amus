@@ -1,6 +1,6 @@
 use crate::features::location::LocationInteraction;
 use crate::features::route_drawing::RouteDrawingInteraction;
-use crate::models::Wave;
+use crate::models::{User, Wave};
 use crate::state::{AppState, DraggingLocation};
 
 pub struct MainInteraction;
@@ -9,13 +9,20 @@ impl MainInteraction {
     /// すべてのインタラクション処理を実行
     pub fn handle_interactions(
         state: &mut AppState,
-        wave: &mut Wave,
+        users: &mut [User],
+        wave: Option<&mut Wave>,
         response: &egui::Response,
         ctx: &egui::Context,
     ) {
+        let wave = match wave {
+            Some(wave) => wave,
+            None => return,
+        };
+
         // 位置関連の処理（必要な値を先に取得）
         let dragging_location = state.dragging_location;
         Self::handle_location_interactions(
+            users,
             wave,
             &mut state.dragging_location,
             dragging_location,
@@ -42,12 +49,15 @@ impl MainInteraction {
 
     /// 位置関連のインタラクション処理（ドラッグ中の位置更新とドラッグ開始検出）
     fn handle_location_interactions(
+        users: &mut [User],
         wave: &mut Wave,
         dragging_location_state: &mut Option<DraggingLocation>,
         dragging_location: Option<DraggingLocation>,
         response: &egui::Response,
         ctx: &egui::Context,
     ) {
+        LocationInteraction::handle_end_location_click(users, wave, response);
+
         // 位置（出現位置・終了時位置）のドラッグ処理
         if let Some(dragging_location) = dragging_location {
             LocationInteraction::update_dragging_location(wave, dragging_location, response, ctx);

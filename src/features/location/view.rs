@@ -1,4 +1,4 @@
-use crate::models::{Game, Wave};
+use crate::models::{user, Game, Wave};
 use egui::*;
 
 pub struct LocationView;
@@ -39,9 +39,40 @@ impl LocationView {
                 );
                 let size = 16.0;
                 let stroke_width = 3.0;
+
                 painter.circle_filled(pos, size, color);
                 painter.circle_stroke(pos, size, (stroke_width, Color32::WHITE));
+
+                Self::render_dead_mark(user, painter, pos, size);
             }
         }
+    }
+
+    // 死亡している場合はバツ印を描画
+    fn render_dead_mark(user: &user::User, painter: &egui::Painter, pos: Pos2, size: f32) {
+        if user.alive {
+            return;
+        }
+
+        let cross_size = size; // 丸の直径と同じサイズ
+        let cross_width = 6.0;
+
+        // 左上から右下への線
+        painter.line_segment(
+            [
+                pos2(pos.x - cross_size, pos.y - cross_size),
+                pos2(pos.x + cross_size, pos.y + cross_size),
+            ],
+            (cross_width, Color32::BLACK),
+        );
+
+        // 右上から左下への線
+        painter.line_segment(
+            [
+                pos2(pos.x + cross_size, pos.y - cross_size),
+                pos2(pos.x - cross_size, pos.y + cross_size),
+            ],
+            (cross_width, Color32::BLACK),
+        );
     }
 }
