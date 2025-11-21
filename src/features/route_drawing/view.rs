@@ -1,4 +1,4 @@
-use crate::models::{Game, Point, Route, Wave};
+use crate::models::{Game, Route, Wave};
 use egui::*;
 
 pub struct RouteDrawingView;
@@ -8,8 +8,7 @@ impl RouteDrawingView {
         for route in &wave.routes {
             if let Some(user) = game.users.get(route.user_id) {
                 let color = user.color.to_egui_color();
-                let spawn_location = wave.spawn_locations.get(&route.user_id);
-                Self::draw_route(painter, route, spawn_location, color, rect);
+                Self::draw_route(painter, route, color, rect);
             }
         }
     }
@@ -18,20 +17,9 @@ impl RouteDrawingView {
     fn draw_route(
         painter: &egui::Painter,
         route: &Route,
-        spawn_location: Option<&Point>,
         color: Color32,
         rect: Rect,
     ) {
-        // 開始地点を描画（spawn_locationsから取得、マーカーのみ）
-        if let Some(spawn_point) = spawn_location {
-            let pos = pos2(
-                rect.min.x + spawn_point.x * rect.size().x,
-                rect.min.y + spawn_point.y * rect.size().y,
-            );
-            painter.circle_filled(pos, 8.0, color);
-        }
-
-        // 軌跡を描画（route.pointsの各ポイント間のみ）
         if route.lines.is_empty() {
             return;
         }
