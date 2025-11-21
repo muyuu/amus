@@ -1,5 +1,3 @@
-use crate::features::location::LocationView;
-use crate::features::route_drawing::RouteDrawingView;
 use crate::models::{Game, Wave};
 use egui::*;
 
@@ -7,7 +5,7 @@ pub struct MapView;
 
 impl MapView {
     /// マップ全体を描画（背景画像、ルート、位置）
-    pub fn draw(
+    pub fn render(
         painter: &egui::Painter,
         response: &egui::Response,
         game: &Game,
@@ -41,18 +39,6 @@ impl MapView {
             // AssetManagerが初期化されていない場合はグレーの背景
             painter.rect_filled(rect, 0.0, Color32::from_gray(30));
         }
-
-        // 既存のルートを描画
-        for route in &wave.routes {
-            if let Some(user) = game.users.get(route.user_id) {
-                let color = user.color.to_egui_color();
-                let spawn_location = wave.spawn_locations.get(&route.user_id);
-                RouteDrawingView::draw_route(painter, route, spawn_location, color, rect);
-            }
-        }
-
-        // 出現場所・終了時位置を描画
-        LocationView::show(painter, game, wave, rect);
     }
 
     /// 画像の縦横比を維持して中央配置するための矩形を計算
