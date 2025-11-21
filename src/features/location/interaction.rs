@@ -161,6 +161,12 @@ impl LocationInteraction {
 
     /// 出現位置を設定
     pub fn set_spawn_location(wave: &mut Wave, user_id: usize, point: Point) {
+        // すでに出現位置を持ってる場合は何もしない
+        // すでに置いた出現位置を削除する必要はないし、位置変更はドラッグのみで実施
+        if wave.spawn_locations.contains_key(&user_id) {
+            return;
+        }
+
         wave.spawn_locations.insert(user_id, point);
     }
 }
