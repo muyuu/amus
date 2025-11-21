@@ -27,6 +27,10 @@ depends = ["fmt", "lint"]
 description = "テストを実行する"
 run = "cargo test"
 
+[tasks.release]
+description = "Linux用リリースビルドを作成する"
+run = "cargo build --release"
+
 [tasks.init]
 description = "開発環境の初期設定を行う"
 run = '''
@@ -40,6 +44,11 @@ run = '''
       echo "代替方法: mise use -g watchexec@latest"
     }
   fi
+
+  # Linux用リリースターゲットを追加
+  echo "Linux用リリースターゲットを追加中..."
+  rustup target add x86_64-unknown-linux-gnu
+  echo "ターゲット追加完了"
 '''
 
 # ============================================

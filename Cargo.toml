@@ -10,6 +10,12 @@ egui = "0.27"
 eframe = { version = "0.27", default-features = false, features = [
     "default_fonts",
     "glow",
+
+    # 現代的なGPU描画サポート（推奨）
+    "wgpu",
+
+    # Linux Waylandデスクトップサポート（必要）
+    "wayland",
 ] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
