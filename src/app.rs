@@ -18,6 +18,8 @@ impl Default for AmusApp {
 
 impl eframe::App for AmusApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        ctx.set_pixels_per_point(1.5);
+
         // アセットマネージャーの初期化（一度だけ実行）
         if self.state.asset_manager.is_none() {
             let asset_manager = AssetManager::new(ctx);
