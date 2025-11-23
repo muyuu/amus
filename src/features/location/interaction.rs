@@ -170,7 +170,7 @@ impl LocationInteraction {
 
     /// 出現位置を設定
     pub fn set_spawn_location(state: &AppState, user_id: usize, point: Point) {
-        if state.get_spawn_location(user_id).is_none() {
+        if state.spawn_location(user_id).is_none() {
             state.add_spawn_location(user_id, point);
         }
     }
