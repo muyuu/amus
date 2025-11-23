@@ -1,38 +1,45 @@
 use crate::features::location::LocationInteraction;
-use crate::models::{Route, Wave};
+use crate::models::Route;
+use crate::state::AppState;
 
 pub struct RouteDrawingInteraction;
 
 impl RouteDrawingInteraction {
     /// フリーハンド描画の処理
-    pub fn handle_freehand_drawing(response: &egui::Response, wave: &mut Wave, user_id: usize) {
+    pub fn handle_freehand_drawing(
+        state: &mut AppState,
+        response: &egui::Response,
+        user_id: usize,
+    ) {
         if response.drag_started() {
-            Self::handle_drag_start(response, wave, user_id);
+            Self::handle_drag_start(response, state, user_id);
         } else if response.dragged() {
-            Self::handle_dragging(response, wave, user_id);
+            Self::handle_dragging(response, state, user_id);
         }
     }
 
-    fn handle_drag_start(response: &egui::Response, wave: &mut Wave, user_id: usize) {
+    fn handle_drag_start(response: &egui::Response, state: &mut AppState, user_id: usize) {
         // 開始地点・終了時地点からドラッグ開始した場合は無視する
-        if LocationInteraction::detect_drag_start(wave, response).is_some() {
+        if LocationInteraction::detect_drag_start(state, response).is_some() {
             return;
         };
 
         // ドラッグ開始時に新しいルートを作成
         if response.interact_pointer_pos().is_some() {
             let route = Route::new(user_id);
-            wave.routes.push(route);
+            state.push_route(route);
         }
 
         // ドラッグ開始で line を追加
-        if let Some(route) = wave.routes.iter_mut().find(|r| r.user_id == user_id) {
-            route.add_line(vec![]);
+        if let Ok(mut wave) = state.current_wave_mut() {
+            if let Some(route) = wave.routes.iter_mut().find(|r| r.user_id == user_id) {
+                route.add_line(vec![]);
+            }
         }
     }
 
-    fn handle_dragging(response: &egui::Response, wave: &mut Wave, user_id: usize) {
-        if LocationInteraction::detect_drag_start(wave, response).is_some() {
+    fn handle_dragging(response: &egui::Response, state: &mut AppState, user_id: usize) {
+        if LocationInteraction::detect_drag_start(state, response).is_some() {
             return;
         };
 
@@ -45,13 +52,15 @@ impl RouteDrawingInteraction {
         let point = LocationInteraction::screen_to_normalized_point(pos, rect);
 
         // このユーザーのルートが存在しない場合は作成（念のため）
-        if let Some(route) = wave.routes.iter_mut().find(|r| r.user_id == user_id) {
-            route.add_point(point);
-        } else {
-            // ルートが存在しない場合は新規作成
-            let mut route = Route::new(user_id);
-            route.add_point(point);
-            wave.routes.push(route);
+        if let Ok(mut wave) = state.current_wave_mut() {
+            if let Some(route) = wave.routes.iter_mut().find(|r| r.user_id == user_id) {
+                route.add_point(point);
+            } else {
+                // ルートが存在しない場合は新規作成
+                let mut route = Route::new(user_id);
+                route.add_point(point);
+                wave.routes.push(route);
+            }
         }
     }
 }

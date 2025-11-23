@@ -4,7 +4,7 @@ pub struct UserListView;
 
 impl UserListView {
     pub fn show(state: &mut AppState, ui: &mut egui::Ui) {
-        if let Some(game) = &state.game {
+        if let Some(game) = &state.game() {
             // 利用可能なエリア全体を取得
             let available_rect = ui.available_rect_before_wrap();
 
@@ -34,7 +34,7 @@ impl UserListView {
                             ui.vertical(|ui| {
                                 // ユーザーの色を表示（setup_stateから取得）
                                 let user_color = if let Some(player_config) = state
-                                    .setup_state
+                                    .setup_state()
                                     .players
                                     .iter()
                                     .find(|p| p.name == user.name)
@@ -52,20 +52,20 @@ impl UserListView {
 
                                 // クリックまたはドラッグ開始時にユーザーを選択
                                 if response.clicked() || response.drag_started() {
-                                    state.selected_user_id = Some(user_id);
+                                    state.set_selected_user_id(Some(user_id));
                                     if response.drag_started() {
-                                        state.dragging_user_id = Some(user_id);
+                                        state.set_dragging_user_id(Some(user_id));
                                     }
                                 }
 
                                 // ドラッグ終了時にクリア（選択状態は保持）
                                 if response.drag_stopped() {
-                                    state.dragging_user_id = None;
+                                    state.set_dragging_user_id(None);
                                 }
 
                                 // 選択中またはドラッグ中の視覚的フィードバック
-                                let is_selected = state.selected_user_id == Some(user_id);
-                                let is_dragging = state.dragging_user_id == Some(user_id);
+                                let is_selected = state.selected_user_id() == Some(user_id);
+                                let is_dragging = state.dragging_user_id() == Some(user_id);
                                 let color = if is_dragging || (is_selected && response.hovered()) {
                                     user_color.linear_multiply(0.7) // 少し暗くする
                                 } else if is_selected {
