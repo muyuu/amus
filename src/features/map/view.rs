@@ -1,4 +1,4 @@
-use crate::models::Area;
+use crate::{assets::AssetManager, models::Area};
 use egui::*;
 
 pub struct MapView;
@@ -10,7 +10,7 @@ impl MapView {
         painter: &egui::Painter,
         response: &egui::Response,
         _selected_user_id: Option<usize>,
-        asset_manager: Option<&crate::assets::AssetManager>,
+        asset_manager: Option<AssetManager>,
     ) {
         let rect = response.rect;
 

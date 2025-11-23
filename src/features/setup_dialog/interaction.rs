@@ -5,7 +5,7 @@ pub struct SetupInteraction;
 
 impl SetupInteraction {
     pub fn select_area(state: &mut AppState, area: Area) {
-        state.setup_state.selected_area = area.clone();
+        state.set_selected_area(area);
     }
 
     pub fn adjust_player_count(state: &mut AppState, new_count: usize) {
@@ -13,14 +13,14 @@ impl SetupInteraction {
     }
 
     pub fn update_player_name(state: &mut AppState, index: usize, name: String) {
-        if index < state.setup_state.players.len() {
-            state.setup_state.players[index].name = name;
+        if index < state.setup_state().players.len() {
+            state.update_player_name(index, name);
         }
     }
 
-    pub fn select_player_color(state: &mut AppState, index: usize, color: Color) {
-        if index < state.setup_state.players.len() {
-            state.setup_state.players[index].color = color;
+    pub fn update_player_color(state: &mut AppState, index: usize, color: Color) {
+        if index < state.setup_state().players.len() {
+            state.update_player_color(index, color);
         }
     }
 

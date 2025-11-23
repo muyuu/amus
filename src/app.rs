@@ -21,13 +21,13 @@ impl eframe::App for AmusApp {
         ctx.set_pixels_per_point(1.5);
 
         // アセットマネージャーの初期化（一度だけ実行）
-        if self.state.asset_manager.is_none() {
+        if self.state.asset_manager().is_none() {
             let asset_manager = AssetManager::new(ctx);
-            self.state.asset_manager = Some(asset_manager);
+            self.state.set_asset_manager(asset_manager);
         }
 
         // セットアップダイアログの表示
-        if self.state.show_setup_dialog {
+        if self.state.show_setup_dialog() {
             SetupView::show(&mut self.state, ctx);
             return;
         }
@@ -63,15 +63,15 @@ impl AmusApp {
                 ui.horizontal(|ui| {
                     // 左側：メニューボタン
                     if ui.button("📋 メニュー").clicked() {
-                        self.state.show_turn_menu = !self.state.show_turn_menu;
+                        self.state.set_show_turn_menu(!self.state.show_turn_menu());
                     }
 
                     // 中央：デバッグボタン
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         // 右側：リセットボタン
                         if ui.button("🔄 リセット").clicked() {
-                            self.state.show_setup_dialog = true;
-                            self.state.show_turn_menu = false; // メニューを閉じる
+                            self.state.data_mut().show_setup_dialog = true;
+                            self.state.data_mut().show_turn_menu = false; // メニューを閉じる
                         }
 
                         // 中央：デバッグボタン（スペースで中央に配置）
@@ -80,7 +80,8 @@ impl AmusApp {
                             egui::Layout::top_down(egui::Align::Center),
                             |ui| {
                                 if ui.button("🐛 デバッグ").clicked() {
-                                    self.state.show_debug_view = !self.state.show_debug_view;
+                                    self.state.data_mut().show_debug_view =
+                                        !self.state.show_debug_view();
                                 }
                             },
                         );
@@ -89,7 +90,7 @@ impl AmusApp {
             });
 
         // ターンメニューのオーバーレイ表示
-        if self.state.show_turn_menu {
+        if self.state.show_turn_menu() {
             self.show_turn_menu_overlay(ctx);
         }
     }
@@ -123,7 +124,7 @@ impl AmusApp {
                                     ui.separator();
 
                                     // ターンボタングリッド
-                                    if let Some(game) = &self.state.game {
+                                    if let Some(game) = &self.state.game() {
                                         let total_waves = game.waves.len();
                                         egui::Grid::new("turn_grid")
                                             .num_columns(4)
@@ -132,7 +133,8 @@ impl AmusApp {
                                                 for turn_index in 0..total_waves {
                                                     let turn_number = turn_index + 1;
                                                     let is_current =
-                                                        self.state.current_wave_index == turn_index;
+                                                        self.state.current_wave_index()
+                                                            == turn_index;
 
                                                     let button_text = if is_current {
                                                         format!("ターン {} (現在)", turn_number)
@@ -144,7 +146,7 @@ impl AmusApp {
                                                     if button.clicked() {
                                                         // ターンを選択して該当waveに切り替え
                                                         self.state.select_wave(turn_index);
-                                                        self.state.show_turn_menu = false;
+                                                        self.state.set_show_turn_menu(false);
                                                     }
 
                                                     // 4列で改行
@@ -169,7 +171,7 @@ impl AmusApp {
 
                         // グリッド外がクリックされた場合、メニューを閉じる
                         if !grid_rect.contains(click_pos) {
-                            self.state.show_turn_menu = false;
+                            self.state.data_mut().show_turn_menu = false;
                         }
                     }
                 });

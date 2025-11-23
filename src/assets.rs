@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 use crate::models::Area;
 
+#[derive(Clone)]
 pub struct AssetManager {
     area_images: HashMap<String, TextureHandle>,
 }

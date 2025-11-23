@@ -22,13 +22,14 @@ impl SetupView {
                         ui.heading(&texts.area_selection);
                         ui.add_space(8.0);
 
+                        let setup_state = state.setup_state().clone();
                         egui::ComboBox::from_label("")
-                            .selected_text(state.setup_state.selected_area.name())
+                            .selected_text(setup_state.selected_area.name())
                             .show_ui(ui, |ui| {
                                 for area in Area::all() {
                                     if ui
                                         .selectable_label(
-                                            state.setup_state.selected_area == area,
+                                            state.setup_state().selected_area == area,
                                             &*area.name(),
                                         )
                                         .clicked()
@@ -47,7 +48,7 @@ impl SetupView {
 
                         ui.horizontal(|ui| {
                             ui.label(&texts.player_count);
-                            let mut new_count = state.setup_state.player_count;
+                            let mut new_count = state.setup_state().player_count;
                             if ui.add(egui::Slider::new(&mut new_count, 4..=18)).changed() {
                                 SetupInteraction::adjust_player_count(state, new_count);
                             }
@@ -57,14 +58,14 @@ impl SetupView {
 
                         // プレイヤー一覧の編集
                         let available_colors = Color::all();
-                        let player_count = state.setup_state.player_count;
+                        let player_count = state.setup_state().player_count;
 
                         for i in 0..player_count {
-                            if i < state.setup_state.players.len() {
+                            if i < state.setup_state().players.len() {
                                 ui.horizontal(|ui| {
                                     ui.label(&texts.player_name);
                                     ui.add_space(4.0);
-                                    let mut name = state.setup_state.players[i].name.clone();
+                                    let mut name = state.setup_state().players[i].name.clone();
                                     if ui.text_edit_singleline(&mut name).changed() {
                                         SetupInteraction::update_player_name(state, i, name);
                                     }
@@ -74,7 +75,8 @@ impl SetupView {
                                     ui.add_space(4.0);
 
                                     // 現在の色のプレビューをComboBoxの前に表示
-                                    let selected_color = state.setup_state.players[i].color.clone();
+                                    let selected_color =
+                                        state.setup_state().players[i].color.clone();
 
                                     // 色プレビューのサイズと位置を調整
                                     let (rect, _response) = ui.allocate_exact_size(
@@ -117,7 +119,7 @@ impl SetupView {
                                                         )
                                                         .clicked()
                                                     {
-                                                        SetupInteraction::select_player_color(
+                                                        SetupInteraction::update_player_color(
                                                             state,
                                                             i,
                                                             color.clone(),
