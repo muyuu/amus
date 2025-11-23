@@ -1,4 +1,5 @@
 use std::cell::{Ref, RefCell, RefMut};
+use std::collections::HashMap;
 
 use crate::assets::AssetManager;
 use crate::models::*;
@@ -144,6 +145,15 @@ impl AppState {
         game
     }
 
+    pub fn area(&self) -> Option<Area> {
+        let game = self.game();
+        if let Some(game) = game {
+            Some(game.area)
+        } else {
+            None
+        }
+    }
+
     /// 現在の wave への不変参照を取得
     #[allow(dead_code)]
     pub fn current_wave(&self) -> Result<Ref<'_, Wave>, String> {
@@ -249,6 +259,13 @@ impl AppState {
         self.data.borrow_mut().show_turn_menu = show;
     }
 
+    pub fn routes(&self) -> Option<Vec<Route>> {
+        match self.current_wave() {
+            Ok(wave) => Some(wave.routes.clone()),
+            _ => return None,
+        }
+    }
+
     pub fn push_route(&self, route: Route) {
         let mut wave = match self.current_wave_mut() {
             Ok(wave) => wave,
@@ -256,6 +273,22 @@ impl AppState {
         };
 
         wave.routes.push(route);
+    }
+
+    pub fn spawn_location(&self, user_id: usize) -> Option<Point> {
+        let wave = match self.current_wave() {
+            Ok(wave) => wave,
+            _ => return None,
+        };
+
+        wave.spawn_locations.get(&user_id).cloned()
+    }
+
+    pub fn spawn_locations(&self) -> Option<HashMap<usize, Point>> {
+        match self.current_wave() {
+            Ok(wave) => Some(wave.spawn_locations.clone()),
+            _ => return None,
+        }
     }
 
     pub fn add_spawn_location(&self, user_id: usize, point: Point) {
@@ -267,6 +300,13 @@ impl AppState {
         wave.spawn_locations.insert(user_id, point);
     }
 
+    pub fn end_locations(&self) -> Option<HashMap<usize, Point>> {
+        match self.current_wave() {
+            Ok(wave) => Some(wave.end_locations.clone()),
+            _ => return None,
+        }
+    }
+
     pub fn add_end_location(&self, user_id: usize, point: Point) {
         let mut wave = match self.current_wave_mut() {
             Ok(wave) => wave,
@@ -274,14 +314,5 @@ impl AppState {
         };
 
         wave.end_locations.insert(user_id, point);
-    }
-
-    pub fn get_spawn_location(&self, user_id: usize) -> Option<Point> {
-        let wave = match self.current_wave() {
-            Ok(wave) => wave,
-            _ => return None,
-        };
-
-        wave.spawn_locations.get(&user_id).cloned()
     }
 }

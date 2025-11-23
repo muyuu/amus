@@ -1,14 +1,24 @@
-use crate::models::{Game, Route, Wave};
+use crate::{models::Route, state::AppState};
 use egui::*;
 
 pub struct RouteDrawingView;
 
 impl RouteDrawingView {
-    pub fn render(game: &Game, wave: &Wave, painter: &egui::Painter, rect: egui::Rect) {
-        for route in &wave.routes {
+    pub fn render(state: &AppState, painter: &egui::Painter, rect: egui::Rect) {
+        let routes = match state.routes() {
+            Some(routes) => routes,
+            None => return,
+        };
+
+        let game = match state.game() {
+            Some(game) => game,
+            None => return,
+        };
+
+        for route in routes {
             if let Some(user) = game.users.get(route.user_id) {
                 let color = user.color.to_egui_color();
-                Self::draw_route(painter, route, color, rect);
+                Self::draw_route(painter, &route, color, rect);
             }
         }
     }

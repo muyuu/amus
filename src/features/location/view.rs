@@ -1,14 +1,29 @@
-use crate::models::{user, Game, Wave};
+use crate::{models::user, state::AppState};
 use egui::*;
 
 pub struct LocationView;
 
 impl LocationView {
     /// 出現位置と終了時位置を描画
-    pub fn render(painter: &egui::Painter, game: &Game, wave: &Wave, rect: Rect) {
+    pub fn render(state: &AppState, painter: &egui::Painter, rect: Rect) {
+        Self::render_spawn_locations(state, painter, rect);
+        Self::render_end_locations(state, painter, rect);
+    }
+
+    fn render_spawn_locations(state: &AppState, painter: &egui::Painter, rect: Rect) {
         // 出現場所を描画（四角）
-        for (user_id, point) in &wave.spawn_locations {
-            if let Some(user) = game.users.get(*user_id) {
+        let spawn_locations = match state.spawn_locations() {
+            Some(spawn_locations) => spawn_locations,
+            None => return,
+        };
+
+        for (user_id, point) in spawn_locations {
+            let game = match state.game() {
+                Some(game) => game,
+                None => return,
+            };
+
+            if let Some(user) = game.users.get(user_id) {
                 let color = user.color.to_egui_color();
                 let pos = pos2(
                     rect.min.x + point.x * rect.size().x,
@@ -28,10 +43,22 @@ impl LocationView {
                 );
             }
         }
+    }
+
+    fn render_end_locations(state: &AppState, painter: &egui::Painter, rect: Rect) {
+        let end_locations = match state.end_locations() {
+            Some(end_locations) => end_locations,
+            None => return,
+        };
 
         // 終了時位置を描画（丸）
-        for (user_id, point) in &wave.end_locations {
-            if let Some(user) = game.users.get(*user_id) {
+        for (user_id, point) in end_locations {
+            let game = match state.game() {
+                Some(game) => game,
+                None => return,
+            };
+
+            if let Some(user) = game.users.get(user_id) {
                 let color = user.color.to_egui_color();
                 let pos = pos2(
                     rect.min.x + point.x * rect.size().x,

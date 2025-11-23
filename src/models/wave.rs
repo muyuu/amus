@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 use super::{Point, Route};
@@ -5,11 +7,11 @@ use super::{Point, Route};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Wave {
     pub routes: Vec<Route>,
-    pub killed: Option<usize>,        // 殺害されたユーザーのID
-    pub kill_location: Option<Point>, // 殺害場所（証言ベース）
-    pub notes: String,                // 議論ターンでのメモ
-    pub spawn_locations: std::collections::HashMap<usize, Point>, // ユーザーID -> 出現場所
-    pub end_locations: std::collections::HashMap<usize, Point>, // ユーザーID -> 終了時位置
+    pub killed: Option<usize>,                  // 殺害されたユーザーのID
+    pub kill_location: Option<Point>,           // 殺害場所（証言ベース）
+    pub notes: String,                          // 議論ターンでのメモ
+    pub spawn_locations: HashMap<usize, Point>, // ユーザーID -> 出現場所
+    pub end_locations: HashMap<usize, Point>,   // ユーザーID -> 終了時位置
 }
 
 impl Wave {
@@ -19,8 +21,8 @@ impl Wave {
             killed: None,
             kill_location: None,
             notes: String::new(),
-            spawn_locations: std::collections::HashMap::new(),
-            end_locations: std::collections::HashMap::new(),
+            spawn_locations: HashMap::new(),
+            end_locations: HashMap::new(),
         }
     }
 }

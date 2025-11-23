@@ -1,43 +1,43 @@
-use crate::{assets::AssetManager, models::Area};
+use crate::state::AppState;
 use egui::*;
 
 pub struct MapView;
 
 impl MapView {
     /// マップ全体を描画（背景画像、ルート、位置）
-    pub fn render(
-        area: &Area,
-        painter: &egui::Painter,
-        response: &egui::Response,
-        _selected_user_id: Option<usize>,
-        asset_manager: Option<AssetManager>,
-    ) {
+    pub fn render(state: &AppState, painter: &egui::Painter, response: &egui::Response) {
         let rect = response.rect;
 
         // エリア画像を背景として描画
-        if let Some(asset_manager) = asset_manager {
-            if let Some(texture) = asset_manager.get_area_texture(area) {
-                // 画像の縦横比を維持してセンタリング
-                let image_rect = Self::calculate_centered_rect(rect, texture.size_vec2());
-                painter.image(
-                    texture.id(),
-                    image_rect,
-                    Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
-                    Color32::WHITE,
-                );
+        if let Some(asset_manager) = state.asset_manager() {
+            let area = match state.area() {
+                Some(area) => area,
+                None => return Self::render_default_area(painter, rect),
+            };
 
-                // 画像の外側を黒で塗りつぶし
-                if image_rect != rect {
-                    Self::fill_outside_area(painter, rect, image_rect);
-                }
-            } else {
-                // テクスチャが見つからない場合はグレーの背景
-                painter.rect_filled(rect, 0.0, Color32::from_gray(30));
+            let texture = match asset_manager.get_area_texture(&area) {
+                Some(texture) => texture,
+                None => return Self::render_default_area(painter, rect),
+            };
+
+            // 画像の縦横比を維持してセンタリング
+            let image_rect = Self::calculate_centered_rect(rect, texture.size_vec2());
+            painter.image(
+                texture.id(),
+                image_rect,
+                Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+                Color32::WHITE,
+            );
+
+            // 画像の外側を黒で塗りつぶし
+            if image_rect != rect {
+                Self::fill_outside_area(painter, rect, image_rect);
             }
-        } else {
-            // AssetManagerが初期化されていない場合はグレーの背景
-            painter.rect_filled(rect, 0.0, Color32::from_gray(30));
         }
+    }
+
+    fn render_default_area(painter: &egui::Painter, rect: Rect) {
+        painter.rect_filled(rect, 0.0, Color32::from_gray(30));
     }
 
     /// 画像の縦横比を維持して中央配置するための矩形を計算

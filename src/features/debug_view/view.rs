@@ -1,15 +1,9 @@
-use crate::models::Game;
+use crate::state::AppState;
 
 pub struct DebugView;
 
 impl DebugView {
-    pub fn render(
-        render_flag: bool,
-        ctx: &egui::Context,
-        dragging_user_id: Option<usize>,
-        selected_user_id: Option<usize>,
-        game: &Game,
-    ) {
+    pub fn render(state: &AppState, render_flag: bool, ctx: &egui::Context) {
         if !render_flag {
             return;
         }
@@ -24,25 +18,11 @@ impl DebugView {
         egui::Area::new(egui::Id::new("debug_view"))
             .fixed_pos(window_pos)
             .show(ctx, |ui| {
-                Self::show_content(
-                    ui,
-                    ctx,
-                    dragging_user_id,
-                    selected_user_id,
-                    game,
-                    window_width,
-                );
+                Self::show_content(state, ui, ctx, window_width);
             });
     }
 
-    fn show_content(
-        ui: &mut egui::Ui,
-        ctx: &egui::Context,
-        dragging_user_id: Option<usize>,
-        selected_user_id: Option<usize>,
-        game: &Game,
-        window_width: f32,
-    ) {
+    fn show_content(state: &AppState, ui: &mut egui::Ui, ctx: &egui::Context, window_width: f32) {
         egui::Frame::popup(ui.style())
             .inner_margin(egui::Margin::same(10.0))
             .show(ui, |ui| {
@@ -50,17 +30,11 @@ impl DebugView {
                 ui.heading("🐛 デバッグ情報");
                 ui.separator();
 
-                Self::show_debug_table(ui, ctx, dragging_user_id, selected_user_id, game);
+                Self::show_debug_table(state, ui, ctx);
             });
     }
 
-    fn show_debug_table(
-        ui: &mut egui::Ui,
-        ctx: &egui::Context,
-        dragging_user_id: Option<usize>,
-        selected_user_id: Option<usize>,
-        game: &Game,
-    ) {
+    fn show_debug_table(state: &AppState, ui: &mut egui::Ui, ctx: &egui::Context) {
         // 2列のテーブル形式で表示
         egui::Grid::new("debug_grid")
             .num_columns(2)
@@ -68,11 +42,15 @@ impl DebugView {
             .show(ui, |ui| {
                 // 選択中ユーザー
                 ui.label("選択中ユーザー:");
-                if let Some(user_id) = selected_user_id {
-                    if let Some(user) = game.users.get(user_id) {
-                        ui.label(format!("{} (user_id={})", user.name, user_id));
+                if let Some(user_id) = state.selected_user_id() {
+                    if let Some(game) = state.game() {
+                        if let Some(user) = game.users.get(user_id) {
+                            ui.label(format!("{} (user_id={})", user.name, user_id));
+                        } else {
+                            ui.label(format!("user_id={} (存在しない)", user_id));
+                        }
                     } else {
-                        ui.label(format!("user_id={} (存在しない)", user_id));
+                        ui.label("ゲームが存在しません");
                     }
                 } else {
                     ui.label("なし");
@@ -81,7 +59,7 @@ impl DebugView {
 
                 // ドラッグ中ユーザー
                 ui.label("ドラッグ中ユーザー:");
-                if let Some(user_id) = dragging_user_id {
+                if let Some(user_id) = state.dragging_user_id() {
                     ui.label(format!("user_id={}", user_id));
                 } else {
                     ui.label("なし");
