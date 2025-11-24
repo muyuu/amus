@@ -4,7 +4,10 @@ use egui::*;
 pub struct RouteDrawingView;
 
 impl RouteDrawingView {
-    pub fn render(state: &AppState, painter: &egui::Painter, rect: egui::Rect) {
+    pub fn render(state: &AppState, response: &egui::Response, ui: &mut egui::Ui) {
+        let painter = ui.painter_at(response.rect);
+        let rect = response.rect;
+
         let routes = match state.routes() {
             Some(routes) => routes,
             None => return,
@@ -18,7 +21,7 @@ impl RouteDrawingView {
         for route in routes {
             if let Some(user) = game.users.get(route.user_id) {
                 let color = user.color.to_egui_color();
-                Self::draw_route(painter, &route, color, rect);
+                Self::draw_route(&painter, &route, color, rect);
             }
         }
     }

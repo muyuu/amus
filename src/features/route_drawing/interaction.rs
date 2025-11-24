@@ -5,12 +5,13 @@ use crate::state::AppState;
 pub struct RouteDrawingInteraction;
 
 impl RouteDrawingInteraction {
-    /// フリーハンド描画の処理
-    pub fn handle_freehand_drawing(
-        state: &mut AppState,
-        response: &egui::Response,
-        user_id: usize,
-    ) {
+    pub fn handle(state: &mut AppState, response: &egui::Response) {
+        let user_id = match state.selected_user_id() {
+            Some(user_id) => user_id,
+            None => return,
+        };
+
+        // マウス操作の処理（常にフリーハンド描画）
         if response.drag_started() {
             Self::handle_drag_start(response, state, user_id);
         } else if response.dragged() {
