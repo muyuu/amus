@@ -2,7 +2,7 @@ use crate::features::debug_view::DebugView;
 use crate::features::location::LocationView;
 use crate::features::main::MainInteraction;
 use crate::features::map::MapView;
-use crate::features::route_drawing::RouteDrawingView;
+use crate::features::route_drawing::RouteDrawingFeature;
 use crate::features::welcome::WelcomeView;
 use crate::state::AppState;
 
@@ -24,13 +24,13 @@ impl MainView {
         Self::setup_interactions(state, &response, ui);
     }
 
-    fn render_children(state: &AppState, response: &egui::Response, ui: &mut egui::Ui) {
+    fn render_children(state: &mut AppState, response: &egui::Response, ui: &mut egui::Ui) {
         let painter = ui.painter_at(response.rect);
         let rect = response.rect;
 
         MapView::render(state, &painter, response);
         LocationView::render(state, &painter, rect);
-        RouteDrawingView::render(state, &painter, rect);
+        RouteDrawingFeature::render(state, response, ui);
         DebugView::render(state, state.show_debug_view(), ui.ctx());
     }
 

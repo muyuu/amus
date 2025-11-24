@@ -1,5 +1,4 @@
 use crate::features::location::LocationInteraction;
-use crate::features::route_drawing::RouteDrawingInteraction;
 use crate::state::AppState;
 
 pub struct MainInteraction;
@@ -19,8 +18,6 @@ impl MainInteraction {
 
         // エリアクリック処理（必要な値を先に取得）
         Self::handle_area_click(state, response);
-
-        Self::handle_route(state, response);
 
         // ドラッグ終了時のクリア
         Self::clear_drag_states(state, ctx);
@@ -66,16 +63,6 @@ impl MainInteraction {
                 }
             }
         }
-    }
-
-    fn handle_route(state: &mut AppState, response: &egui::Response) {
-        let user_id = match state.selected_user_id() {
-            Some(user_id) => user_id,
-            None => return,
-        };
-
-        // マウス操作の処理（常にフリーハンド描画）
-        RouteDrawingInteraction::handle_freehand_drawing(state, response, user_id);
     }
 
     /// ドラッグ終了時の状態クリア
