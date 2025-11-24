@@ -315,4 +315,12 @@ impl AppState {
 
         wave.end_locations.insert(user_id, point);
     }
+
+    pub fn erase_mode(&self) -> bool {
+        self.data.borrow().erase_mode
+    }
+
+    pub fn set_erase_mode(&self, mode: bool) {
+        self.data.borrow_mut().erase_mode = mode;
+    }
 }

@@ -1,4 +1,4 @@
-use crate::state::AppState;
+use crate::{features::eraser::EraserFeature, state::AppState};
 
 pub struct UserListView;
 
@@ -29,6 +29,8 @@ impl UserListView {
                         if padding > 0.0 {
                             ui.add_space(padding);
                         }
+
+                        EraserFeature::render(state, ui);
 
                         for (user_id, user) in game.users.iter().enumerate() {
                             ui.vertical(|ui| {
