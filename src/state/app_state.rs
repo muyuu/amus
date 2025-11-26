@@ -266,6 +266,26 @@ impl AppState {
         }
     }
 
+    pub fn routes_mut(&self) -> Option<RefMut<'_, Vec<Route>>> {
+        match self.current_wave_mut() {
+            Ok(wave) => Some(std::cell::RefMut::map(wave, |w| &mut w.routes)),
+            _ => return None,
+        }
+    }
+
+    pub fn last_route_mut(&self) -> Option<RefMut<'_, Route>> {
+        match self.routes_mut() {
+            Some(routes) => {
+                let len = routes.len();
+                if len == 0 {
+                    return None;
+                }
+                Some(std::cell::RefMut::map(routes, |r| &mut r[len - 1]))
+            }
+            None => None,
+        }
+    }
+
     pub fn push_route(&self, route: Route) {
         let mut wave = match self.current_wave_mut() {
             Ok(wave) => wave,

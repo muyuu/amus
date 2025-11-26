@@ -1,33 +1,39 @@
-use crate::{models::Route, state::AppState};
+use crate::{models::{Route, route::Draw}, state::AppState};
 use egui::*;
 
 pub struct RouteDrawingView;
 
 impl RouteDrawingView {
     pub fn render(state: &AppState, response: &egui::Response, ui: &mut egui::Ui) {
-        let painter = ui.painter_at(response.rect);
-        let rect = response.rect;
 
         let routes = match state.routes() {
             Some(routes) => routes,
             None => return,
         };
 
+        let painter = ui.painter_at(response.rect);
+        let rect = response.rect;
+
+        for route in routes {
+            match route {
+                Route::Draw(draw) => Self::draw_route(state, &draw, &painter, rect),
+                Route::Erase(_) => Self::erase_route(),
+            }
+        }
+    }
+
+    /// ルートを描画（開始地点と軌跡）Response
+    fn draw_route(state: &AppState, route: &Draw, painter: &Painter, rect: Rect) {
         let game = match state.game() {
             Some(game) => game,
             None => return,
         };
 
-        for route in routes {
-            if let Some(user) = game.users.get(route.user_id) {
-                let color = user.color.to_egui_color();
-                Self::draw_route(&painter, &route, color, rect);
-            }
-        }
-    }
+        let user = match game.get_users().get(route.user_id) {
+            Some(user) => user,
+            None => return,
+        };
 
-    /// ルートを描画（開始地点と軌跡）
-    fn draw_route(painter: &egui::Painter, route: &Route, color: Color32, rect: Rect) {
         if route.lines.is_empty() {
             return;
         }
@@ -49,9 +55,13 @@ impl RouteDrawingView {
                     rect.min.y + point.y * rect.size().y,
                 );
                 let stroke_width = 6.0;
-                painter.line_segment([prev_pos, pos], (stroke_width, color));
+                painter.line_segment([prev_pos, pos], (stroke_width, user.color.to_egui_color()));
                 prev_pos = pos;
             }
         }
+    }
+
+    fn erase_route() {
+        // 消去ルートの描画ロジックをここに実装
     }
 }
