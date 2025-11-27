@@ -159,7 +159,7 @@ impl LocationInteraction {
 
         let point = Self::screen_to_normalized_point(pointer_pos, response.rect);
         let dragging_user_id = match state.dragging_user_id() {
-            Some(user_id) => user_id.clone(),
+            Some(user_id) => user_id,
             None => return,
         };
 

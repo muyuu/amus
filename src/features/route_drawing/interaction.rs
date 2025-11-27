@@ -1,6 +1,6 @@
 use crate::features::location::LocationInteraction;
-use crate::models::Route;
 use crate::models::route::{Draw, Erase};
+use crate::models::Route;
 use crate::state::AppState;
 
 pub struct RouteDrawingInteraction;

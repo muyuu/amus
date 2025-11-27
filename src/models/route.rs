@@ -17,11 +17,6 @@ pub struct Draw {
 }
 
 impl Route {
-    pub fn add_line(&mut self, line: Vec<Point>) {
-        let lines = self.lines_mut();
-        lines.push(line);
-    }
-
     pub fn add_point(&mut self, point: Point) {
         let lines = self.lines_mut();
         let last_line = match lines.last_mut() {
@@ -63,6 +58,8 @@ pub struct Erase {
 
 impl Erase {
     pub fn new() -> Self {
-        Self { lines: vec![vec![]] }
+        Self {
+            lines: vec![vec![]],
+        }
     }
 }

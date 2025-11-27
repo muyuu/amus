@@ -41,17 +41,17 @@ pub struct AppData {
 impl Default for AppData {
     fn default() -> Self {
         Self {
-            asset_manager: None,                             // 後で初期化
+            asset_manager: None, // 後で初期化
             current_wave_index: 0,
-            dragging_location: None,                         // ドラッグ中の位置はNone
-            dragging_user_id: None,                          // ドラッグ中はNone
-            erase_mode: false,                               // 初期状態では消しゴムモードオフ
+            dragging_location: None, // ドラッグ中の位置はNone
+            dragging_user_id: None,  // ドラッグ中はNone
+            erase_mode: false,       // 初期状態では消しゴムモードオフ
             game: None,
             selected_user_id: None,
             setup_state: SetupState::default(),
             show_setup_dialog: true, // 起動時はセットアップダイアログを表示
-            show_turn_menu: false,                           // 初期状態では非表示
-            show_debug_view: false,                          // 初期状態では非表示
+            show_turn_menu: false,   // 初期状態では非表示
+            show_debug_view: false,  // 初期状態では非表示
             translator: Translator::new(Language::Japanese), // デフォルトは日本語
         }
     }
