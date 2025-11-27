@@ -30,6 +30,7 @@ impl JapaneseWords {
     pub const DISCUSSION: &'static str = "議論";
     pub const NAME: &'static str = "名前";
     pub const COLOR: &'static str = "色";
+    pub const ERASER: &'static str = "消しゴム";
 
     // 状態・形容詞
     pub const ALIVE: &'static str = "生存";

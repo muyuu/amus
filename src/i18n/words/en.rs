@@ -31,6 +31,7 @@ impl EnglishWords {
     pub const INFORMATION: &'static str = "Information";
     pub const NAME: &'static str = "Name";
     pub const COLOR: &'static str = "Color";
+    pub const ERASER: &'static str = "Eraser";
 
     // 状態・形容詞
     pub const ALIVE: &'static str = "Alive";
