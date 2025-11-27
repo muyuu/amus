@@ -1,16 +1,18 @@
-use crate::{features::eraser::EraserFeature, state::AppState};
+use crate::features::eraser::EraserFeature;
+use crate::state::AppState;
+use egui::*;
 
 pub struct UserListView;
 
 impl UserListView {
-    pub fn show(state: &mut AppState, ui: &mut egui::Ui) {
+    pub fn show(state: &mut AppState, ui: &mut Ui) {
         if let Some(game) = &state.game() {
             // 利用可能なエリア全体を取得
             let available_rect = ui.available_rect_before_wrap();
 
             // 横スクロール可能なエリアで中央に配置
-            egui::ScrollArea::horizontal()
-                .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
+            ScrollArea::horizontal()
+                .scroll_bar_visibility(scroll_area::ScrollBarVisibility::AlwaysHidden)
                 .show(ui, |ui| {
                     // プレイヤー数に基づいてコンテンツ幅を計算
                     let player_width = 50.0; // 各プレイヤーの幅（矩形40px + スペース10px）
@@ -43,13 +45,13 @@ impl UserListView {
                                 {
                                     player_config.color.to_egui_color()
                                 } else {
-                                    egui::Color32::GRAY // デフォルト色
+                                    Color32::GRAY // デフォルト色
                                 };
 
                                 // カラー矩形（正方形）をクリック/ドラッグ可能にする
                                 let (rect, response) = ui.allocate_exact_size(
-                                    egui::Vec2::new(40.0, 40.0),
-                                    egui::Sense::click_and_drag(),
+                                    Vec2::new(40.0, 40.0),
+                                    Sense::click_and_drag(),
                                 );
 
                                 // クリックまたはドラッグ開始時にユーザーを選択
@@ -80,11 +82,7 @@ impl UserListView {
 
                                 // 選択中のユーザーには枠線を表示
                                 if is_selected {
-                                    ui.painter().rect_stroke(
-                                        rect,
-                                        4.0,
-                                        (2.0, egui::Color32::WHITE),
-                                    );
+                                    ui.painter().rect_stroke(rect, 4.0, (2.0, Color32::WHITE));
                                 }
 
                                 // ユーザー名（矩形の下に配置）
