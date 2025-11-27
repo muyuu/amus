@@ -74,18 +74,46 @@ run = '''
   rustup target add x86_64-pc-windows-gnu
   rustup target add x86_64-pc-windows-msvc
 
-  # Windows用クロスコンパイルツールをチェック
+  # Windows用クロスコンパイルツールをチェック・インストール
   echo "Windows用クロスコンパイルツールをチェック中..."
   if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
     echo "mingw-w64は既にインストールされています"
   else
-    echo "警告: mingw-w64がインストールされていません"
-    echo "Ubuntu/Debian: sudo apt install gcc-mingw-w64-x86-64"
-    echo "Fedora: sudo dnf install mingw64-gcc"
-    echo "Arch: sudo pacman -S mingw-w64-gcc"
+    echo "mingw-w64がインストールされていません。インストール中..."
+    
+    # OSを判定してインストールコマンドを実行
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      # macOS
+      if command -v brew >/dev/null 2>&1; then
+        brew install mingw-w64
+      else
+        echo "エラー: Homebrewがインストールされていません"
+        echo "Homebrewをインストールしてください: https://brew.sh/"
+        exit 1
+      fi
+    elif [[ -f /etc/debian_version ]]; then
+      # Ubuntu/Debian
+      sudo apt update && sudo apt install -y gcc-mingw-w64-x86-64
+    elif [[ -f /etc/fedora-release ]]; then
+      # Fedora
+      sudo dnf install -y mingw64-gcc
+    elif [[ -f /etc/arch-release ]]; then
+      # Arch Linux
+      sudo pacman -S --noconfirm mingw-w64-gcc
+    else
+      echo "警告: サポートされていないOSです"
+      echo "手動でmingw-w64をインストールしてください"
+    fi
+    
+    # インストール確認
+    if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
+      echo "mingw-w64のインストールが完了しました"
+    else
+      echo "警告: mingw-w64のインストールに失敗しました"
+    fi
   fi
 
-  echo "ターゲット追加完了"
+  echo "セットアップ完了"
 '''
 
 # ============================================
