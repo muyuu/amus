@@ -139,6 +139,13 @@ impl AppState {
 
 // 既存のコードとの互換性のため、フィールドへの直接アクセスを提供
 impl AppState {
+    pub fn reset_game(&self) {
+        // setup_state は変えなくて良いケースが多いはずなので保持
+        let setup_state = self.data.borrow().setup_state.clone();
+        *self.data.borrow_mut() = AppData::default();
+        self.data.borrow_mut().setup_state = setup_state;
+    }
+
     pub fn game(&self) -> Option<Game> {
         let data = self.data.borrow();
         data.game.clone()
