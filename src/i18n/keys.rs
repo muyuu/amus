@@ -49,3 +49,6 @@ pub const MAIN_STATUS_ALIVE: &str = "main.status_alive";
 pub const MAIN_STATUS_DEAD: &str = "main.status_dead";
 pub const MAIN_WELCOME_TITLE: &str = "main.welcome_title";
 pub const MAIN_WELCOME_MESSAGE: &str = "main.welcome_message";
+
+// 消しゴムボタン
+pub const ERASER_BUTTON: &str = "eraser.button";

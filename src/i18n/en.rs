@@ -101,5 +101,8 @@ pub fn get_translations() -> HashMap<&'static str, String> {
         ),
     );
 
+    // Eraser
+    translations.insert(ERASER_BUTTON, W::ERASER.to_string());
+
     translations
 }

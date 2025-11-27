@@ -32,7 +32,9 @@ impl UserListView {
                             ui.add_space(padding);
                         }
 
-                        EraserFeature::render(state, ui);
+                        ui.vertical(|ui| {
+                            EraserFeature::render(state, ui);
+                        });
 
                         for (user_id, user) in game.users.iter().enumerate() {
                             ui.vertical(|ui| {
