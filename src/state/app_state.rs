@@ -141,8 +141,7 @@ impl AppState {
 impl AppState {
     pub fn game(&self) -> Option<Game> {
         let data = self.data.borrow();
-        let game = data.game.clone();
-        game
+        data.game.clone()
     }
 
     pub fn area(&self) -> Option<Area> {
@@ -197,7 +196,7 @@ impl AppState {
     }
 
     pub fn current_wave_index(&self) -> usize {
-        let i = self.data.borrow().current_wave_index.clone();
+        let i = self.data.borrow().current_wave_index;
         i
     }
 
@@ -262,7 +261,27 @@ impl AppState {
     pub fn routes(&self) -> Option<Vec<Route>> {
         match self.current_wave() {
             Ok(wave) => Some(wave.routes.clone()),
-            _ => return None,
+            _ => None,
+        }
+    }
+
+    pub fn routes_mut(&self) -> Option<RefMut<'_, Vec<Route>>> {
+        match self.current_wave_mut() {
+            Ok(wave) => Some(std::cell::RefMut::map(wave, |w| &mut w.routes)),
+            _ => None,
+        }
+    }
+
+    pub fn last_route_mut(&self) -> Option<RefMut<'_, Route>> {
+        match self.routes_mut() {
+            Some(routes) => {
+                let len = routes.len();
+                if len == 0 {
+                    return None;
+                }
+                Some(std::cell::RefMut::map(routes, |r| &mut r[len - 1]))
+            }
+            None => None,
         }
     }
 
@@ -287,7 +306,7 @@ impl AppState {
     pub fn spawn_locations(&self) -> Option<HashMap<usize, Point>> {
         match self.current_wave() {
             Ok(wave) => Some(wave.spawn_locations.clone()),
-            _ => return None,
+            _ => None,
         }
     }
 
@@ -303,7 +322,7 @@ impl AppState {
     pub fn end_locations(&self) -> Option<HashMap<usize, Point>> {
         match self.current_wave() {
             Ok(wave) => Some(wave.end_locations.clone()),
-            _ => return None,
+            _ => None,
         }
     }
 
@@ -314,5 +333,13 @@ impl AppState {
         };
 
         wave.end_locations.insert(user_id, point);
+    }
+
+    pub fn erase_mode(&self) -> bool {
+        self.data.borrow().erase_mode
+    }
+
+    pub fn set_erase_mode(&self, mode: bool) {
+        self.data.borrow_mut().erase_mode = mode;
     }
 }

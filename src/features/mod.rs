@@ -1,4 +1,5 @@
 pub mod debug_view;
+pub mod eraser;
 pub mod location;
 pub mod main;
 pub mod map;
