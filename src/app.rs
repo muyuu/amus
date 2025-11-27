@@ -70,6 +70,7 @@ impl AmusApp {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         // 右側：リセットボタン
                         if ui.button("🔄 リセット").clicked() {
+                            self.state.reset_game();
                             self.state.data_mut().show_setup_dialog = true;
                             self.state.data_mut().show_turn_menu = false; // メニューを閉じる
                         }
