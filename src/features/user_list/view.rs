@@ -88,11 +88,13 @@ impl UserListView {
                                 }
 
                                 // ユーザー名（矩形の下に配置）
-                                ui.label(&user.name);
+                                ui.label(RichText::new(&user.name).color(Color32::WHITE));
                             });
                             ui.add_space(10.0); // プレイヤー間のスペース
                         }
                     });
+
+                    ui.add_space(20.0); // 下部の余白
                 });
         } else {
             ui.centered_and_justified(|ui| {
