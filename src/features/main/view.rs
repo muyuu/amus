@@ -19,15 +19,9 @@ impl MainView {
         // マップ表示エリア（ここにエリア画像と軌跡を描画）
         let response = ui.allocate_response(ui.available_size(), egui::Sense::click_and_drag());
 
-        Self::render_children(state, &response, ui);
-    }
-
-    fn render_children(state: &mut AppState, response: &egui::Response, ui: &mut egui::Ui) {
-        let painter = ui.painter_at(response.rect);
-
-        MapView::render(state, &painter, response);
-        LocationFeature::render(state, response, ui);
-        RouteDrawingFeature::render(state, response, ui);
+        MapView::render(state, &response, ui);
+        LocationFeature::render(state, &response, ui);
+        RouteDrawingFeature::render(state, &response, ui);
         DebugView::render(state, state.show_debug_view(), ui.ctx());
     }
 }

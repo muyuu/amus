@@ -5,19 +5,20 @@ pub struct MapView;
 
 impl MapView {
     /// マップ全体を描画（背景画像、ルート、位置）
-    pub fn render(state: &AppState, painter: &egui::Painter, response: &egui::Response) {
+    pub fn render(state: &AppState, response: &Response, ui: &mut Ui) {
+        let painter = ui.painter_at(response.rect);
         let rect = response.rect;
 
         // エリア画像を背景として描画
         if let Some(asset_manager) = state.asset_manager() {
             let area = match state.area() {
                 Some(area) => area,
-                None => return Self::render_default_area(painter, rect),
+                None => return Self::render_default_area(&painter, rect),
             };
 
             let texture = match asset_manager.get_area_texture(&area) {
                 Some(texture) => texture,
-                None => return Self::render_default_area(painter, rect),
+                None => return Self::render_default_area(&painter, rect),
             };
 
             // 画像の縦横比を維持してセンタリング
@@ -31,7 +32,7 @@ impl MapView {
 
             // 画像の外側を黒で塗りつぶし
             if image_rect != rect {
-                Self::fill_outside_area(painter, rect, image_rect);
+                Self::fill_outside_area(&painter, rect, image_rect);
             }
         }
     }
