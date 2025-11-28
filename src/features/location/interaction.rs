@@ -1,9 +1,70 @@
 use crate::models::Point;
 use crate::state::{AppState, DraggingLocation, LocationType};
+use egui::*;
 
 pub struct LocationInteraction;
 
 impl LocationInteraction {
+    pub fn handle_interactions(state: &mut AppState, response: &Response, ctx: &Context) {
+        Self::handle_end_location_click(state, response);
+
+        // ユーザードロップ処理（必要な値を先に取得）
+        Self::handle_user_drop(state, response, ctx);
+
+        // エリアクリック処理（必要な値を先に取得）
+        Self::handle_area_click(state, response);
+
+        // ドラッグ終了時のクリア
+        Self::clear_drag_states(state, ctx);
+
+        // ドラッグ開始の検出
+        Self::handle_drag_start(state, response, ctx);
+    }
+
+    fn handle_drag_start(state: &mut AppState, response: &egui::Response, ctx: &egui::Context) {
+        // 位置（出現位置・終了時位置）のドラッグ処理
+        if let Some(dragging_location) = state.dragging_location() {
+            Self::update_dragging_location(state, dragging_location, response, ctx);
+        }
+
+        // ドラッグ開始の検出
+        if response.drag_started() && state.dragging_location().is_none() {
+            if let Some(location) = Self::detect_drag_start(state, response) {
+                state.set_dragging_location(Some(location));
+            }
+        }
+    }
+
+    /// エリアクリック処理（出現位置の設定）
+    fn handle_area_click(state: &mut AppState, response: &egui::Response) {
+        if state.dragging_location().is_some() {
+            return;
+        }
+
+        if let Some(selected_user_id) = state.selected_user_id() {
+            if response.clicked() {
+                if let Some(pos) = response.interact_pointer_pos() {
+                    let point = Self::screen_to_normalized_point(pos, response.rect);
+                    Self::set_spawn_location(state, selected_user_id, point);
+                }
+            }
+        }
+    }
+
+    /// ドラッグ終了時の状態クリア
+    fn clear_drag_states(state: &mut AppState, ctx: &egui::Context) {
+        let has_dragging_user = state.dragging_user_id().is_some();
+        let has_dragging_location = state.dragging_location().is_some();
+        let pointer_released = ctx.input(|i| i.pointer.any_released());
+
+        if has_dragging_user && pointer_released {
+            state.set_dragging_user_id(None);
+        }
+        if has_dragging_location && pointer_released {
+            state.set_dragging_location(None);
+        }
+    }
+
     /// スクリーン座標を正規化座標（0.0-1.0）に変換
     pub fn screen_to_normalized_point(screen_pos: egui::Pos2, rect: egui::Rect) -> Point {
         Point::new(
