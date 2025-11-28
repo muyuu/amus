@@ -25,8 +25,13 @@ impl LocationInteraction {
 
         let hit_size = 24.0;
 
-        if let Ok(wave) = state.current_wave() {
-            // 終了時位置をチェックして、該当する user_id を先に取得
+        // 終了時位置をチェックして、該当する user_id を先に取得
+        let target_user_id = {
+            let wave = match state.current_wave() {
+                Ok(wave) => wave,
+                Err(_) => return false,
+            };
+
             let mut target_user_id = None;
             for (user_id, end_point) in wave.end_locations.iter() {
                 let end_pos = egui::pos2(
@@ -39,14 +44,16 @@ impl LocationInteraction {
                     break;
                 }
             }
+            target_user_id
+        };
 
-            // data の借用が終わってから data_mut() を呼ぶ
-            if let Some(user_id) = target_user_id {
+        match target_user_id {
+            None => false,
+            Some(user_id) => {
                 state.toggle_user_alive(user_id);
+                true
             }
         }
-
-        false
     }
 
     /// ドラッグ開始の検出（出現位置または終了時位置の上でドラッグ開始）
