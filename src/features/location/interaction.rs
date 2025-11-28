@@ -41,14 +41,22 @@ impl LocationInteraction {
             return;
         }
 
-        if let Some(selected_user_id) = state.selected_user_id() {
-            if response.clicked() {
-                if let Some(pos) = response.interact_pointer_pos() {
-                    let point = Self::screen_to_normalized_point(pos, response.rect);
-                    Self::set_spawn_location(state, selected_user_id, point);
-                }
-            }
+        if !response.clicked() {
+            return;
         }
+
+        let selected_user_id = match state.selected_user_id() {
+            Some(id) => id,
+            None => return,
+        };
+
+        let pos = match response.interact_pointer_pos() {
+            Some(pos) => pos,
+            None => return,
+        };
+
+        let point = Self::screen_to_normalized_point(pos, response.rect);
+        Self::set_spawn_location(state, selected_user_id, point);
     }
 
     /// ドラッグ終了時の状態クリア
