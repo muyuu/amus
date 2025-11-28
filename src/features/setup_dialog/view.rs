@@ -1,7 +1,7 @@
 use super::interaction::SetupInteraction;
 use crate::common::CommonTexts;
 use crate::i18n::keys::*;
-use crate::models::{Area, Color};
+use crate::models::{Area, Color, User, Role};
 use crate::state::AppState;
 
 pub struct SetupView;
@@ -61,76 +61,67 @@ impl SetupView {
                         let player_count = state.setup_state().player_count;
 
                         for i in 0..player_count {
-                            if i < state.setup_state().players.len() {
-                                ui.horizontal(|ui| {
-                                    ui.label(&texts.player_name);
-                                    ui.add_space(4.0);
-                                    let mut name = state.setup_state().players[i].name.clone();
-                                    if ui.text_edit_singleline(&mut name).changed() {
-                                        SetupInteraction::update_player_name(state, i, name);
-                                    }
-
-                                    ui.add_space(8.0);
-                                    ui.label(&texts.player_color);
-                                    ui.add_space(4.0);
-
-                                    // 現在の色のプレビューをComboBoxの前に表示
-                                    let selected_color =
-                                        state.setup_state().players[i].color.clone();
-
-                                    // 色プレビューのサイズと位置を調整
-                                    let (rect, _response) = ui.allocate_exact_size(
-                                        egui::Vec2::new(20.0, 20.0),
-                                        egui::Sense::hover(),
-                                    );
-                                    ui.painter().rect_filled(
-                                        rect,
-                                        2.0,
-                                        selected_color.to_egui_color(),
-                                    );
-
-                                    ui.add_space(4.0);
-
-                                    // 色選択のためのComboBox
-                                    egui::ComboBox::from_id_source(format!("color_combo_{}", i))
-                                        .selected_text(selected_color.name())
-                                        .show_ui(ui, |ui| {
-                                            for color in &available_colors {
-                                                ui.horizontal(|ui| {
-                                                    // 色のプレビューを表示
-                                                    let color_rect = egui::Rect::from_min_size(
-                                                        ui.next_widget_position(),
-                                                        egui::Vec2::new(12.0, 12.0),
-                                                    );
-                                                    ui.allocate_rect(
-                                                        color_rect,
-                                                        egui::Sense::hover(),
-                                                    );
-                                                    ui.painter().rect_filled(
-                                                        color_rect,
-                                                        2.0,
-                                                        color.to_egui_color(),
-                                                    );
-
-                                                    if ui
-                                                        .selectable_label(
-                                                            selected_color == *color,
-                                                            color.name(),
-                                                        )
-                                                        .clicked()
-                                                    {
-                                                        SetupInteraction::update_player_color(
-                                                            state,
-                                                            i,
-                                                            color.clone(),
-                                                        );
-                                                    }
-                                                });
-                                            }
-                                        });
-                                });
+                            ui.horizontal(|ui| {
+                                ui.label(&texts.player_name);
                                 ui.add_space(4.0);
-                            }
+                                let mut name = state.setup_state().players[i].name.clone();
+                                if ui.text_edit_singleline(&mut name).changed() {
+                                    SetupInteraction::update_player_name(state, i, name);
+                                }
+
+                                ui.add_space(8.0);
+                                ui.label(&texts.player_color);
+                                ui.add_space(4.0);
+
+                                // 現在の色のプレビューをComboBoxの前に表示
+                                let selected_color = state.setup_state().players[i].color.clone();
+
+                                // 色プレビューのサイズと位置を調整
+                                let (rect, _response) = ui.allocate_exact_size(
+                                    egui::Vec2::new(20.0, 20.0),
+                                    egui::Sense::hover(),
+                                );
+                                ui.painter()
+                                    .rect_filled(rect, 2.0, selected_color.to_egui_color());
+
+                                ui.add_space(4.0);
+
+                                // 色選択のためのComboBox
+                                egui::ComboBox::from_id_source(format!("color_combo_{}", i))
+                                    .selected_text(selected_color.name())
+                                    .show_ui(ui, |ui| {
+                                        for color in &available_colors {
+                                            ui.horizontal(|ui| {
+                                                // 色のプレビューを表示
+                                                let color_rect = egui::Rect::from_min_size(
+                                                    ui.next_widget_position(),
+                                                    egui::Vec2::new(12.0, 12.0),
+                                                );
+                                                ui.allocate_rect(color_rect, egui::Sense::hover());
+                                                ui.painter().rect_filled(
+                                                    color_rect,
+                                                    2.0,
+                                                    color.to_egui_color(),
+                                                );
+
+                                                if ui
+                                                    .selectable_label(
+                                                        selected_color == *color,
+                                                        color.name(),
+                                                    )
+                                                    .clicked()
+                                                {
+                                                    SetupInteraction::update_player_color(
+                                                        state,
+                                                        i,
+                                                        color.clone(),
+                                                    );
+                                                }
+                                            });
+                                        }
+                                    });
+                            });
+                            ui.add_space(4.0);
                         }
 
                         ui.add_space(16.0);
