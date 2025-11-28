@@ -59,6 +59,7 @@ impl UserListView {
                                 // クリックまたはドラッグ開始時にユーザーを選択
                                 if response.clicked() || response.drag_started() {
                                     state.set_selected_user_id(Some(user_id));
+                                    state.set_erase_mode(false);
                                     if response.drag_started() {
                                         state.set_dragging_user_id(Some(user_id));
                                     }
