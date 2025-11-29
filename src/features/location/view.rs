@@ -5,12 +5,12 @@ pub struct LocationView;
 
 impl LocationView {
     /// 出現位置と終了時位置を描画
-    pub fn render(state: &AppState, painter: &egui::Painter, rect: Rect) {
-        Self::render_spawn_locations(state, painter, rect);
-        Self::render_end_locations(state, painter, rect);
+    pub fn render(state: &AppState, ui: &mut Ui) {
+        Self::render_spawn_locations(state, ui);
+        Self::render_end_locations(state, ui);
     }
 
-    fn render_spawn_locations(state: &AppState, painter: &egui::Painter, rect: Rect) {
+    fn render_spawn_locations(state: &AppState, ui: &mut Ui) {
         // 出現場所を描画（四角）
         let spawn_locations = match state.spawn_locations() {
             Some(spawn_locations) => spawn_locations,
@@ -25,12 +25,14 @@ impl LocationView {
 
             if let Some(user) = game.users.get(user_id) {
                 let color = user.color.to_egui_color();
+                let rect = ui.max_rect();
                 let pos = pos2(
                     rect.min.x + point.x * rect.size().x,
                     rect.min.y + point.y * rect.size().y,
                 );
                 let size = LocationConstants::SPAWN_LOCATION_SIZE;
                 let stroke_width = LocationConstants::SPAWN_LOCATION_STROKE_WIDTH;
+                let painter = ui.painter();
                 painter.rect_filled(
                     Rect::from_center_size(pos, egui::Vec2::new(size, size)),
                     stroke_width,
@@ -45,7 +47,7 @@ impl LocationView {
         }
     }
 
-    fn render_end_locations(state: &AppState, painter: &egui::Painter, rect: Rect) {
+    fn render_end_locations(state: &AppState, ui: &mut Ui) {
         let end_locations = match state.end_locations() {
             Some(end_locations) => end_locations,
             None => return,
@@ -60,6 +62,7 @@ impl LocationView {
 
             if let Some(user) = game.users.get(user_id) {
                 let color = user.color.to_egui_color();
+                let rect = ui.max_rect();
                 let pos = pos2(
                     rect.min.x + point.x * rect.size().x,
                     rect.min.y + point.y * rect.size().y,
@@ -69,6 +72,7 @@ impl LocationView {
                 let radius = LocationConstants::END_LOCATION_SIZE / 2.0;
                 let stroke_width = LocationConstants::END_LOCATION_STROKE_WIDTH;
 
+                let painter = ui.painter();
                 painter.circle_filled(pos, radius, color);
                 painter.circle_stroke(pos, radius, (stroke_width, Color32::WHITE));
 
