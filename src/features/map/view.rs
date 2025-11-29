@@ -23,6 +23,11 @@ impl MapView {
 
             // 画像の縦横比を維持してセンタリング
             let image_rect = Self::calculate_centered_rect(rect, texture.size_vec2());
+
+            // 背景色を先に描画（透過部分の背景色として機能）
+            let background_color = Color32::BLACK; // カスタム背景色
+            painter.rect_filled(image_rect, 0.0, background_color);
+
             painter.image(
                 texture.id(),
                 image_rect,
