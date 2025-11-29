@@ -22,8 +22,8 @@ impl MainView {
         let response = ui.allocate_response(ui.available_size(), egui::Sense::click_and_drag());
 
         MapView::render(state, &response, ui);
-        LocationFeature::render(state, &response, ui);
         RouteDrawingFeature::render(state, &response, ui);
+        LocationFeature::render(state, &response, ui);
         DebugView::render(state, state.show_debug_view(), ui.ctx());
         Self::render_eraser_tool(state, ui);
     }
