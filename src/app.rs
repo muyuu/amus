@@ -99,7 +99,7 @@ impl AmusApp {
         // 下部のユーザー一覧パネル
         egui::TopBottomPanel::bottom("user_list_panel")
             .resizable(false)
-            .default_height(120.0)
+            .default_height(90.0)
             .frame(
                 egui::Frame::none().stroke(egui::Stroke::NONE), // 枠線を完全に削除
             )

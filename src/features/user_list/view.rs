@@ -1,4 +1,3 @@
-use crate::features::eraser::EraserFeature;
 use crate::state::AppState;
 use egui::*;
 
@@ -16,7 +15,7 @@ impl UserListView {
                 // プレイヤー数に基づいてコンテンツ幅を計算
                 let players = state.setup_state().players.clone();
                 let player_width = 50.0; // 各プレイヤーの幅
-                let total_content_width = (players.len() as f32 + 1.0) * player_width;
+                let total_content_width = players.len() as f32 * player_width;
                 let available_width = available_rect.width();
 
                 // 中央揃えのためのパディングを計算
@@ -32,15 +31,11 @@ impl UserListView {
                         ui.add_space(padding);
                     }
 
-                    ui.vertical(|ui| {
-                        EraserFeature::render(state, ui);
-                    });
-
                     for (user_id, user) in players.iter().enumerate() {
                         // ラッパー要素：矩形とユーザー名を縦に表示するコンテナ
                         ui.vertical(|ui| {
-                            // ラッパー要素のサイズを指定（幅50px、高さ70px）
-                            let wrapper_size = Vec2::new(50.0, 70.0);
+                            // ラッパー要素のサイズを指定（幅30px、高さ30px）
+                            let wrapper_size = Vec2::new(30.0, 30.0);
                             let (wrapper_rect, _) = ui.allocate_exact_size(
                                 wrapper_size,
                                 Sense::hover(), // ラッパー自体はホバーのみ
@@ -51,8 +46,8 @@ impl UserListView {
                                 ui.child_ui(wrapper_rect, Layout::top_down(Align::Center));
 
                             child_ui.vertical(|ui| {
-                                // ユーザー色の矩形（40x40px）
-                                let rect_size = Vec2::new(40.0, 40.0);
+                                // ユーザー色の矩形（30x30px）
+                                let rect_size = Vec2::new(30.0, 30.0);
                                 let (rect, response) =
                                     ui.allocate_exact_size(rect_size, Sense::click_and_drag());
 
@@ -102,11 +97,9 @@ impl UserListView {
                                 }
                             });
                         });
-                        ui.add_space(10.0); // プレイヤー間のスペース
+                        ui.add_space(6.0); // プレイヤー間のスペース
                     }
                 });
-
-                ui.add_space(20.0); // 下部の余白
             });
     }
 }
