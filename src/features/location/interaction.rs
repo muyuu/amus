@@ -1,3 +1,4 @@
+use crate::features::location::LocationConstants;
 use crate::models::Point;
 use crate::state::{AppState, DraggingLocation, LocationType};
 use egui::*;
@@ -56,6 +57,11 @@ impl LocationInteraction {
         };
 
         let point = Self::screen_to_normalized_point(pos, response.rect);
+
+        if Self::find_hit_end_location(state, pos, response.rect).is_some() {
+            return;
+        }
+
         Self::set_spawn_location(state, selected_user_id, point);
     }
 
@@ -92,7 +98,7 @@ impl LocationInteraction {
             None => return false,
         };
 
-        let hit_size = 24.0;
+        let hit_size = LocationConstants::END_LOCATION_HIT_SIZE;
 
         // 終了時位置をチェックして、該当する user_id を先に取得
         let target_user_id = {
@@ -131,17 +137,14 @@ impl LocationInteraction {
         response: &egui::Response,
     ) -> Option<DraggingLocation> {
         let pointer_pos = response.interact_pointer_pos()?;
-        let hit_size = 24.0;
 
         // 出現位置をチェック
-        if let Some(location) =
-            Self::find_hit_spawn_location(state, pointer_pos, response.rect, hit_size)
-        {
+        if let Some(location) = Self::find_hit_spawn_location(state, pointer_pos, response.rect) {
             return Some(location);
         }
 
         // 終了時位置をチェック
-        Self::find_hit_end_location(state, pointer_pos, response.rect, hit_size)
+        Self::find_hit_end_location(state, pointer_pos, response.rect)
     }
 
     /// 出現位置のヒット判定
@@ -149,8 +152,8 @@ impl LocationInteraction {
         state: &AppState,
         pointer_pos: egui::Pos2,
         rect: egui::Rect,
-        hit_size: f32,
     ) -> Option<DraggingLocation> {
+        let hit_size = LocationConstants::SPAWN_LOCATION_HIT_SIZE;
         if let Ok(wave) = state.current_wave() {
             for (user_id, spawn_point) in wave.spawn_locations.iter() {
                 let spawn_pos = egui::pos2(
@@ -174,8 +177,8 @@ impl LocationInteraction {
         state: &AppState,
         pointer_pos: egui::Pos2,
         rect: egui::Rect,
-        hit_size: f32,
     ) -> Option<DraggingLocation> {
+        let hit_size = LocationConstants::END_LOCATION_HIT_SIZE;
         if let Ok(wave) = state.current_wave() {
             for (user_id, end_point) in wave.end_locations.iter() {
                 let end_pos = egui::pos2(

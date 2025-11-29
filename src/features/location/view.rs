@@ -1,4 +1,4 @@
-use crate::{models::user, state::AppState};
+use crate::{features::location::constants::LocationConstants, models::user, state::AppState};
 use egui::*;
 
 pub struct LocationView;
@@ -29,8 +29,8 @@ impl LocationView {
                     rect.min.x + point.x * rect.size().x,
                     rect.min.y + point.y * rect.size().y,
                 );
-                let size = 28.0;
-                let stroke_width = 3.0;
+                let size = LocationConstants::SPAWN_LOCATION_SIZE;
+                let stroke_width = LocationConstants::SPAWN_LOCATION_STROKE_WIDTH;
                 painter.rect_filled(
                     Rect::from_center_size(pos, egui::Vec2::new(size, size)),
                     stroke_width,
@@ -64,25 +64,27 @@ impl LocationView {
                     rect.min.x + point.x * rect.size().x,
                     rect.min.y + point.y * rect.size().y,
                 );
-                let size = 16.0;
-                let stroke_width = 3.0;
 
-                painter.circle_filled(pos, size, color);
-                painter.circle_stroke(pos, size, (stroke_width, Color32::WHITE));
+                // サイズ定義は1辺の長さなので半径にするため2で割る
+                let radius = LocationConstants::END_LOCATION_SIZE / 2.0;
+                let stroke_width = LocationConstants::END_LOCATION_STROKE_WIDTH;
 
-                Self::render_dead_mark(user, painter, pos, size);
+                painter.circle_filled(pos, radius, color);
+                painter.circle_stroke(pos, radius, (stroke_width, Color32::WHITE));
+
+                Self::render_dead_mark(user, painter, pos);
             }
         }
     }
 
     // 死亡している場合はバツ印を描画
-    fn render_dead_mark(user: &user::User, painter: &egui::Painter, pos: Pos2, size: f32) {
+    fn render_dead_mark(user: &user::User, painter: &egui::Painter, pos: Pos2) {
         if user.alive {
             return;
         }
 
-        let cross_size = size; // 丸の直径と同じサイズ
-        let cross_width = 6.0;
+        let cross_size = LocationConstants::END_LOCATION_DEAD_MARK_SIZE;
+        let cross_width = LocationConstants::END_LOCATION_DEAD_MARK_STROKE_WIDTH;
 
         // 左上から右下への線
         painter.line_segment(
