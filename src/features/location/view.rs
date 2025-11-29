@@ -1,4 +1,7 @@
-use crate::{features::location::constants::LocationConstants, models::user, state::AppState};
+use crate::{
+    components::background_label, constants::AppConstants,
+    features::location::constants::LocationConstants, models::user, state::AppState,
+};
 use egui::*;
 
 pub struct LocationView;
@@ -77,6 +80,7 @@ impl LocationView {
                 painter.circle_stroke(pos, radius, (stroke_width, Color32::WHITE));
 
                 Self::render_dead_mark(user, painter, pos);
+                Self::render_label(ui, user, pos, radius);
             }
         }
     }
@@ -107,5 +111,27 @@ impl LocationView {
             ],
             (cross_width, Color32::BLACK),
         );
+    }
+
+    fn render_label(ui: &mut Ui, user: &user::User, center: Pos2, radius: f32) {
+        let galley = ui.ctx().fonts(|f| {
+            f.layout_no_wrap(
+                user.name.to_owned(),
+                FontId::proportional(16.0),
+                Color32::WHITE,
+            )
+        });
+
+        let padding = egui::vec2(
+            AppConstants::COM_BG_LABEL_PADDING_X,
+            AppConstants::COM_BG_LABEL_PADDING_Y,
+        );
+        let size = galley.size() + padding * 2.0;
+
+        let label_pos = Pos2::new(center.x, center.y - radius - 20.0);
+        let rect = Rect::from_center_size(label_pos, size);
+        ui.allocate_ui_at_rect(rect, |ui| {
+            background_label(ui, &user.name);
+        });
     }
 }
