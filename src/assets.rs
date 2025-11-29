@@ -24,7 +24,7 @@ impl AssetManager {
             (&Area::Skeld.id(), "assets/images/map/skeld.png"),
             (&Area::Mira.id(), "assets/images/map/mira.png"),
             (&Area::Polus.id(), "assets/images/map/polus.png"),
-            (&Area::AirShip.id(), "assets/images/map/airship.png"),
+            (&Area::AirShip.id(), "assets/images/map/the_airship.png"),
         ];
 
         for (area_id, path) in &area_configs {
