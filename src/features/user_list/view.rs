@@ -1,5 +1,3 @@
-use crate::features::eraser::EraserFeature;
-use crate::models::User;
 use crate::state::AppState;
 use egui::*;
 
@@ -17,7 +15,7 @@ impl UserListView {
                 // プレイヤー数に基づいてコンテンツ幅を計算
                 let players = state.setup_state().players.clone();
                 let player_width = 50.0; // 各プレイヤーの幅
-                let total_content_width = (players.len() as f32 + 1.0) * player_width;
+                let total_content_width = players.len() as f32 * player_width;
                 let available_width = available_rect.width();
 
                 // 中央揃えのためのパディングを計算
@@ -33,15 +31,11 @@ impl UserListView {
                         ui.add_space(padding);
                     }
 
-                    ui.vertical(|ui| {
-                        EraserFeature::render(state, ui);
-                    });
-
                     for (user_id, user) in players.iter().enumerate() {
                         // ラッパー要素：矩形とユーザー名を縦に表示するコンテナ
                         ui.vertical(|ui| {
-                            // ラッパー要素のサイズを指定（幅50px、高さ70px）
-                            let wrapper_size = Vec2::new(50.0, 70.0);
+                            // ラッパー要素のサイズを指定（幅30px、高さ30px）
+                            let wrapper_size = Vec2::new(30.0, 30.0);
                             let (wrapper_rect, _) = ui.allocate_exact_size(
                                 wrapper_size,
                                 Sense::hover(), // ラッパー自体はホバーのみ
@@ -52,8 +46,8 @@ impl UserListView {
                                 ui.child_ui(wrapper_rect, Layout::top_down(Align::Center));
 
                             child_ui.vertical(|ui| {
-                                // ユーザー色の矩形（40x40px）
-                                let rect_size = Vec2::new(40.0, 40.0);
+                                // ユーザー色の矩形（30x30px）
+                                let rect_size = Vec2::new(30.0, 30.0);
                                 let (rect, response) =
                                     ui.allocate_exact_size(rect_size, Sense::click_and_drag());
 
@@ -101,37 +95,11 @@ impl UserListView {
                                 if is_selected {
                                     ui.painter().rect_stroke(rect, 4.0, (2.0, Color32::WHITE));
                                 }
-
-                                // ユーザー名（矩形の下に配置、残りのスペースを使用）
-                                Self::render_player_name(state, ui, user_id, user);
                             });
                         });
-                        ui.add_space(10.0); // プレイヤー間のスペース
+                        ui.add_space(6.0); // プレイヤー間のスペース
                     }
                 });
-
-                ui.add_space(20.0); // 下部の余白
             });
-    }
-
-    fn render_player_name(state: &mut AppState, ui: &mut Ui, user_id: usize, user: &User) {
-        if !state.user_name_editing(user_id) {
-            let text = RichText::new(&user.name).color(Color32::WHITE).size(12.0); // 小さめのフォントサイズ
-            let res = ui.label(text).double_clicked();
-            if res {
-                state.toggle_user_name_editing(user_id);
-            }
-            return;
-        }
-
-        // 編集中
-        let mut editing_text = user.name.clone();
-        let res = ui.text_edit_singleline(&mut editing_text);
-        if res.changed() {
-            state.update_player_name(user_id, editing_text.clone());
-        }
-        if res.lost_focus() {
-            state.toggle_user_name_editing(user_id);
-        }
     }
 }

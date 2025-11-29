@@ -130,8 +130,6 @@ impl LocationView {
 
         let label_pos = Pos2::new(center.x, center.y - radius - 20.0);
         let rect = Rect::from_center_size(label_pos, size);
-        ui.allocate_ui_at_rect(rect, |ui| {
-            background_label(ui, &user.name);
-        });
+        ui.allocate_ui_at_rect(rect, |ui| background_label(ui, &user.name));
     }
 }
