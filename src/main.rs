@@ -27,9 +27,18 @@ fn main() -> eframe::Result<()> {
         Box::new(|cc| {
             // 日本語フォントの設定
             setup_custom_fonts(&cc.egui_ctx);
+            setup_panel_bg(&cc.egui_ctx);
             Box::new(AmusApp::default())
         }),
     )
+}
+
+fn setup_panel_bg(ctx: &egui::Context) {
+    use egui::Style;
+
+    let mut style: Style = (*ctx.style()).clone();
+    style.visuals.panel_fill = egui::Color32::BLACK;
+    ctx.set_style(style);
 }
 
 fn setup_custom_fonts(ctx: &egui::Context) {
