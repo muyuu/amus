@@ -1,4 +1,4 @@
-use crate::models::{Area, Color, User, Role};
+use crate::models::{Area, Color, Role, User};
 
 // デフォルトのプレイヤー人数定数
 const DEFAULT_PLAYER_COUNT: usize = 8;
