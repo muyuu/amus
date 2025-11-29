@@ -1,7 +1,11 @@
+use egui::RichText;
+
 use crate::assets::AssetManager;
 use crate::features::main::MainView;
 use crate::features::setup_dialog::SetupView;
+use crate::features::user_info::UserInfoFeature;
 use crate::features::user_list::UserListView;
+use crate::i18n::keys;
 use crate::state::AppState;
 
 pub struct AmusApp {
@@ -31,29 +35,6 @@ impl eframe::App for AmusApp {
             SetupView::show(&mut self.state, ctx);
             return;
         }
-
-        // メインUIの構築
-        self.build_main_ui(ctx, frame);
-    }
-}
-
-impl AmusApp {
-    fn build_main_ui(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // 全画面のメインコンテンツエリア
-        egui::CentralPanel::default().show(ctx, |ui| {
-            MainView::render(&mut self.state, ui);
-        });
-
-        // 下部のユーザー一覧パネル
-        egui::TopBottomPanel::bottom("user_list_panel")
-            .resizable(false)
-            .default_height(120.0)
-            .frame(
-                egui::Frame::none().stroke(egui::Stroke::NONE), // 枠線を完全に削除
-            )
-            .show(ctx, |ui| {
-                UserListView::show(&mut self.state, ui);
-            });
 
         // 上部のメニューボタン
         egui::TopBottomPanel::top("menu_button_panel")
@@ -93,6 +74,31 @@ impl AmusApp {
         if self.state.show_turn_menu() {
             self.show_turn_menu_overlay(ctx);
         }
+
+        // メインUIの構築
+        self.build_main_ui(ctx, frame);
+
+
+    }
+}
+
+impl AmusApp {
+    fn build_main_ui(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // 全画面のメインコンテンツエリア
+        egui::CentralPanel::default().show(ctx, |ui| {
+            MainView::render(&mut self.state, ui);
+        });
+
+        // 下部のユーザー一覧パネル
+        egui::TopBottomPanel::bottom("user_list_panel")
+            .resizable(false)
+            .default_height(120.0)
+            .frame(
+                egui::Frame::none().stroke(egui::Stroke::NONE), // 枠線を完全に削除
+            )
+            .show(ctx, |ui| {
+                UserListView::show(&mut self.state, ui);
+            });
     }
 
     fn show_turn_menu_overlay(&mut self, ctx: &egui::Context) {
