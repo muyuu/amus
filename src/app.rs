@@ -77,13 +77,20 @@ impl eframe::App for AmusApp {
 
         // メインUIの構築
         self.build_main_ui(ctx, frame);
-
-
     }
 }
 
 impl AmusApp {
     fn build_main_ui(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::SidePanel::right("user_info_panel").show(ctx, |ui| {
+            let head_text = RichText::new(self.state.t(keys::SIDEBAR_PLAYERS))
+                .heading()
+                .color(egui::Color32::WHITE);
+            ui.heading(head_text);
+            ui.separator();
+            UserInfoFeature::render(&self.state, ui);
+        });
+
         // 全画面のメインコンテンツエリア
         egui::CentralPanel::default().show(ctx, |ui| {
             MainView::render(&mut self.state, ui);

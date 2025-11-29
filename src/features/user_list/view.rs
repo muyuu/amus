@@ -1,5 +1,4 @@
 use crate::features::eraser::EraserFeature;
-use crate::models::User;
 use crate::state::AppState;
 use egui::*;
 
@@ -101,9 +100,6 @@ impl UserListView {
                                 if is_selected {
                                     ui.painter().rect_stroke(rect, 4.0, (2.0, Color32::WHITE));
                                 }
-
-                                // ユーザー名（矩形の下に配置、残りのスペースを使用）
-                                Self::render_player_name(state, ui, user_id, user);
                             });
                         });
                         ui.add_space(10.0); // プレイヤー間のスペース
@@ -112,26 +108,5 @@ impl UserListView {
 
                 ui.add_space(20.0); // 下部の余白
             });
-    }
-
-    fn render_player_name(state: &mut AppState, ui: &mut Ui, user_id: usize, user: &User) {
-        if !state.user_name_editing(user_id) {
-            let text = RichText::new(&user.name).color(Color32::WHITE).size(12.0); // 小さめのフォントサイズ
-            let res = ui.label(text).double_clicked();
-            if res {
-                state.toggle_user_name_editing(user_id);
-            }
-            return;
-        }
-
-        // 編集中
-        let mut editing_text = user.name.clone();
-        let res = ui.text_edit_singleline(&mut editing_text);
-        if res.changed() {
-            state.update_player_name(user_id, editing_text.clone());
-        }
-        if res.lost_focus() {
-            state.toggle_user_name_editing(user_id);
-        }
     }
 }
