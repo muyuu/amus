@@ -1,4 +1,5 @@
 use crate::features::eraser::EraserFeature;
+use crate::models::User;
 use crate::state::AppState;
 use egui::*;
 
@@ -6,55 +7,55 @@ pub struct UserListView;
 
 impl UserListView {
     pub fn show(state: &mut AppState, ui: &mut Ui) {
-        if let Some(game) = &state.game() {
-            // 利用可能なエリア全体を取得
-            let available_rect = ui.available_rect_before_wrap();
+        // 利用可能なエリア全体を取得
+        let available_rect = ui.available_rect_before_wrap();
 
-            // 横スクロール可能なエリアで中央に配置
-            ScrollArea::horizontal()
-                .scroll_bar_visibility(scroll_area::ScrollBarVisibility::AlwaysHidden)
-                .show(ui, |ui| {
-                    // プレイヤー数に基づいてコンテンツ幅を計算
-                    let player_width = 50.0; // 各プレイヤーの幅（矩形40px + スペース10px）
-                    let total_content_width = game.users.len() as f32 * player_width;
-                    let available_width = available_rect.width();
+        // 横スクロール可能なエリアで中央に配置
+        ScrollArea::horizontal()
+            .scroll_bar_visibility(scroll_area::ScrollBarVisibility::AlwaysHidden)
+            .show(ui, |ui| {
+                // プレイヤー数に基づいてコンテンツ幅を計算
+                let players = state.setup_state().players.clone();
+                let player_width = 50.0; // 各プレイヤーの幅
+                let total_content_width = (players.len() as f32 + 1.0) * player_width;
+                let available_width = available_rect.width();
 
-                    // 中央揃えのためのパディングを計算
-                    let padding = if total_content_width < available_width {
-                        (available_width - total_content_width) / 2.0
-                    } else {
-                        0.0
-                    };
+                // 中央揃えのためのパディングを計算
+                let padding = if total_content_width < available_width {
+                    (available_width - total_content_width) / 2.0
+                } else {
+                    0.0
+                };
 
-                    ui.horizontal(|ui| {
-                        // 左側にパディングを追加
-                        if padding > 0.0 {
-                            ui.add_space(padding);
-                        }
+                ui.horizontal(|ui| {
+                    // 左側にパディングを追加
+                    if padding > 0.0 {
+                        ui.add_space(padding);
+                    }
 
+                    ui.vertical(|ui| {
+                        EraserFeature::render(state, ui);
+                    });
+
+                    for (user_id, user) in players.iter().enumerate() {
+                        // ラッパー要素：矩形とユーザー名を縦に表示するコンテナ
                         ui.vertical(|ui| {
-                            EraserFeature::render(state, ui);
-                        });
+                            // ラッパー要素のサイズを指定（幅50px、高さ70px）
+                            let wrapper_size = Vec2::new(50.0, 70.0);
+                            let (wrapper_rect, _) = ui.allocate_exact_size(
+                                wrapper_size,
+                                Sense::hover(), // ラッパー自体はホバーのみ
+                            );
 
-                        for (user_id, user) in game.users.iter().enumerate() {
-                            ui.vertical(|ui| {
-                                // ユーザーの色を表示（setup_stateから取得）
-                                let user_color = if let Some(player_config) = state
-                                    .setup_state()
-                                    .players
-                                    .iter()
-                                    .find(|p| p.name == user.name)
-                                {
-                                    player_config.color.to_egui_color()
-                                } else {
-                                    Color32::GRAY // デフォルト色
-                                };
+                            // ラッパー内でverticalレイアウトを作成
+                            let mut child_ui =
+                                ui.child_ui(wrapper_rect, Layout::top_down(Align::Center));
 
-                                // カラー矩形（正方形）をクリック/ドラッグ可能にする
-                                let (rect, response) = ui.allocate_exact_size(
-                                    Vec2::new(40.0, 40.0),
-                                    Sense::click_and_drag(),
-                                );
+                            child_ui.vertical(|ui| {
+                                // ユーザー色の矩形（40x40px）
+                                let rect_size = Vec2::new(40.0, 40.0);
+                                let (rect, response) =
+                                    ui.allocate_exact_size(rect_size, Sense::click_and_drag());
 
                                 // クリックまたはドラッグ開始時にユーザーを選択
                                 if response.clicked() || response.drag_started() {
@@ -70,6 +71,18 @@ impl UserListView {
                                     state.set_dragging_user_id(None);
                                 }
 
+                                // ユーザーの色を取得
+                                let user_color = if let Some(player_config) = state
+                                    .setup_state()
+                                    .players
+                                    .iter()
+                                    .find(|p| p.name == user.name)
+                                {
+                                    player_config.color.to_egui_color()
+                                } else {
+                                    Color32::GRAY
+                                };
+
                                 // 選択中またはドラッグ中の視覚的フィードバック
                                 let is_selected = state.selected_user_id() == Some(user_id);
                                 let is_dragging = state.dragging_user_id() == Some(user_id);
@@ -81,6 +94,7 @@ impl UserListView {
                                     user_color
                                 };
 
+                                // 矩形を描画
                                 ui.painter().rect_filled(rect, 4.0, color);
 
                                 // 選択中のユーザーには枠線を表示
@@ -88,19 +102,36 @@ impl UserListView {
                                     ui.painter().rect_stroke(rect, 4.0, (2.0, Color32::WHITE));
                                 }
 
-                                // ユーザー名（矩形の下に配置）
-                                ui.label(RichText::new(&user.name).color(Color32::WHITE));
+                                // ユーザー名（矩形の下に配置、残りのスペースを使用）
+                                Self::render_player_name(state, ui, user_id, user);
                             });
-                            ui.add_space(10.0); // プレイヤー間のスペース
-                        }
-                    });
-
-                    ui.add_space(20.0); // 下部の余白
+                        });
+                        ui.add_space(10.0); // プレイヤー間のスペース
+                    }
                 });
-        } else {
-            ui.centered_and_justified(|ui| {
-                ui.label("ゲームが開始されていません");
+
+                ui.add_space(20.0); // 下部の余白
             });
+    }
+
+    fn render_player_name(state: &mut AppState, ui: &mut Ui, user_id: usize, user: &User) {
+        if !state.user_name_editing(user_id) {
+            let text = RichText::new(&user.name).color(Color32::WHITE).size(12.0); // 小さめのフォントサイズ
+            let res = ui.label(text).double_clicked();
+            if res {
+                state.toggle_user_name_editing(user_id);
+            }
+            return;
+        }
+
+        // 編集中
+        let mut editing_text = user.name.clone();
+        let res = ui.text_edit_singleline(&mut editing_text);
+        if res.changed() {
+            state.update_player_name(user_id, editing_text.clone());
+        }
+        if res.lost_focus() {
+            state.toggle_user_name_editing(user_id);
         }
     }
 }

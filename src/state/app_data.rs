@@ -17,6 +17,9 @@ pub struct AppData {
     // ドラッグ中のユーザーID
     pub dragging_user_id: Option<usize>,
 
+    /// ユーザー名編集中のユーザーID
+    pub editing_name_user_id: Option<usize>,
+
     // 消しゴムモードの状態
     pub erase_mode: bool,
 
@@ -43,9 +46,10 @@ impl Default for AppData {
         Self {
             asset_manager: None, // 後で初期化
             current_wave_index: 0,
-            dragging_location: None, // ドラッグ中の位置はNone
-            dragging_user_id: None,  // ドラッグ中はNone
-            erase_mode: false,       // 初期状態では消しゴムモードオフ
+            dragging_location: None,    // ドラッグ中の位置はNone
+            dragging_user_id: None,     // ドラッグ中はNone
+            editing_name_user_id: None, // ユーザー名編集中はNone
+            erase_mode: false,          // 初期状態では消しゴムモードオフ
             game: None,
             selected_user_id: None,
             setup_state: SetupState::default(),

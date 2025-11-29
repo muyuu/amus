@@ -5,7 +5,6 @@ use crate::assets::AssetManager;
 use crate::models::*;
 use crate::state::app_data::AppData;
 use crate::state::location::DraggingLocation;
-use crate::state::setup_state::PlayerSetup;
 use crate::state::setup_state::SetupState;
 
 /// アプリケーション状態へのアクセスを提供する構造体
@@ -56,33 +55,9 @@ impl AppState {
     pub fn create_game_from_setup(&self) {
         let mut data = self.data_mut();
         let area = data.setup_state.selected_area.clone();
+        let players = data.setup_state.players.clone();
 
-        // セットアップ済みプレイヤーからゲーム用ユーザーを作成
-        let mut users = Vec::new();
-        let player_count = data.setup_state.player_count;
-        let imposter_count = (player_count as f32 * 0.2).ceil() as usize; // 約20%をインポスター
-
-        for (i, player_setup) in data
-            .setup_state
-            .players
-            .iter()
-            .enumerate()
-            .take(player_count)
-        {
-            // 最初の数人をインポスター、残りをクルーとする
-            let role = if i < imposter_count {
-                Role::Imposter
-            } else {
-                Role::Crew
-            };
-            users.push(User::new(
-                role,
-                player_setup.color.clone(),
-                player_setup.name.clone(),
-            ));
-        }
-
-        let mut game = Game::new(area, users);
+        let mut game = Game::new(area, players);
         game.add_wave(); // 最初のターンを作成
         game.add_wave(); // 2番目のターンを作成
         data.game = Some(game);
@@ -124,7 +99,11 @@ impl AppState {
 
             for i in old_count..new_count {
                 let color = available_colors.get(i).cloned().unwrap_or(Color::Red);
-                data.setup_state.players.push(PlayerSetup::new(i, color));
+                data.setup_state.players.push(User::new(
+                    Role::Crew,
+                    color,
+                    format!("Player {}", i + 1),
+                ));
             }
         } else if new_count < old_count {
             // プレイヤーを削除
@@ -134,6 +113,20 @@ impl AppState {
 
     pub fn select_wave(&self, index: usize) {
         self.data_mut().current_wave_index = index;
+    }
+
+    pub fn user_name_editing(&self, user_id: usize) -> bool {
+        let data = self.data.borrow();
+        data.editing_name_user_id == Some(user_id)
+    }
+
+    pub fn toggle_user_name_editing(&self, user_id: usize) {
+        let mut data = self.data_mut();
+        if data.editing_name_user_id == Some(user_id) {
+            data.editing_name_user_id = None;
+        } else {
+            data.editing_name_user_id = Some(user_id);
+        }
     }
 }
 
@@ -235,16 +228,34 @@ impl AppState {
         Ref::map(self.data.borrow(), |data| &data.setup_state)
     }
 
+    pub fn setup_state_mut(&self) -> RefMut<'_, SetupState> {
+        RefMut::map(self.data.borrow_mut(), |data| &mut data.setup_state)
+    }
+
     pub fn set_selected_area(&self, area: Area) {
         self.data.borrow_mut().setup_state.selected_area = area;
     }
 
     pub fn update_player_name(&self, id: usize, name: String) {
-        self.data.borrow_mut().setup_state.players[id].name = name;
+        self.data.borrow_mut().setup_state.players[id].name = name.clone();
+
+        if let Some(mut game) = self.game() {
+            if let Some(user) = game.users.get_mut(id) {
+                user.name = name;
+            }
+            self.data.borrow_mut().game = Some(game);
+        }
     }
 
     pub fn update_player_color(&self, id: usize, color: Color) {
-        self.data.borrow_mut().setup_state.players[id].color = color;
+        self.data.borrow_mut().setup_state.players[id].color = color.clone();
+
+        if let Some(mut game) = self.game() {
+            if let Some(user) = game.users.get_mut(id) {
+                user.color = color;
+            }
+            self.data.borrow_mut().game = Some(game);
+        }
     }
 
     pub fn show_debug_view(&self) -> bool {

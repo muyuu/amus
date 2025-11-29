@@ -1,31 +1,13 @@
-use crate::models::{Area, Color, Role};
+use crate::models::{Area, Color, User, Role};
 
 // デフォルトのプレイヤー人数定数
 const DEFAULT_PLAYER_COUNT: usize = 8;
 
 #[derive(Debug, Clone)]
-pub struct PlayerSetup {
-    pub name: String,
-    pub color: Color,
-    #[allow(dead_code)]
-    pub role: Option<Role>, // セットアップ時は未決定
-}
-
-impl PlayerSetup {
-    pub fn new(index: usize, color: Color) -> Self {
-        Self {
-            name: format!("Player{}", index + 1),
-            color,
-            role: None,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
 pub struct SetupState {
     pub selected_area: Area,
     pub player_count: usize,
-    pub players: Vec<PlayerSetup>,
+    pub players: Vec<User>,
 }
 
 impl Default for SetupState {
@@ -55,7 +37,7 @@ impl Default for SetupState {
                 .get(i % default_colors.len())
                 .cloned()
                 .unwrap_or(Color::Red);
-            players.push(PlayerSetup::new(i, color));
+            players.push(User::new(Role::Crew, color, format!("Player {}", i + 1)));
         }
 
         Self {
