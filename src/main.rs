@@ -3,6 +3,8 @@
 mod app;
 mod assets;
 mod common;
+mod components;
+mod constants;
 mod features;
 mod i18n;
 mod models;
