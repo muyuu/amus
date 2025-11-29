@@ -58,8 +58,10 @@ impl AppState {
         let players = data.setup_state.players.clone();
 
         let mut game = Game::new(area, players);
-        game.add_wave(); // 最初のターンを作成
-        game.add_wave(); // 2番目のターンを作成
+        // とりあえず20ウェーブ作成
+        for _ in 0..20 {
+            game.add_wave();
+        }
         data.game = Some(game);
         data.current_wave_index = 0;
         data.show_setup_dialog = false;
