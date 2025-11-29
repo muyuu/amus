@@ -57,6 +57,11 @@ impl LocationInteraction {
         };
 
         let point = Self::screen_to_normalized_point(pos, response.rect);
+
+        if Self::find_hit_end_location(state, pos, response.rect).is_some() {
+            return;
+        }
+
         Self::set_spawn_location(state, selected_user_id, point);
     }
 
@@ -134,9 +139,7 @@ impl LocationInteraction {
         let pointer_pos = response.interact_pointer_pos()?;
 
         // 出現位置をチェック
-        if let Some(location) =
-            Self::find_hit_spawn_location(state, pointer_pos, response.rect)
-        {
+        if let Some(location) = Self::find_hit_spawn_location(state, pointer_pos, response.rect) {
             return Some(location);
         }
 
