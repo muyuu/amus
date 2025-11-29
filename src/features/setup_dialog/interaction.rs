@@ -25,6 +25,7 @@ impl SetupInteraction {
     }
 
     pub fn start_game(state: &mut AppState) {
+        state.reset_game();
         state.create_game_from_setup();
     }
 
