@@ -21,7 +21,6 @@ impl JapaneseWords {
     pub const AREA: &'static str = "エリア";
     pub const LOCATION: &'static str = "場所";
     pub const NOTES: &'static str = "メモ";
-    pub const SELECTION: &'static str = "選択";
     pub const SETTINGS: &'static str = "設定";
     pub const CONFIG: &'static str = "設定";
     pub const COUNT: &'static str = "人数";

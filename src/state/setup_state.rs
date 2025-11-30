@@ -1,7 +1,7 @@
 use crate::models::{Area, Color, Player, Role};
 
 // デフォルトのプレイヤー人数定数
-const DEFAULT_PLAYER_COUNT: usize = 8;
+const DEFAULT_PLAYER_COUNT: usize = 12;
 
 #[derive(Debug, Clone)]
 pub struct SetupState {
