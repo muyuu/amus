@@ -67,13 +67,9 @@ impl LocationInteraction {
 
     /// ドラッグ終了時の状態クリア
     fn clear_drag_states(state: &mut AppState, ctx: &egui::Context) {
-        let has_dragging_user = state.dragging_user_id().is_some();
         let has_dragging_location = state.dragging_location().is_some();
         let pointer_released = ctx.input(|i| i.pointer.any_released());
 
-        if has_dragging_user && pointer_released {
-            state.set_dragging_user_id(None);
-        }
         if has_dragging_location && pointer_released {
             state.set_dragging_location(None);
         }

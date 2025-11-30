@@ -88,7 +88,7 @@ impl AmusApp {
                 .color(egui::Color32::WHITE);
             ui.heading(head_text);
             ui.separator();
-            UserInfoFeature::render(&self.state, ui);
+            UserInfoFeature::render(&mut self.state, ui);
         });
 
         // 全画面のメインコンテンツエリア
