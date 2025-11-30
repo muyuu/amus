@@ -1,14 +1,16 @@
+pub mod interaction;
 pub mod view;
 
-use egui::*;
-pub use view::UserInfoView;
-
 use crate::state::AppState;
+use egui::*;
+pub use interaction::UserInfoInteraction;
+pub use view::UserInfoView;
 
 pub struct UserInfoFeature;
 
 impl UserInfoFeature {
-    pub fn render(state: &AppState, ui: &mut Ui) {
-        UserInfoView::render(state, ui);
+    pub fn render(state: &mut AppState, ui: &mut Ui) {
+        let res = UserInfoView::render(state, ui);
+        UserInfoInteraction::handle(state, &res);
     }
 }

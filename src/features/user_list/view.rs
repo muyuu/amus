@@ -32,70 +32,56 @@ impl UserListView {
                     }
 
                     for (user_id, user) in players.iter().enumerate() {
-                        // ラッパー要素：矩形とユーザー名を縦に表示するコンテナ
                         ui.vertical(|ui| {
-                            // ラッパー要素のサイズを指定（幅30px、高さ30px）
-                            let wrapper_size = Vec2::new(30.0, 30.0);
-                            let (wrapper_rect, _) = ui.allocate_exact_size(
-                                wrapper_size,
-                                Sense::hover(), // ラッパー自体はホバーのみ
-                            );
+                            // ユーザー色の矩形（30x30px）
+                            let rect_size = Vec2::new(30.0, 30.0);
+                            let (rect, response) =
+                                ui.allocate_exact_size(rect_size, Sense::click_and_drag());
 
-                            // ラッパー内でverticalレイアウトを作成
-                            let mut child_ui =
-                                ui.child_ui(wrapper_rect, Layout::top_down(Align::Center));
-
-                            child_ui.vertical(|ui| {
-                                // ユーザー色の矩形（30x30px）
-                                let rect_size = Vec2::new(30.0, 30.0);
-                                let (rect, response) =
-                                    ui.allocate_exact_size(rect_size, Sense::click_and_drag());
-
-                                // クリックまたはドラッグ開始時にユーザーを選択
-                                if response.clicked() || response.drag_started() {
-                                    state.set_selected_user_id(Some(user_id));
-                                    state.set_erase_mode(false);
-                                    if response.drag_started() {
-                                        state.set_dragging_user_id(Some(user_id));
-                                    }
+                            // クリックまたはドラッグ開始時にユーザーを選択
+                            if response.clicked() || response.drag_started() {
+                                state.set_selected_user_id(Some(user_id));
+                                state.set_erase_mode(false);
+                                if response.drag_started() {
+                                    state.set_dragging_user_id(Some(user_id));
                                 }
+                            }
 
-                                // ドラッグ終了時にクリア（選択状態は保持）
-                                if response.drag_stopped() {
-                                    state.set_dragging_user_id(None);
-                                }
+                            // ドラッグ終了時にクリア（選択状態は保持）
+                            if response.drag_stopped() {
+                                state.set_dragging_user_id(None);
+                            }
 
-                                // ユーザーの色を取得
-                                let user_color = if let Some(player_config) = state
-                                    .setup_state()
-                                    .players
-                                    .iter()
-                                    .find(|p| p.name == user.name)
-                                {
-                                    player_config.color.to_egui_color()
-                                } else {
-                                    Color32::GRAY
-                                };
+                            // ユーザーの色を取得
+                            let user_color = if let Some(player_config) = state
+                                .setup_state()
+                                .players
+                                .iter()
+                                .find(|p| p.name == user.name)
+                            {
+                                player_config.color.to_egui_color()
+                            } else {
+                                Color32::GRAY
+                            };
 
-                                // 選択中またはドラッグ中の視覚的フィードバック
-                                let is_selected = state.selected_user_id() == Some(user_id);
-                                let is_dragging = state.dragging_user_id() == Some(user_id);
-                                let color = if is_dragging || (is_selected && response.hovered()) {
-                                    user_color.linear_multiply(0.7) // 少し暗くする
-                                } else if is_selected {
-                                    user_color.linear_multiply(0.9) // 選択中は少し暗く
-                                } else {
-                                    user_color
-                                };
+                            // 選択中またはドラッグ中の視覚的フィードバック
+                            let is_selected = state.selected_user_id() == Some(user_id);
+                            let is_dragging = state.dragging_user_id() == Some(user_id);
+                            let color = if is_dragging || (is_selected && response.hovered()) {
+                                user_color.linear_multiply(0.7) // 少し暗くする
+                            } else if is_selected {
+                                user_color.linear_multiply(0.9) // 選択中は少し暗く
+                            } else {
+                                user_color
+                            };
 
-                                // 矩形を描画
-                                ui.painter().rect_filled(rect, 4.0, color);
+                            // 矩形を描画
+                            ui.painter().rect_filled(rect, 4.0, color);
 
-                                // 選択中のユーザーには枠線を表示
-                                if is_selected {
-                                    ui.painter().rect_stroke(rect, 4.0, (2.0, Color32::WHITE));
-                                }
-                            });
+                            // 選択中のユーザーには枠線を表示
+                            if is_selected {
+                                ui.painter().rect_stroke(rect, 4.0, (2.0, Color32::WHITE));
+                            }
                         });
                         ui.add_space(6.0); // プレイヤー間のスペース
                     }

@@ -3,10 +3,24 @@ use crate::{
 };
 use egui::*;
 
+#[derive(Default, PartialEq)]
+pub struct UserInfoResult {
+    pub any_name_double_clicked: bool,
+    pub double_clicked_user_id: Option<usize>,
+
+    pub any_name_changed: bool,
+    pub changed_new_name: Option<(String, usize)>,
+
+    pub any_lost_focus: bool,
+    pub lost_focus_user_id: Option<usize>,
+}
+
 pub struct UserInfoView;
 
 impl UserInfoView {
-    pub fn render(state: &AppState, ui: &mut Ui) {
+    pub fn render(state: &AppState, ui: &mut Ui) -> UserInfoResult {
+        let mut result = UserInfoResult::default();
+
         ui.vertical(|ui| {
             let players = state.setup_state().players.clone();
             for (user_id, user) in players.iter().enumerate() {
@@ -15,10 +29,14 @@ impl UserInfoView {
 
                     // TODO: ボタンを押したか否かのアイコンを表示
 
-                    Self::render_player_name(state, ui, user_id, user);
+                    let r = Self::render_player_name(state, ui, user_id, user);
+                    if r != UserInfoResult::default() {
+                        result = r;
+                    }
                 });
             }
         });
+        result
     }
 
     // ユーザー色の矩形を描画
@@ -33,23 +51,34 @@ impl UserInfoView {
     }
 
     /// ユーザー名を描画または編集
-    fn render_player_name(state: &AppState, ui: &mut Ui, user_id: usize, user: &User) {
+    fn render_player_name(
+        state: &AppState,
+        ui: &mut Ui,
+        user_id: usize,
+        user: &User,
+    ) -> UserInfoResult {
+        let mut result = UserInfoResult::default();
+
         if !state.user_name_editing(user_id) {
             let res = background_label(ui, &user.name).double_clicked();
             if res {
-                state.toggle_user_name_editing(user_id);
+                result.any_name_double_clicked = true;
+                result.double_clicked_user_id = Some(user_id);
             }
-            return;
+            return result;
         }
 
         // 編集中
         let mut editing_text = user.name.clone();
         let res = ui.text_edit_singleline(&mut editing_text);
         if res.changed() {
-            state.update_player_name(user_id, editing_text.clone());
+            result.any_name_changed = true;
+            result.changed_new_name = Some((editing_text.clone(), user_id));
         }
         if res.lost_focus() {
-            state.toggle_user_name_editing(user_id);
+            result.any_lost_focus = true;
+            result.lost_focus_user_id = Some(user_id);
         }
+        result
     }
 }
