@@ -1,3 +1,5 @@
+use egui::*;
+
 use crate::common::CommonTexts;
 use crate::i18n::keys::*;
 use crate::state::AppState;
@@ -5,7 +7,7 @@ use crate::state::AppState;
 pub struct WelcomeView;
 
 impl WelcomeView {
-    pub fn render(ui: &mut egui::Ui, state: &mut AppState) {
+    pub fn render(ui: &mut Ui, state: &mut AppState) {
         let texts = WelcomeTexts::get(state);
         let common = CommonTexts::get(state);
 

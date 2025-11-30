@@ -1,3 +1,5 @@
+use egui::*;
+
 use crate::features::location::LocationInteraction;
 use crate::models::route::{Draw, Erase};
 use crate::models::Route;
@@ -6,7 +8,7 @@ use crate::state::AppState;
 pub struct RouteDrawingInteraction;
 
 impl RouteDrawingInteraction {
-    pub fn handle(state: &mut AppState, response: &egui::Response) {
+    pub fn handle(state: &mut AppState, response: &Response) {
         // マウス操作の処理（常にフリーハンド描画）
         if response.drag_started() {
             Self::handle_drag_start(state, response);
@@ -15,7 +17,7 @@ impl RouteDrawingInteraction {
         }
     }
 
-    fn handle_drag_start(state: &mut AppState, response: &egui::Response) {
+    fn handle_drag_start(state: &mut AppState, response: &Response) {
         // 開始地点・終了時地点からドラッグ開始した場合は無視する
         if LocationInteraction::detect_drag_start(state, response).is_some() {
             return;
@@ -39,7 +41,7 @@ impl RouteDrawingInteraction {
         state.push_route(route);
     }
 
-    fn handle_dragging(state: &mut AppState, response: &egui::Response) {
+    fn handle_dragging(state: &mut AppState, response: &Response) {
         if LocationInteraction::detect_drag_start(state, response).is_some() {
             return;
         };

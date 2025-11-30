@@ -10,10 +10,11 @@ mod state;
 
 use app::AmusApp;
 use eframe::egui;
+use egui::*;
 
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
+        viewport: ViewportBuilder::default()
             .with_inner_size([1200.0, 800.0])
             .with_title("Among Us 補助ツール"),
         ..Default::default()
@@ -31,18 +32,18 @@ fn main() -> eframe::Result<()> {
     )
 }
 
-fn setup_panel_bg(ctx: &egui::Context) {
-    use egui::Style;
+fn setup_panel_bg(ctx: &Context) {
+    use Style;
 
     let mut style: Style = (*ctx.style()).clone();
-    style.visuals.panel_fill = egui::Color32::BLACK;
+    style.visuals.panel_fill = Color32::BLACK;
     ctx.set_style(style);
 }
 
-fn setup_custom_fonts(ctx: &egui::Context) {
-    use egui::FontFamily;
+fn setup_custom_fonts(ctx: &Context) {
+    use FontFamily;
 
-    let mut fonts = egui::FontDefinitions::default();
+    let mut fonts = FontDefinitions::default();
 
     // 日本語フォントのパス（優先順位順）
     let font_paths = vec![
@@ -70,7 +71,7 @@ fn setup_custom_fonts(ctx: &egui::Context) {
                 println!("日本語フォントを読み込みました: {}", font_path);
                 fonts.font_data.insert(
                     "japanese".to_owned(),
-                    egui::FontData::from_owned(font_data).into(),
+                    FontData::from_owned(font_data).into(),
                 );
 
                 // 既存のフォントファミリーを取得して、日本語フォントを先頭に追加

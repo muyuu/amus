@@ -22,7 +22,7 @@ impl LocationInteraction {
         Self::handle_drag_start(state, response, ctx);
     }
 
-    fn handle_drag_start(state: &mut AppState, response: &egui::Response, ctx: &egui::Context) {
+    fn handle_drag_start(state: &mut AppState, response: &Response, ctx: &Context) {
         // 位置（出現位置・終了時位置）のドラッグ処理
         if let Some(dragging_location) = state.dragging_location() {
             Self::update_dragging_location(state, dragging_location, response, ctx);
@@ -37,7 +37,7 @@ impl LocationInteraction {
     }
 
     /// エリアクリック処理（出現位置の設定）
-    fn handle_area_click(state: &mut AppState, response: &egui::Response) {
+    fn handle_area_click(state: &mut AppState, response: &Response) {
         if state.dragging_location().is_some() {
             return;
         }
@@ -66,7 +66,7 @@ impl LocationInteraction {
     }
 
     /// ドラッグ終了時の状態クリア
-    fn clear_drag_states(state: &mut AppState, ctx: &egui::Context) {
+    fn clear_drag_states(state: &mut AppState, ctx: &Context) {
         let has_dragging_location = state.dragging_location().is_some();
         let pointer_released = ctx.input(|i| i.pointer.any_released());
 
@@ -76,7 +76,7 @@ impl LocationInteraction {
     }
 
     /// スクリーン座標を正規化座標（0.0-1.0）に変換
-    pub fn screen_to_normalized_point(screen_pos: egui::Pos2, rect: egui::Rect) -> Point {
+    pub fn screen_to_normalized_point(screen_pos: Pos2, rect: Rect) -> Point {
         Point::new(
             (screen_pos.x - rect.min.x) / rect.size().x,
             (screen_pos.y - rect.min.y) / rect.size().y,
@@ -84,7 +84,7 @@ impl LocationInteraction {
     }
 
     /// 終了位置のクリック検出と状態トグル
-    pub fn handle_end_location_click(state: &mut AppState, response: &egui::Response) -> bool {
+    pub fn handle_end_location_click(state: &mut AppState, response: &Response) -> bool {
         if !response.clicked() {
             return false;
         }
@@ -105,7 +105,7 @@ impl LocationInteraction {
 
             let mut target_player_id = None;
             for (player_id, end_point) in wave.end_locations.iter() {
-                let end_pos = egui::pos2(
+                let end_pos = pos2(
                     response.rect.min.x + end_point.x * response.rect.size().x,
                     response.rect.min.y + end_point.y * response.rect.size().y,
                 );
@@ -130,7 +130,7 @@ impl LocationInteraction {
     /// ドラッグ開始の検出（出現位置または終了時位置の上でドラッグ開始）
     pub fn detect_drag_start(
         state: &AppState,
-        response: &egui::Response,
+        response: &Response,
     ) -> Option<DraggingLocation> {
         let pointer_pos = response.interact_pointer_pos()?;
 
@@ -146,13 +146,13 @@ impl LocationInteraction {
     /// 出現位置のヒット判定
     fn find_hit_spawn_location(
         state: &AppState,
-        pointer_pos: egui::Pos2,
-        rect: egui::Rect,
+        pointer_pos: Pos2,
+        rect: Rect,
     ) -> Option<DraggingLocation> {
         let hit_size = LocationConstants::SPAWN_LOCATION_HIT_SIZE;
         if let Ok(wave) = state.current_wave() {
             for (player_id, spawn_point) in wave.spawn_locations.iter() {
-                let spawn_pos = egui::pos2(
+                let spawn_pos = pos2(
                     rect.min.x + spawn_point.x * rect.size().x,
                     rect.min.y + spawn_point.y * rect.size().y,
                 );
@@ -171,13 +171,13 @@ impl LocationInteraction {
     /// 終了時位置のヒット判定
     fn find_hit_end_location(
         state: &AppState,
-        pointer_pos: egui::Pos2,
-        rect: egui::Rect,
+        pointer_pos: Pos2,
+        rect: Rect,
     ) -> Option<DraggingLocation> {
         let hit_size = LocationConstants::END_LOCATION_HIT_SIZE;
         if let Ok(wave) = state.current_wave() {
             for (player_id, end_point) in wave.end_locations.iter() {
-                let end_pos = egui::pos2(
+                let end_pos = pos2(
                     rect.min.x + end_point.x * rect.size().x,
                     rect.min.y + end_point.y * rect.size().y,
                 );
@@ -197,8 +197,8 @@ impl LocationInteraction {
     pub fn update_dragging_location(
         state: &mut AppState,
         dragging_location: DraggingLocation,
-        response: &egui::Response,
-        ctx: &egui::Context,
+        response: &Response,
+        ctx: &Context,
     ) {
         let pointer_pos = match ctx.pointer_latest_pos() {
             Some(pos) => pos,
@@ -222,7 +222,11 @@ impl LocationInteraction {
     }
 
     /// ユーザーをドラッグ&ドロップした時の処理（終了時位置を設定）
-    pub fn handle_player_drop(state: &mut AppState, response: &egui::Response, ctx: &egui::Context) {
+    pub fn handle_player_drop(
+        state: &mut AppState,
+        response: &Response,
+        ctx: &Context,
+    ) {
         let pointer_pos = match ctx.pointer_latest_pos() {
             Some(pos) => pos,
             None => return,

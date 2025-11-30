@@ -37,12 +37,12 @@ impl LocationView {
                 let stroke_width = LocationConstants::SPAWN_LOCATION_STROKE_WIDTH;
                 let painter = ui.painter();
                 painter.rect_filled(
-                    Rect::from_center_size(pos, egui::Vec2::new(size, size)),
+                    Rect::from_center_size(pos, Vec2::new(size, size)),
                     stroke_width,
                     color,
                 );
                 painter.rect_stroke(
-                    Rect::from_center_size(pos, egui::Vec2::new(size, size)),
+                    Rect::from_center_size(pos, Vec2::new(size, size)),
                     stroke_width,
                     (stroke_width, Color32::WHITE),
                     StrokeKind::Inside,
@@ -87,7 +87,7 @@ impl LocationView {
     }
 
     // 死亡している場合はバツ印を描画
-    fn render_dead_mark(player: &player::Player, painter: &egui::Painter, pos: Pos2) {
+    fn render_dead_mark(player: &player::Player, painter: &Painter, pos: Pos2) {
         if player.alive {
             return;
         }
@@ -121,7 +121,7 @@ impl LocationView {
             Color32::WHITE,
         );
 
-        let padding = egui::vec2(
+        let padding = vec2(
             AppConstants::COM_BG_LABEL_PADDING_X,
             AppConstants::COM_BG_LABEL_PADDING_Y,
         );

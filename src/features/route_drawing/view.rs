@@ -8,7 +8,7 @@ use egui::*;
 pub struct RouteDrawingView;
 
 impl RouteDrawingView {
-    pub fn render(state: &AppState, response: &egui::Response, ui: &mut egui::Ui) {
+    pub fn render(state: &AppState, response: &Response, ui: &mut Ui) {
         let routes = match state.routes() {
             Some(routes) => {
                 if routes.is_empty() {
@@ -166,7 +166,10 @@ impl RouteDrawingView {
                     rect.min.y + point.y * rect.size().y,
                 );
                 let stroke_width = 6.0;
-                painter.line_segment([prev_pos, pos], (stroke_width, player.color.to_egui_color()));
+                painter.line_segment(
+                    [prev_pos, pos],
+                    (stroke_width, player.color.to_egui_color()),
+                );
                 prev_pos = pos;
             }
         }

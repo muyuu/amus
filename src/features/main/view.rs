@@ -10,7 +10,7 @@ use egui::*;
 pub struct MainView;
 
 impl MainView {
-    pub fn render(state: &mut AppState, ui: &mut egui::Ui) {
+    pub fn render(state: &mut AppState, ui: &mut Ui) {
         // ゲームがない場合はウェルカムメッセージを表示して早期リターン
         let has_game = state.game().is_some();
         if !has_game {
@@ -19,7 +19,7 @@ impl MainView {
         }
 
         // マップ表示エリア（ここにエリア画像と軌跡を描画）
-        let response = ui.allocate_response(ui.available_size(), egui::Sense::click_and_drag());
+        let response = ui.allocate_response(ui.available_size(), Sense::click_and_drag());
 
         MapView::render(state, &response, ui);
         RouteDrawingFeature::render(state, &response, ui);
