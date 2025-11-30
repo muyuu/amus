@@ -256,6 +256,16 @@ impl AppState {
         }
     }
 
+    pub fn update_player_button(&self, id: usize, done: bool) {
+        // これはリセット時に初期化したいので setup_state は更新しない
+        if let Some(mut game) = self.game() {
+            if let Some(player) = game.players.get_mut(id) {
+                player.done_button = done;
+            }
+            self.data.borrow_mut().game = Some(game);
+        }
+    }
+
     pub fn show_debug_view(&self) -> bool {
         self.data.borrow().show_debug_view
     }

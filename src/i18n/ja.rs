@@ -87,6 +87,9 @@ pub fn get_translations() -> HashMap<&'static str, String> {
         format!("新しい{}を{}してください", W::GAME, W::START),
     );
 
+    translations.insert(PLAYER_INFO_BUTTON_DONE, "済み".to_string());
+    translations.insert(PLAYER_INFO_BUTTON_NOT_DONE, "会議".to_string());
+
     // 消しゴム
     translations.insert(ERASER_BUTTON, W::ERASER.to_string());
 
