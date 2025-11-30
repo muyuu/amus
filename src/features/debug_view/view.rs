@@ -45,14 +45,10 @@ impl DebugView {
                 // 選択中ユーザー
                 ui.label("選択中ユーザー:");
                 if let Some(player_id) = state.selected_player_id() {
-                    if let Some(game) = state.game() {
-                        if let Some(player) = game.players.get(player_id) {
-                            ui.label(format!("{} (player_id={})", player.name, player_id));
-                        } else {
-                            ui.label(format!("player_id={} (存在しない)", player_id));
-                        }
+                    if let Some(player) = state.player(player_id) {
+                        ui.label(format!("{} (player_id={:?})", player.name, player_id));
                     } else {
-                        ui.label("ゲームが存在しません");
+                        ui.label(format!("player_id={:?} (存在しない)", player_id));
                     }
                 } else {
                     ui.label("なし");
@@ -62,7 +58,7 @@ impl DebugView {
                 // ドラッグ中ユーザー
                 ui.label("ドラッグ中ユーザー:");
                 if let Some(player_id) = state.dragging_player_id() {
-                    ui.label(format!("player_id={}", player_id));
+                    ui.label(format!("player_id={:?}", player_id));
                 } else {
                     ui.label("なし");
                 }

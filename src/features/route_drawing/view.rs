@@ -135,19 +135,14 @@ impl RouteDrawingView {
 
     /// ルートを描画（開始地点と軌跡）Response
     fn draw_route(state: &AppState, route: &Draw, painter: &Painter, rect: Rect) {
-        let game = match state.game() {
-            Some(game) => game,
-            None => return,
-        };
-
-        let player = match game.get_players().get(route.player_id) {
-            Some(player) => player,
-            None => return,
-        };
-
         if route.lines.is_empty() {
             return;
         }
+
+        let player = match state.player(route.player_id) {
+            Some(p) => p,
+            None => return,
+        };
 
         for line in route.lines.iter() {
             let mut prev_pos = if let Some(first_point) = line.first() {

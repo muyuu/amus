@@ -2,6 +2,7 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 
 use crate::assets::AssetManager;
+use crate::models::player::PlayerId;
 use crate::models::*;
 use crate::state::app_data::AppData;
 use crate::state::location::DraggingLocation;
@@ -33,15 +34,13 @@ impl AppState {
         self.data.borrow_mut()
     }
 
-    pub fn toggle_player_alive(&self, player_id: usize) {
-        let mut data = self.data_mut();
-        if let Some(player) = data
-            .game
-            .as_mut()
-            .and_then(|game| game.players.get_mut(player_id))
-        {
-            player.alive = !player.alive;
-        }
+    pub fn toggle_player_alive(&self, player_id: PlayerId) {
+        let mut player = match self.player(player_id) {
+            Some(p) => p,
+            None => return,
+        };
+
+        player.alive = !player.alive;
     }
 
     pub fn t(&self, key: &str) -> String {
@@ -117,12 +116,12 @@ impl AppState {
         self.data_mut().current_wave_index = index;
     }
 
-    pub fn player_name_editing(&self, player_id: usize) -> bool {
+    pub fn player_name_editing(&self, player_id: PlayerId) -> bool {
         let data = self.data.borrow();
         data.editing_name_player_id == Some(player_id)
     }
 
-    pub fn toggle_player_name_editing(&self, player_id: usize) {
+    pub fn toggle_player_name_editing(&self, player_id: PlayerId) {
         let mut data = self.data_mut();
         if data.editing_name_player_id == Some(player_id) {
             data.editing_name_player_id = None;
@@ -153,6 +152,20 @@ impl AppState {
         } else {
             None
         }
+    }
+
+    pub fn players(&self) -> Option<Vec<Player>> {
+        let game = self.game();
+        if let Some(game) = game {
+            Some(game.players)
+        } else {
+            None
+        }
+    }
+
+    pub fn player(&self, player_id: PlayerId) -> Option<Player> {
+        let players = self.players()?;
+        players.into_iter().find(|p| p.id == player_id)
     }
 
     /// 現在の wave への不変参照を取得
@@ -202,11 +215,11 @@ impl AppState {
         i
     }
 
-    pub fn dragging_player_id(&self) -> Option<usize> {
+    pub fn dragging_player_id(&self) -> Option<PlayerId> {
         self.data.borrow().dragging_player_id
     }
 
-    pub fn set_dragging_player_id(&self, player_id: Option<usize>) {
+    pub fn set_dragging_player_id(&self, player_id: Option<PlayerId>) {
         self.data.borrow_mut().dragging_player_id = player_id;
     }
 
@@ -218,11 +231,11 @@ impl AppState {
         self.data.borrow_mut().dragging_location = location;
     }
 
-    pub fn selected_player_id(&self) -> Option<usize> {
+    pub fn selected_player_id(&self) -> Option<PlayerId> {
         self.data.borrow().selected_player_id
     }
 
-    pub fn set_selected_player_id(&self, player_id: Option<usize>) {
+    pub fn set_selected_player_id(&self, player_id: Option<PlayerId>) {
         self.data.borrow_mut().selected_player_id = player_id;
     }
 
@@ -234,34 +247,64 @@ impl AppState {
         self.data.borrow_mut().setup_state.selected_area = area;
     }
 
-    pub fn update_player_name(&self, id: usize, name: String) {
-        self.data.borrow_mut().setup_state.players[id].name = name.clone();
+    pub fn update_player_name(&self, id: PlayerId, name: String) {
+        self.data
+            .borrow_mut()
+            .setup_state
+            .players
+            .iter_mut()
+            .for_each(|p| {
+                if p.id == id {
+                    p.name = name.clone();
+                }
+            });
 
         if let Some(mut game) = self.game() {
-            if let Some(player) = game.players.get_mut(id) {
-                player.name = name;
-            }
-            self.data.borrow_mut().game = Some(game);
+            let mut players = game.players;
+            players.iter_mut().for_each(|p| {
+                if p.id == id {
+                    p.name = name.clone();
+                }
+            });
+            game.players = players;
+            self.data.borrow_mut().game = Some(game)
         }
     }
 
-    pub fn update_player_color(&self, id: usize, color: Color) {
-        self.data.borrow_mut().setup_state.players[id].color = color.clone();
+    pub fn update_player_color(&self, id: PlayerId, color: Color) {
+        self.data
+            .borrow_mut()
+            .setup_state
+            .players
+            .iter_mut()
+            .for_each(|p| {
+                if p.id == id {
+                    p.color = color.clone();
+                }
+            });
 
         if let Some(mut game) = self.game() {
-            if let Some(player) = game.players.get_mut(id) {
-                player.color = color;
-            }
-            self.data.borrow_mut().game = Some(game);
+            let mut players = game.players;
+            players.iter_mut().for_each(|p| {
+                if p.id == id {
+                    p.color = color.clone();
+                }
+            });
+            game.players = players;
+            self.data.borrow_mut().game = Some(game)
         }
     }
 
-    pub fn update_player_button(&self, id: usize, done: bool) {
+    pub fn update_player_button(&self, id: PlayerId, done: bool) {
         // これはリセット時に初期化したいので setup_state は更新しない
         if let Some(mut game) = self.game() {
-            if let Some(player) = game.players.get_mut(id) {
-                player.done_button = done;
-            }
+            let mut players = game.players;
+            players.iter_mut().for_each(|p| {
+                if p.id == id {
+                    p.done_button = done;
+                }
+            });
+            game.players = players;
             self.data.borrow_mut().game = Some(game);
         }
     }
@@ -320,7 +363,7 @@ impl AppState {
         wave.routes.push(route);
     }
 
-    pub fn spawn_location(&self, player_id: usize) -> Option<Point> {
+    pub fn spawn_location(&self, player_id: PlayerId) -> Option<Point> {
         let wave = match self.current_wave() {
             Ok(wave) => wave,
             _ => return None,
@@ -329,14 +372,14 @@ impl AppState {
         wave.spawn_locations.get(&player_id).cloned()
     }
 
-    pub fn spawn_locations(&self) -> Option<HashMap<usize, Point>> {
+    pub fn spawn_locations(&self) -> Option<HashMap<PlayerId, Point>> {
         match self.current_wave() {
             Ok(wave) => Some(wave.spawn_locations.clone()),
             _ => None,
         }
     }
 
-    pub fn add_spawn_location(&self, player_id: usize, point: Point) {
+    pub fn add_spawn_location(&self, player_id: PlayerId, point: Point) {
         let mut wave = match self.current_wave_mut() {
             Ok(wave) => wave,
             _ => return,
@@ -345,14 +388,14 @@ impl AppState {
         wave.spawn_locations.insert(player_id, point);
     }
 
-    pub fn end_locations(&self) -> Option<HashMap<usize, Point>> {
+    pub fn end_locations(&self) -> Option<HashMap<PlayerId, Point>> {
         match self.current_wave() {
             Ok(wave) => Some(wave.end_locations.clone()),
             _ => None,
         }
     }
 
-    pub fn add_end_location(&self, player_id: usize, point: Point) {
+    pub fn add_end_location(&self, player_id: PlayerId, point: Point) {
         let mut wave = match self.current_wave_mut() {
             Ok(wave) => wave,
             _ => return,

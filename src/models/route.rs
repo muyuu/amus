@@ -2,6 +2,8 @@ use std::vec;
 
 use serde::{Deserialize, Serialize};
 
+use crate::models::player::PlayerId;
+
 use super::Point;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -12,7 +14,7 @@ pub enum Route {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Draw {
-    pub player_id: usize,       // Playerのインデックス参照
+    pub player_id: PlayerId,    // Playerのインデックス参照
     pub lines: Vec<Vec<Point>>, // 軌跡のポイント（開始地点はspawn_locationsから取得）
 }
 
@@ -43,7 +45,7 @@ impl Route {
 }
 
 impl Draw {
-    pub fn new(player_id: usize) -> Self {
+    pub fn new(player_id: PlayerId) -> Self {
         Self {
             player_id,
             lines: vec![vec![]],

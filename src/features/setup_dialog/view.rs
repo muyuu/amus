@@ -62,21 +62,21 @@ impl SetupView {
                         ui.horizontal(|ui| {
                             ui.label(&texts.player_name);
                             ui.add_space(4.0);
-                            let mut name = state.setup_state().players[i].name.clone();
+
+                            let player = &state.setup_state().players[i].clone();
+                            let mut name = player.name.clone();
                             if ui.text_edit_singleline(&mut name).changed() {
-                                SetupInteraction::update_player_name(state, i, name);
+                                SetupInteraction::update_player_name(state, player.id, name);
                             }
 
                             ui.add_space(8.0);
 
                             // 現在の色のプレビューをComboBoxの前に表示
-                            let selected_color = state.setup_state().players[i].color.clone();
+                            let selected_color = player.color.clone();
 
                             // 色プレビューのサイズと位置を調整
-                            let (rect, _response) = ui.allocate_exact_size(
-                                Vec2::new(20.0, 20.0),
-                                Sense::hover(),
-                            );
+                            let (rect, _response) =
+                                ui.allocate_exact_size(Vec2::new(20.0, 20.0), Sense::hover());
                             ui.painter()
                                 .rect_filled(rect, 2.0, selected_color.to_egui_color());
 
@@ -109,7 +109,7 @@ impl SetupView {
                                             {
                                                 SetupInteraction::update_player_color(
                                                     state,
-                                                    i,
+                                                    player.id,
                                                     color.clone(),
                                                 );
                                             }

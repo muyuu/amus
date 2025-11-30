@@ -1,9 +1,14 @@
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use super::{Color, Role};
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub struct PlayerId(Uuid);
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Player {
+    pub id: PlayerId,
     pub role: Role,
     pub color: Color,
     pub name: String,
@@ -15,6 +20,7 @@ pub struct Player {
 impl Player {
     pub fn new(role: Role, color: Color, name: String) -> Self {
         Self {
+            id: PlayerId(Uuid::new_v4()),
             role,
             color,
             name,
