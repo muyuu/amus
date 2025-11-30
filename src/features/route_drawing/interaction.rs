@@ -30,11 +30,11 @@ impl RouteDrawingInteraction {
         let route = if state.erase_mode() {
             Route::Erase(Erase::new())
         } else {
-            let user_id = match state.selected_user_id() {
-                Some(user_id) => user_id,
+            let player_id = match state.selected_player_id() {
+                Some(player_id) => player_id,
                 None => return,
             };
-            Route::Draw(Draw::new(user_id))
+            Route::Draw(Draw::new(player_id))
         };
         state.push_route(route);
     }

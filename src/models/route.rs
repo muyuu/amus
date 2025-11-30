@@ -12,7 +12,7 @@ pub enum Route {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Draw {
-    pub user_id: usize,         // Userのインデックス参照
+    pub player_id: usize,         // Playerのインデックス参照
     pub lines: Vec<Vec<Point>>, // 軌跡のポイント（開始地点はspawn_locationsから取得）
 }
 
@@ -43,9 +43,9 @@ impl Route {
 }
 
 impl Draw {
-    pub fn new(user_id: usize) -> Self {
+    pub fn new(player_id: usize) -> Self {
         Self {
-            user_id,
+            player_id,
             lines: vec![vec![]],
         }
     }

@@ -1,6 +1,6 @@
 use crate::{
     components::background_label, constants::AppConstants,
-    features::location::constants::LocationConstants, models::user, state::AppState,
+    features::location::constants::LocationConstants, models::player, state::AppState,
 };
 use egui::*;
 
@@ -20,14 +20,14 @@ impl LocationView {
             None => return,
         };
 
-        for (user_id, point) in spawn_locations {
+        for (player_id, point) in spawn_locations {
             let game = match state.game() {
                 Some(game) => game,
                 None => return,
             };
 
-            if let Some(user) = game.users.get(user_id) {
-                let color = user.color.to_egui_color();
+            if let Some(player) = game.players.get(player_id) {
+                let color = player.color.to_egui_color();
                 let rect = ui.max_rect();
                 let pos = pos2(
                     rect.min.x + point.x * rect.size().x,
@@ -58,14 +58,14 @@ impl LocationView {
         };
 
         // 終了時位置を描画（丸）
-        for (user_id, point) in end_locations {
+        for (player_id, point) in end_locations {
             let game = match state.game() {
                 Some(game) => game,
                 None => return,
             };
 
-            if let Some(user) = game.users.get(user_id) {
-                let color = user.color.to_egui_color();
+            if let Some(player) = game.players.get(player_id) {
+                let color = player.color.to_egui_color();
                 let rect = ui.max_rect();
                 let pos = pos2(
                     rect.min.x + point.x * rect.size().x,
@@ -80,15 +80,15 @@ impl LocationView {
                 painter.circle_filled(pos, radius, color);
                 painter.circle_stroke(pos, radius, (stroke_width, Color32::WHITE));
 
-                Self::render_dead_mark(user, painter, pos);
-                Self::render_label(ui, user, pos, radius);
+                Self::render_dead_mark(player, painter, pos);
+                Self::render_label(ui, player, pos, radius);
             }
         }
     }
 
     // 死亡している場合はバツ印を描画
-    fn render_dead_mark(user: &user::User, painter: &egui::Painter, pos: Pos2) {
-        if user.alive {
+    fn render_dead_mark(player: &player::Player, painter: &egui::Painter, pos: Pos2) {
+        if player.alive {
             return;
         }
 
@@ -114,9 +114,9 @@ impl LocationView {
         );
     }
 
-    fn render_label(ui: &mut Ui, user: &user::User, center: Pos2, radius: f32) {
+    fn render_label(ui: &mut Ui, player: &player::Player, center: Pos2, radius: f32) {
         let galley = ui.painter().layout_no_wrap(
-            user.name.to_owned(),
+            player.name.to_owned(),
             FontId::proportional(16.0),
             Color32::WHITE,
         );
@@ -130,7 +130,7 @@ impl LocationView {
         let label_pos = Pos2::new(center.x, center.y - radius - 20.0);
         let rect = Rect::from_center_size(label_pos, size);
         ui.scope_builder(UiBuilder::new().max_rect(rect), |ui| {
-            background_label(ui, &user.name);
+            background_label(ui, &player.name);
         });
     }
 }

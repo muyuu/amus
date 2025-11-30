@@ -7,5 +7,5 @@ pub enum LocationType {
 #[derive(Debug, Clone, Copy)]
 pub struct DraggingLocation {
     pub location_type: LocationType,
-    pub user_id: usize,
+    pub player_id: usize,
 }

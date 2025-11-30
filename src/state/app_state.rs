@@ -33,14 +33,14 @@ impl AppState {
         self.data.borrow_mut()
     }
 
-    pub fn toggle_user_alive(&self, user_id: usize) {
+    pub fn toggle_player_alive(&self, player_id: usize) {
         let mut data = self.data_mut();
-        if let Some(user) = data
+        if let Some(player) = data
             .game
             .as_mut()
-            .and_then(|game| game.users.get_mut(user_id))
+            .and_then(|game| game.players.get_mut(player_id))
         {
-            user.alive = !user.alive;
+            player.alive = !player.alive;
         }
     }
 
@@ -101,7 +101,7 @@ impl AppState {
 
             for i in old_count..new_count {
                 let color = available_colors.get(i).cloned().unwrap_or(Color::Red);
-                data.setup_state.players.push(User::new(
+                data.setup_state.players.push(Player::new(
                     Role::Crew,
                     color,
                     format!("Player {}", i + 1),
@@ -117,17 +117,17 @@ impl AppState {
         self.data_mut().current_wave_index = index;
     }
 
-    pub fn user_name_editing(&self, user_id: usize) -> bool {
+    pub fn player_name_editing(&self, player_id: usize) -> bool {
         let data = self.data.borrow();
-        data.editing_name_user_id == Some(user_id)
+        data.editing_name_player_id == Some(player_id)
     }
 
-    pub fn toggle_user_name_editing(&self, user_id: usize) {
+    pub fn toggle_player_name_editing(&self, player_id: usize) {
         let mut data = self.data_mut();
-        if data.editing_name_user_id == Some(user_id) {
-            data.editing_name_user_id = None;
+        if data.editing_name_player_id == Some(player_id) {
+            data.editing_name_player_id = None;
         } else {
-            data.editing_name_user_id = Some(user_id);
+            data.editing_name_player_id = Some(player_id);
         }
     }
 }
@@ -202,12 +202,12 @@ impl AppState {
         i
     }
 
-    pub fn dragging_user_id(&self) -> Option<usize> {
-        self.data.borrow().dragging_user_id
+    pub fn dragging_player_id(&self) -> Option<usize> {
+        self.data.borrow().dragging_player_id
     }
 
-    pub fn set_dragging_user_id(&self, user_id: Option<usize>) {
-        self.data.borrow_mut().dragging_user_id = user_id;
+    pub fn set_dragging_player_id(&self, player_id: Option<usize>) {
+        self.data.borrow_mut().dragging_player_id = player_id;
     }
 
     pub fn dragging_location(&self) -> Option<DraggingLocation> {
@@ -218,12 +218,12 @@ impl AppState {
         self.data.borrow_mut().dragging_location = location;
     }
 
-    pub fn selected_user_id(&self) -> Option<usize> {
-        self.data.borrow().selected_user_id
+    pub fn selected_player_id(&self) -> Option<usize> {
+        self.data.borrow().selected_player_id
     }
 
-    pub fn set_selected_user_id(&self, user_id: Option<usize>) {
-        self.data.borrow_mut().selected_user_id = user_id;
+    pub fn set_selected_player_id(&self, player_id: Option<usize>) {
+        self.data.borrow_mut().selected_player_id = player_id;
     }
 
     pub fn setup_state(&self) -> Ref<'_, SetupState> {
@@ -238,8 +238,8 @@ impl AppState {
         self.data.borrow_mut().setup_state.players[id].name = name.clone();
 
         if let Some(mut game) = self.game() {
-            if let Some(user) = game.users.get_mut(id) {
-                user.name = name;
+            if let Some(player) = game.players.get_mut(id) {
+                player.name = name;
             }
             self.data.borrow_mut().game = Some(game);
         }
@@ -249,8 +249,8 @@ impl AppState {
         self.data.borrow_mut().setup_state.players[id].color = color.clone();
 
         if let Some(mut game) = self.game() {
-            if let Some(user) = game.users.get_mut(id) {
-                user.color = color;
+            if let Some(player) = game.players.get_mut(id) {
+                player.color = color;
             }
             self.data.borrow_mut().game = Some(game);
         }
@@ -310,13 +310,13 @@ impl AppState {
         wave.routes.push(route);
     }
 
-    pub fn spawn_location(&self, user_id: usize) -> Option<Point> {
+    pub fn spawn_location(&self, player_id: usize) -> Option<Point> {
         let wave = match self.current_wave() {
             Ok(wave) => wave,
             _ => return None,
         };
 
-        wave.spawn_locations.get(&user_id).cloned()
+        wave.spawn_locations.get(&player_id).cloned()
     }
 
     pub fn spawn_locations(&self) -> Option<HashMap<usize, Point>> {
@@ -326,13 +326,13 @@ impl AppState {
         }
     }
 
-    pub fn add_spawn_location(&self, user_id: usize, point: Point) {
+    pub fn add_spawn_location(&self, player_id: usize, point: Point) {
         let mut wave = match self.current_wave_mut() {
             Ok(wave) => wave,
             _ => return,
         };
 
-        wave.spawn_locations.insert(user_id, point);
+        wave.spawn_locations.insert(player_id, point);
     }
 
     pub fn end_locations(&self) -> Option<HashMap<usize, Point>> {
@@ -342,13 +342,13 @@ impl AppState {
         }
     }
 
-    pub fn add_end_location(&self, user_id: usize, point: Point) {
+    pub fn add_end_location(&self, player_id: usize, point: Point) {
         let mut wave = match self.current_wave_mut() {
             Ok(wave) => wave,
             _ => return,
         };
 
-        wave.end_locations.insert(user_id, point);
+        wave.end_locations.insert(player_id, point);
     }
 
     pub fn erase_mode(&self) -> bool {

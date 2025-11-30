@@ -42,12 +42,12 @@ impl DebugView {
             .show(ui, |ui| {
                 // 選択中ユーザー
                 ui.label("選択中ユーザー:");
-                if let Some(user_id) = state.selected_user_id() {
+                if let Some(player_id) = state.selected_player_id() {
                     if let Some(game) = state.game() {
-                        if let Some(user) = game.users.get(user_id) {
-                            ui.label(format!("{} (user_id={})", user.name, user_id));
+                        if let Some(player) = game.players.get(player_id) {
+                            ui.label(format!("{} (player_id={})", player.name, player_id));
                         } else {
-                            ui.label(format!("user_id={} (存在しない)", user_id));
+                            ui.label(format!("player_id={} (存在しない)", player_id));
                         }
                     } else {
                         ui.label("ゲームが存在しません");
@@ -59,8 +59,8 @@ impl DebugView {
 
                 // ドラッグ中ユーザー
                 ui.label("ドラッグ中ユーザー:");
-                if let Some(user_id) = state.dragging_user_id() {
-                    ui.label(format!("user_id={}", user_id));
+                if let Some(player_id) = state.dragging_player_id() {
+                    ui.label(format!("player_id={}", player_id));
                 } else {
                     ui.label("なし");
                 }

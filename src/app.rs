@@ -4,8 +4,8 @@ use crate::assets::AssetManager;
 use crate::constants::AppConstants;
 use crate::features::main::MainView;
 use crate::features::setup_dialog::SetupView;
-use crate::features::user_info::UserInfoFeature;
-use crate::features::user_list::UserListView;
+use crate::features::player_info::PlayerInfoFeature;
+use crate::features::player_list::PlayerListView;
 use crate::i18n::keys;
 use crate::state::AppState;
 
@@ -84,7 +84,7 @@ impl eframe::App for AmusApp {
 
 impl AmusApp {
     fn build_main_ui(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::SidePanel::right("user_info_panel")
+        egui::SidePanel::right("player_info_panel")
             .frame(Self::get_frame())
             .show(ctx, |ui| {
                 let head_text = RichText::new(self.state.t(keys::SIDEBAR_PLAYERS))
@@ -92,7 +92,7 @@ impl AmusApp {
                     .color(egui::Color32::WHITE);
                 ui.heading(head_text);
                 ui.separator();
-                UserInfoFeature::render(&mut self.state, ui);
+                PlayerInfoFeature::render(&mut self.state, ui);
             });
 
         // 全画面のメインコンテンツエリア
@@ -103,12 +103,12 @@ impl AmusApp {
             });
 
         // 下部のユーザー一覧パネル
-        egui::TopBottomPanel::bottom("user_list_panel")
+        egui::TopBottomPanel::bottom("player_list_panel")
             .resizable(false)
             .default_height(90.0)
             .frame(Self::get_frame())
             .show(ctx, |ui| {
-                UserListView::show(&mut self.state, ui);
+                PlayerListView::show(&mut self.state, ui);
             });
     }
 

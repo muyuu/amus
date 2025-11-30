@@ -14,18 +14,18 @@ pub struct AppData {
     // ドラッグ中の位置（出現位置 or 終了時位置）
     pub dragging_location: Option<DraggingLocation>,
 
-    // ドラッグ中のユーザーID
-    pub dragging_user_id: Option<usize>,
+    // ドラッグ中のプレイヤーID
+    pub dragging_player_id: Option<usize>,
 
-    /// ユーザー名編集中のユーザーID
-    pub editing_name_user_id: Option<usize>,
+    /// プレイヤー名編集中のプレイヤーID
+    pub editing_name_player_id: Option<usize>,
 
     // 消しゴムモードの状態
     pub erase_mode: bool,
 
     pub game: Option<Game>,
 
-    pub selected_user_id: Option<usize>,
+    pub selected_player_id: Option<usize>,
 
     // ゲーム設定の状態
     pub setup_state: SetupState,
@@ -47,11 +47,11 @@ impl Default for AppData {
             asset_manager: None, // 後で初期化
             current_wave_index: 0,
             dragging_location: None,    // ドラッグ中の位置はNone
-            dragging_user_id: None,     // ドラッグ中はNone
-            editing_name_user_id: None, // ユーザー名編集中はNone
+            dragging_player_id: None,     // ドラッグ中はNone
+            editing_name_player_id: None, // ユーザー名編集中はNone
             erase_mode: false,          // 初期状態では消しゴムモードオフ
             game: None,
-            selected_user_id: None,
+            selected_player_id: None,
             setup_state: SetupState::default(),
             show_setup_dialog: true, // 起動時はセットアップダイアログを表示
             show_turn_menu: false,   // 初期状態では非表示

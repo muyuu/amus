@@ -1,9 +1,9 @@
 use crate::state::AppState;
 use egui::*;
 
-pub struct UserListView;
+pub struct PlayerListView;
 
-impl UserListView {
+impl PlayerListView {
     pub fn show(state: &mut AppState, ui: &mut Ui) {
         // 利用可能なエリア全体を取得
         let available_rect = ui.available_rect_before_wrap();
@@ -31,7 +31,7 @@ impl UserListView {
                         ui.add_space(padding);
                     }
 
-                    for (user_id, user) in players.iter().enumerate() {
+                    for (player_id, player) in players.iter().enumerate() {
                         ui.vertical(|ui| {
                             // ユーザー色の矩形（30x30px）
                             let rect_size = Vec2::new(30.0, 30.0);
@@ -40,24 +40,24 @@ impl UserListView {
 
                             // クリックまたはドラッグ開始時にユーザーを選択
                             if response.clicked() || response.drag_started() {
-                                state.set_selected_user_id(Some(user_id));
+                                state.set_selected_player_id(Some(player_id));
                                 state.set_erase_mode(false);
                                 if response.drag_started() {
-                                    state.set_dragging_user_id(Some(user_id));
+                                    state.set_dragging_player_id(Some(player_id));
                                 }
                             }
 
                             // ドラッグ終了時にクリア（選択状態は保持）
                             if response.drag_stopped() {
-                                state.set_dragging_user_id(None);
+                                state.set_dragging_player_id(None);
                             }
 
                             // ユーザーの色を取得
-                            let user_color = if let Some(player_config) = state
+                            let player_color = if let Some(player_config) = state
                                 .setup_state()
                                 .players
                                 .iter()
-                                .find(|p| p.name == user.name)
+                                .find(|p| p.name == player.name)
                             {
                                 player_config.color.to_egui_color()
                             } else {
@@ -65,14 +65,14 @@ impl UserListView {
                             };
 
                             // 選択中またはドラッグ中の視覚的フィードバック
-                            let is_selected = state.selected_user_id() == Some(user_id);
-                            let is_dragging = state.dragging_user_id() == Some(user_id);
+                            let is_selected = state.selected_player_id() == Some(player_id);
+                            let is_dragging = state.dragging_player_id() == Some(player_id);
                             let color = if is_dragging || (is_selected && response.hovered()) {
-                                user_color.linear_multiply(0.7) // 少し暗くする
+                                player_color.linear_multiply(0.7) // 少し暗くする
                             } else if is_selected {
-                                user_color.linear_multiply(0.9) // 選択中は少し暗く
+                                player_color.linear_multiply(0.9) // 選択中は少し暗く
                             } else {
-                                user_color
+                                player_color
                             };
 
                             // 矩形を描画

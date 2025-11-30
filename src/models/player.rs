@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::{Color, Role};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct User {
+pub struct Player {
     pub role: Role,
     pub color: Color,
     pub name: String,
@@ -11,7 +11,7 @@ pub struct User {
     pub death: Option<usize>, // 何ターン目か（1始まり）
 }
 
-impl User {
+impl Player {
     pub fn new(role: Role, color: Color, name: String) -> Self {
         Self {
             role,
