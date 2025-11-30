@@ -35,12 +35,13 @@ impl AppState {
     }
 
     pub fn toggle_player_alive(&self, player_id: PlayerId) {
-        let mut player = match self.player(player_id) {
-            Some(p) => p,
-            None => return,
-        };
-
-        player.alive = !player.alive;
+        self.data.borrow_mut().game.as_mut().map(|game| {
+            game.players.iter_mut().for_each(|p| {
+                if p.id == player_id {
+                    p.alive = !p.alive;
+                }
+            });
+        });
     }
 
     pub fn t(&self, key: &str) -> String {
