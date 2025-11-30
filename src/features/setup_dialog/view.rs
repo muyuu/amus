@@ -87,7 +87,7 @@ impl SetupView {
                                 ui.add_space(4.0);
 
                                 // 色選択のためのComboBox
-                                egui::ComboBox::from_id_source(format!("color_combo_{}", i))
+                                egui::ComboBox::from_id_salt(format!("color_combo_{}", i))
                                     .selected_text(selected_color.name())
                                     .show_ui(ui, |ui| {
                                         for color in &available_colors {

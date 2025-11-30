@@ -80,7 +80,12 @@ impl UserListView {
 
                             // 選択中のユーザーには枠線を表示
                             if is_selected {
-                                ui.painter().rect_stroke(rect, 4.0, (2.0, Color32::WHITE));
+                                ui.painter().rect_stroke(
+                                    rect,
+                                    4.0,
+                                    (2.0, Color32::WHITE),
+                                    StrokeKind::Inside,
+                                );
                             }
                         });
                         ui.add_space(6.0); // プレイヤー間のスペース

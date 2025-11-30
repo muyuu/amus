@@ -11,7 +11,8 @@ impl EraserView {
         ui.painter().rect_filled(rect, 4.0, Color32::PLACEHOLDER);
 
         if state.erase_mode() {
-            ui.painter().rect_stroke(rect, 4.0, (2.0, Color32::WHITE));
+            ui.painter()
+                .rect_stroke(rect, 4.0, (2.0, Color32::WHITE), StrokeKind::Inside);
         }
         ui.label(RichText::new(state.t(ERASER_BUTTON)).color(Color32::WHITE));
         response.clicked()

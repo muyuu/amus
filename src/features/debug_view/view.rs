@@ -8,7 +8,7 @@ impl DebugView {
             return;
         }
 
-        let screen_rect = ctx.screen_rect();
+        let screen_rect = ctx.content_rect();
         let window_width = 300.0; // 固定幅
         let window_pos = egui::pos2(
             screen_rect.center().x - window_width / 2.0,
@@ -24,7 +24,7 @@ impl DebugView {
 
     fn show_content(state: &AppState, ui: &mut egui::Ui, ctx: &egui::Context, window_width: f32) {
         egui::Frame::popup(ui.style())
-            .inner_margin(egui::Margin::same(10.0))
+            .inner_margin(egui::Margin::same(10))
             .show(ui, |ui| {
                 ui.set_width(window_width);
                 ui.heading("🐛 デバッグ情報");
