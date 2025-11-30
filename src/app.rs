@@ -1,6 +1,7 @@
 use egui::{RichText, UiBuilder};
 
 use crate::assets::AssetManager;
+use crate::constants::AppConstants;
 use crate::features::main::MainView;
 use crate::features::setup_dialog::SetupView;
 use crate::features::user_info::UserInfoFeature;
@@ -40,6 +41,7 @@ impl eframe::App for AmusApp {
         egui::TopBottomPanel::top("menu_button_panel")
             .resizable(false)
             .default_height(50.0)
+            .frame(Self::get_frame())
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
                     // 左側：メニューボタン
@@ -82,27 +84,29 @@ impl eframe::App for AmusApp {
 
 impl AmusApp {
     fn build_main_ui(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::SidePanel::right("user_info_panel").show(ctx, |ui| {
-            let head_text = RichText::new(self.state.t(keys::SIDEBAR_PLAYERS))
-                .heading()
-                .color(egui::Color32::WHITE);
-            ui.heading(head_text);
-            ui.separator();
-            UserInfoFeature::render(&mut self.state, ui);
-        });
+        egui::SidePanel::right("user_info_panel")
+            .frame(Self::get_frame())
+            .show(ctx, |ui| {
+                let head_text = RichText::new(self.state.t(keys::SIDEBAR_PLAYERS))
+                    .heading()
+                    .color(egui::Color32::WHITE);
+                ui.heading(head_text);
+                ui.separator();
+                UserInfoFeature::render(&mut self.state, ui);
+            });
 
         // 全画面のメインコンテンツエリア
-        egui::CentralPanel::default().show(ctx, |ui| {
-            MainView::render(&mut self.state, ui);
-        });
+        egui::CentralPanel::default()
+            .frame(Self::get_frame())
+            .show(ctx, |ui| {
+                MainView::render(&mut self.state, ui);
+            });
 
         // 下部のユーザー一覧パネル
         egui::TopBottomPanel::bottom("user_list_panel")
             .resizable(false)
             .default_height(90.0)
-            .frame(
-                egui::Frame::NONE.stroke(egui::Stroke::NONE), // 枠線を完全に削除
-            )
+            .frame(Self::get_frame())
             .show(ctx, |ui| {
                 UserListView::show(&mut self.state, ui);
             });
@@ -187,5 +191,11 @@ impl AmusApp {
                     }
                 });
             });
+    }
+
+    fn get_frame() -> egui::Frame {
+        egui::Frame::NONE
+            .fill(AppConstants::WINDOW_BG_COLOR_DARK)
+            .stroke(egui::Stroke::NONE)
     }
 }
