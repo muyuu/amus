@@ -5,10 +5,11 @@ use crate::constants::AppConstants;
 /// 背景付きラベルを描画し、クリック状態を返す関数
 pub fn background_label(ui: &mut Ui, text: &str) -> Response {
     let font_id = FontId::proportional(AppConstants::DEFAULT_FONT_SIZE);
-    let ctx = ui.ctx();
 
     // 文字サイズを計算
-    let galley = ctx.fonts(|f| f.layout_no_wrap(text.to_owned(), font_id.clone(), Color32::WHITE));
+    let galley = ui
+        .painter()
+        .layout_no_wrap(text.to_owned(), font_id.clone(), Color32::WHITE);
 
     let padding = egui::vec2(
         AppConstants::COM_BG_LABEL_PADDING_X,

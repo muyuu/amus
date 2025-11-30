@@ -6,18 +6,32 @@ edition = "2021"
 [dependencies]
 # GUI framework - egui is recommended for this use case
 # Alternatives: gpui, bevy, iced
-egui = "0.27"
-eframe = { version = "0.27", default-features = false, features = [
+egui = "0.33"
+eframe = { version = "0.33", default-features = false, features = [
     "default_fonts",
     "glow",
-
-    # 現代的なGPU描画サポート（推奨）
-    "wgpu",
-
-    # Linux Waylandデスクトップサポート（必要）
-    "wayland",
-] }
+    "persistence",
+]}
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 image = "0.25"
+
+# Windows: wgpu + DirectX
+[target.'cfg(windows)'.dependencies]
+eframe = { version = "0.33", features = ["wgpu"] }
+wgpu = { version = "27.0.1", features = ["dx12"] }
+
+# Linux: wgpu + Vulkan
+[target.'cfg(unix)'.dependencies]
+eframe = { version = "0.33", features = ["wgpu"] }
+wgpu = { version = "27", features = ["vulkan"] }
+
+# macOS: wgpu + Metal
+[target.'cfg(target_os = "macos")'.dependencies]
+eframe = { version = "0.33", features = ["wgpu"] }
+wgpu = { version = "27", features = ["metal"] }
+
+# どのプラットフォームでも使えるフォールバック
+[target.'cfg(not(any(windows, unix, target_os = "macos")))'.dependencies]
+eframe = { version = "0.33", features = ["glow"] }
 

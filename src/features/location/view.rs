@@ -45,6 +45,7 @@ impl LocationView {
                     Rect::from_center_size(pos, egui::Vec2::new(size, size)),
                     stroke_width,
                     (stroke_width, Color32::WHITE),
+                    StrokeKind::Inside,
                 );
             }
         }
@@ -114,13 +115,11 @@ impl LocationView {
     }
 
     fn render_label(ui: &mut Ui, user: &user::User, center: Pos2, radius: f32) {
-        let galley = ui.ctx().fonts(|f| {
-            f.layout_no_wrap(
-                user.name.to_owned(),
-                FontId::proportional(16.0),
-                Color32::WHITE,
-            )
-        });
+        let galley = ui.painter().layout_no_wrap(
+            user.name.to_owned(),
+            FontId::proportional(16.0),
+            Color32::WHITE,
+        );
 
         let padding = egui::vec2(
             AppConstants::COM_BG_LABEL_PADDING_X,
@@ -130,6 +129,8 @@ impl LocationView {
 
         let label_pos = Pos2::new(center.x, center.y - radius - 20.0);
         let rect = Rect::from_center_size(label_pos, size);
-        ui.allocate_ui_at_rect(rect, |ui| background_label(ui, &user.name));
+        ui.scope_builder(UiBuilder::new().max_rect(rect), |ui| {
+            background_label(ui, &user.name);
+        });
     }
 }

@@ -1,5 +1,3 @@
-#![windows_subsystem = "windows"]
-
 mod app;
 mod assets;
 mod common;
@@ -28,7 +26,7 @@ fn main() -> eframe::Result<()> {
             // 日本語フォントの設定
             setup_custom_fonts(&cc.egui_ctx);
             setup_panel_bg(&cc.egui_ctx);
-            Box::new(AmusApp::default())
+            Ok(Box::new(AmusApp::default()))
         }),
     )
 }
@@ -70,9 +68,10 @@ fn setup_custom_fonts(ctx: &egui::Context) {
         if path.exists() {
             if let Ok(font_data) = std::fs::read(path) {
                 println!("日本語フォントを読み込みました: {}", font_path);
-                fonts
-                    .font_data
-                    .insert("japanese".to_owned(), egui::FontData::from_owned(font_data));
+                fonts.font_data.insert(
+                    "japanese".to_owned(),
+                    egui::FontData::from_owned(font_data).into(),
+                );
 
                 // 既存のフォントファミリーを取得して、日本語フォントを先頭に追加
                 // プロポーショナルフォントファミリー

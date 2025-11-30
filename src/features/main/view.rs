@@ -43,7 +43,7 @@ impl MainView {
 
         let tool_rect = Rect::from_min_size(tool_pos, tool_size);
 
-        ui.allocate_ui_at_rect(tool_rect, |ui| {
+        ui.scope_builder(UiBuilder::new().max_rect(tool_rect), |ui| {
             EraserFeature::render(state, ui);
         });
     }
