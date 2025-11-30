@@ -34,7 +34,7 @@ pub fn get_translations() -> HashMap<&'static str, String> {
 
     // セットアップダイアログ（単語辞書を使用）
     translations.insert(SETUP_TITLE, format!("{}{}", W::GAME, W::SETTINGS));
-    translations.insert(SETUP_AREA_SELECTION, format!("{}", W::AREA));
+    translations.insert(SETUP_AREA_SELECTION, W::AREA.to_string());
     translations.insert(
         SETUP_PLAYER_SETTINGS,
         format!("{}{}", W::PLAYER, W::SETTINGS),

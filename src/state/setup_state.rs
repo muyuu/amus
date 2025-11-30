@@ -37,7 +37,7 @@ impl Default for SetupState {
                 .get(i % default_colors.len())
                 .cloned()
                 .unwrap_or(Color::Red);
-            players.push(Player::new(Role::Crew, color, format!("Player {}", i + 1)));
+            players.push(Player::new(Role::Crew, color, Self::get_default_player_name(i)));
         }
 
         Self {
@@ -47,3 +47,33 @@ impl Default for SetupState {
         }
     }
 }
+
+impl SetupState {
+    fn get_default_player_name(i: usize) -> String {
+        let default_names = Self::get_default_player_names();
+        if i < default_names.len() {
+            default_names[i].clone()
+        } else {
+            format!("Player{}", i + 1)
+        }
+    }
+
+    fn get_default_player_names() -> Vec<String> {
+        vec![
+            "えんがわ".to_string(),
+            "りょーちゃん".to_string(),
+            "なあこ".to_string(),
+            "あさ".to_string(),
+            "ツバサ".to_string(),
+            "にゃんばる".to_string(),
+            "たぬころ".to_string(),
+            "かめなし".to_string(),
+            "レーツェル".to_string(),
+            "何".to_string(),
+            "檸檬".to_string(),
+            "くりぼっくり".to_string(),
+            "ファーム".to_string(),
+        ]
+    }
+}
+
