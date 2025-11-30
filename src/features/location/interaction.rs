@@ -9,8 +9,8 @@ impl LocationInteraction {
     pub fn handle_interactions(state: &mut AppState, response: &Response, ctx: &Context) {
         Self::handle_end_location_click(state, response);
 
-        // ユーザードロップ処理（必要な値を先に取得）
-        Self::handle_user_drop(state, response, ctx);
+        // プレイヤードロップ処理（必要な値を先に取得）
+        Self::handle_player_drop(state, response, ctx);
 
         // エリアクリック処理（必要な値を先に取得）
         Self::handle_area_click(state, response);
@@ -46,7 +46,7 @@ impl LocationInteraction {
             return;
         }
 
-        let selected_user_id = match state.selected_user_id() {
+        let selected_player_id = match state.selected_player_id() {
             Some(id) => id,
             None => return,
         };
@@ -62,7 +62,7 @@ impl LocationInteraction {
             return;
         }
 
-        Self::set_spawn_location(state, selected_user_id, point);
+        Self::set_spawn_location(state, selected_player_id, point);
     }
 
     /// ドラッグ終了時の状態クリア
@@ -96,32 +96,32 @@ impl LocationInteraction {
 
         let hit_size = LocationConstants::END_LOCATION_HIT_SIZE;
 
-        // 終了時位置をチェックして、該当する user_id を先に取得
-        let target_user_id = {
+        // 終了時位置をチェックして、該当する player_id を先に取得
+        let target_player_id = {
             let wave = match state.current_wave() {
                 Ok(wave) => wave,
                 Err(_) => return false,
             };
 
-            let mut target_user_id = None;
-            for (user_id, end_point) in wave.end_locations.iter() {
+            let mut target_player_id = None;
+            for (player_id, end_point) in wave.end_locations.iter() {
                 let end_pos = egui::pos2(
                     response.rect.min.x + end_point.x * response.rect.size().x,
                     response.rect.min.y + end_point.y * response.rect.size().y,
                 );
                 let distance = (pointer_pos - end_pos).length();
                 if distance <= hit_size {
-                    target_user_id = Some(*user_id);
+                    target_player_id = Some(*player_id);
                     break;
                 }
             }
-            target_user_id
+            target_player_id
         };
 
-        match target_user_id {
+        match target_player_id {
             None => false,
-            Some(user_id) => {
-                state.toggle_user_alive(user_id);
+            Some(player_id) => {
+                state.toggle_player_alive(player_id);
                 true
             }
         }
@@ -151,7 +151,7 @@ impl LocationInteraction {
     ) -> Option<DraggingLocation> {
         let hit_size = LocationConstants::SPAWN_LOCATION_HIT_SIZE;
         if let Ok(wave) = state.current_wave() {
-            for (user_id, spawn_point) in wave.spawn_locations.iter() {
+            for (player_id, spawn_point) in wave.spawn_locations.iter() {
                 let spawn_pos = egui::pos2(
                     rect.min.x + spawn_point.x * rect.size().x,
                     rect.min.y + spawn_point.y * rect.size().y,
@@ -160,7 +160,7 @@ impl LocationInteraction {
                 if distance <= hit_size {
                     return Some(DraggingLocation {
                         location_type: LocationType::Spawn,
-                        user_id: *user_id,
+                        player_id: *player_id,
                     });
                 }
             }
@@ -176,7 +176,7 @@ impl LocationInteraction {
     ) -> Option<DraggingLocation> {
         let hit_size = LocationConstants::END_LOCATION_HIT_SIZE;
         if let Ok(wave) = state.current_wave() {
-            for (user_id, end_point) in wave.end_locations.iter() {
+            for (player_id, end_point) in wave.end_locations.iter() {
                 let end_pos = egui::pos2(
                     rect.min.x + end_point.x * rect.size().x,
                     rect.min.y + end_point.y * rect.size().y,
@@ -185,7 +185,7 @@ impl LocationInteraction {
                 if distance <= hit_size {
                     return Some(DraggingLocation {
                         location_type: LocationType::End,
-                        user_id: *user_id,
+                        player_id: *player_id,
                     });
                 }
             }
@@ -213,16 +213,16 @@ impl LocationInteraction {
 
         match dragging_location.location_type {
             LocationType::Spawn => {
-                state.add_spawn_location(dragging_location.user_id, point);
+                state.add_spawn_location(dragging_location.player_id, point);
             }
             LocationType::End => {
-                state.add_end_location(dragging_location.user_id, point);
+                state.add_end_location(dragging_location.player_id, point);
             }
         }
     }
 
     /// ユーザーをドラッグ&ドロップした時の処理（終了時位置を設定）
-    pub fn handle_user_drop(state: &mut AppState, response: &egui::Response, ctx: &egui::Context) {
+    pub fn handle_player_drop(state: &mut AppState, response: &egui::Response, ctx: &egui::Context) {
         let pointer_pos = match ctx.pointer_latest_pos() {
             Some(pos) => pos,
             None => return,
@@ -233,20 +233,20 @@ impl LocationInteraction {
         }
 
         let point = Self::screen_to_normalized_point(pointer_pos, response.rect);
-        let dragging_user_id = match state.dragging_user_id() {
-            Some(user_id) => user_id,
+        let dragging_player_id = match state.dragging_player_id() {
+            Some(player_id) => player_id,
             None => return,
         };
 
         if let Ok(mut wave) = state.current_wave_mut() {
-            wave.end_locations.insert(dragging_user_id, point);
+            wave.end_locations.insert(dragging_player_id, point);
         }
     }
 
     /// 出現位置を設定
-    pub fn set_spawn_location(state: &AppState, user_id: usize, point: Point) {
-        if state.spawn_location(user_id).is_none() {
-            state.add_spawn_location(user_id, point);
+    pub fn set_spawn_location(state: &AppState, player_id: usize, point: Point) {
+        if state.spawn_location(player_id).is_none() {
+            state.add_spawn_location(player_id, point);
         }
     }
 }

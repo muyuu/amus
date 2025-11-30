@@ -140,8 +140,8 @@ impl RouteDrawingView {
             None => return,
         };
 
-        let user = match game.get_users().get(route.user_id) {
-            Some(user) => user,
+        let player = match game.get_players().get(route.player_id) {
+            Some(player) => player,
             None => return,
         };
 
@@ -166,7 +166,7 @@ impl RouteDrawingView {
                     rect.min.y + point.y * rect.size().y,
                 );
                 let stroke_width = 6.0;
-                painter.line_segment([prev_pos, pos], (stroke_width, user.color.to_egui_color()));
+                painter.line_segment([prev_pos, pos], (stroke_width, player.color.to_egui_color()));
                 prev_pos = pos;
             }
         }

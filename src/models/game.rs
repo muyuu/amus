@@ -1,22 +1,22 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Area, User, Wave};
+use super::{Area, Player, Wave};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Game {
     pub waves: Vec<Wave>,
     pub current_wave_index: usize,
     pub area: Area,
-    pub users: Vec<User>,
+    pub players: Vec<Player>,
 }
 
 impl Game {
-    pub fn new(area: Area, users: Vec<User>) -> Self {
+    pub fn new(area: Area, players: Vec<Player>) -> Self {
         Self {
             waves: Vec::new(),
             current_wave_index: 0,
             area,
-            users,
+            players,
         }
     }
 
@@ -35,12 +35,12 @@ impl Game {
     }
 
     #[allow(dead_code)]
-    pub fn get_users(&self) -> &Vec<User> {
-        &self.users
+    pub fn get_players(&self) -> &Vec<Player> {
+        &self.players
     }
 
     #[allow(dead_code)]
-    pub fn get_users_mut(&mut self) -> &mut Vec<User> {
-        &mut self.users
+    pub fn get_playrs_mut(&mut self) -> &mut Vec<Player> {
+        &mut self.players
     }
 }
