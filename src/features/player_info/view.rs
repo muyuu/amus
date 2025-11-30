@@ -1,5 +1,9 @@
 use crate::{
-    components::text::background_label, constants::AppConstants, models::Player, state::AppState,
+    components::text::background_label,
+    constants::AppConstants,
+    i18n::keys::{PLAYER_INFO_BUTTON_DONE, PLAYER_INFO_BUTTON_NOT_DONE},
+    models::Player,
+    state::AppState,
 };
 use egui::*;
 
@@ -13,21 +17,36 @@ pub struct PlayerInfoResult {
 
     pub any_lost_focus: bool,
     pub lost_focus_player_id: Option<usize>,
+
+    pub any_done_button_clicked: bool,
+    pub done_button_clicked_player_id: Option<usize>,
+    pub done_button_new_state: Option<bool>,
 }
 
 pub struct PlayerInfoView;
 
 impl PlayerInfoView {
     pub fn render(state: &AppState, ui: &mut Ui) -> PlayerInfoResult {
+        let texts = PlayerInfoText::get(state);
         let mut result = PlayerInfoResult::default();
 
+        let game = match state.game() {
+            Some(g) => g,
+            None => return result,
+        };
+
         ui.vertical(|ui| {
-            let players = state.setup_state().players.clone();
+            let players = game.players.clone();
             for (player_id, player) in players.iter().enumerate() {
                 ui.horizontal(|ui| {
                     Self::render_player_color_box(ui, player);
 
-                    // TODO: ボタンを押したか否かのアイコンを表示
+                    let (clicked, next) = Self::render_button(ui, player, &texts);
+                    if clicked {
+                        result.any_done_button_clicked = true;
+                        result.done_button_clicked_player_id = Some(player_id);
+                        result.done_button_new_state = Some(next);
+                    }
 
                     let r = Self::render_player_name(state, ui, player_id, player);
                     if r != PlayerInfoResult::default() {
@@ -37,6 +56,20 @@ impl PlayerInfoView {
             }
         });
         result
+    }
+
+    fn render_button(ui: &mut Ui, player: &Player, texts: &PlayerInfoText) -> (bool, bool) {
+        if player.done_button {
+            let res = ui.button(&texts.button_done).clicked();
+            return (res, false);
+        }
+
+        let text = RichText::new(&texts.button_not_done).color(Color32::GRAY);
+        let button = Button::new(text)
+            .fill(Color32::RED)
+            .stroke(Stroke::new(2.0, Color32::BROWN));
+        let res = ui.add(button).clicked();
+        (res, true)
     }
 
     // プレイヤー色の矩形を描画
@@ -80,5 +113,18 @@ impl PlayerInfoView {
             result.lost_focus_player_id = Some(player_index);
         }
         result
+    }
+}
+
+struct PlayerInfoText {
+    button_done: String,
+    button_not_done: String,
+}
+impl PlayerInfoText {
+    fn get(state: &AppState) -> Self {
+        Self {
+            button_done: state.t(PLAYER_INFO_BUTTON_DONE).to_string(),
+            button_not_done: state.t(PLAYER_INFO_BUTTON_NOT_DONE).to_string(),
+        }
     }
 }

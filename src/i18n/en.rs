@@ -101,6 +101,9 @@ pub fn get_translations() -> HashMap<&'static str, String> {
         ),
     );
 
+    translations.insert(PLAYER_INFO_BUTTON_DONE, "Done".to_string());
+    translations.insert(PLAYER_INFO_BUTTON_NOT_DONE, "Meeting".to_string());
+
     // Eraser
     translations.insert(ERASER_BUTTON, W::ERASER.to_string());
 

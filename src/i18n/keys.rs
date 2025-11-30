@@ -50,5 +50,9 @@ pub const MAIN_STATUS_DEAD: &str = "main.status_dead";
 pub const MAIN_WELCOME_TITLE: &str = "main.welcome_title";
 pub const MAIN_WELCOME_MESSAGE: &str = "main.welcome_message";
 
+// ユーザー一覧
+pub const PLAYER_INFO_BUTTON_DONE: &str = "player_info.button_done";
+pub const PLAYER_INFO_BUTTON_NOT_DONE: &str = "player_info.button_not_done";
+
 // 消しゴムボタン
 pub const ERASER_BUTTON: &str = "eraser.button";

@@ -9,6 +9,7 @@ pub struct Player {
     pub name: String,
     pub alive: bool,
     pub death: Option<usize>, // 何ターン目か（1始まり）
+    pub done_button: bool,    // ボタンを押したかどうか
 }
 
 impl Player {
@@ -19,6 +20,7 @@ impl Player {
             name,
             alive: true,
             death: None,
+            done_button: false,
         }
     }
 }
