@@ -12,7 +12,7 @@ pub enum Route {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Draw {
-    pub player_id: usize,         // Playerのインデックス参照
+    pub player_id: usize,       // Playerのインデックス参照
     pub lines: Vec<Vec<Point>>, // 軌跡のポイント（開始地点はspawn_locationsから取得）
 }
 

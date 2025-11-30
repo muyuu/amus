@@ -46,10 +46,10 @@ impl Default for AppData {
         Self {
             asset_manager: None, // 後で初期化
             current_wave_index: 0,
-            dragging_location: None,    // ドラッグ中の位置はNone
+            dragging_location: None,      // ドラッグ中の位置はNone
             dragging_player_id: None,     // ドラッグ中はNone
             editing_name_player_id: None, // ユーザー名編集中はNone
-            erase_mode: false,          // 初期状態では消しゴムモードオフ
+            erase_mode: false,            // 初期状態では消しゴムモードオフ
             game: None,
             selected_player_id: None,
             setup_state: SetupState::default(),
