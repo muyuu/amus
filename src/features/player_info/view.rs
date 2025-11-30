@@ -2,7 +2,7 @@ use crate::{
     components::text::background_label,
     constants::AppConstants,
     i18n::keys::{PLAYER_INFO_BUTTON_DONE, PLAYER_INFO_BUTTON_NOT_DONE},
-    models::Player,
+    models::{player::PlayerId, Player},
     state::AppState,
 };
 use egui::*;
@@ -10,16 +10,16 @@ use egui::*;
 #[derive(Default, PartialEq)]
 pub struct PlayerInfoResult {
     pub any_name_double_clicked: bool,
-    pub double_clicked_player_id: Option<usize>,
+    pub double_clicked_player_id: Option<PlayerId>,
 
     pub any_name_changed: bool,
-    pub changed_new_name: Option<(String, usize)>,
+    pub changed_new_name: Option<(String, PlayerId)>,
 
     pub any_lost_focus: bool,
-    pub lost_focus_player_id: Option<usize>,
+    pub lost_focus_player_id: Option<PlayerId>,
 
     pub any_done_button_clicked: bool,
-    pub done_button_clicked_player_id: Option<usize>,
+    pub done_button_clicked_player_id: Option<PlayerId>,
     pub done_button_new_state: Option<bool>,
 }
 
@@ -30,25 +30,24 @@ impl PlayerInfoView {
         let texts = PlayerInfoText::get(state);
         let mut result = PlayerInfoResult::default();
 
-        let game = match state.game() {
-            Some(g) => g,
+        let players = match state.players() {
+            Some(p) => p,
             None => return result,
         };
 
         ui.vertical(|ui| {
-            let players = game.players.clone();
-            for (player_id, player) in players.iter().enumerate() {
+            for player in players.iter() {
                 ui.horizontal(|ui| {
                     Self::render_player_color_box(ui, player);
 
                     let (clicked, next) = Self::render_button(ui, player, &texts);
                     if clicked {
                         result.any_done_button_clicked = true;
-                        result.done_button_clicked_player_id = Some(player_id);
+                        result.done_button_clicked_player_id = Some(player.id);
                         result.done_button_new_state = Some(next);
                     }
 
-                    let r = Self::render_player_name(state, ui, player_id, player);
+                    let r = Self::render_player_name(state, ui, player);
                     if r != PlayerInfoResult::default() {
                         result = r;
                     }
@@ -84,19 +83,14 @@ impl PlayerInfoView {
     }
 
     /// プレイヤー名を描画または編集
-    fn render_player_name(
-        state: &AppState,
-        ui: &mut Ui,
-        player_index: usize,
-        player: &Player,
-    ) -> PlayerInfoResult {
+    fn render_player_name(state: &AppState, ui: &mut Ui, player: &Player) -> PlayerInfoResult {
         let mut result = PlayerInfoResult::default();
 
-        if !state.player_name_editing(player_index) {
+        if !state.player_name_editing(player.id) {
             let res = background_label(ui, &player.name).double_clicked();
             if res {
                 result.any_name_double_clicked = true;
-                result.double_clicked_player_id = Some(player_index);
+                result.double_clicked_player_id = Some(player.id);
             }
             return result;
         }
@@ -106,11 +100,11 @@ impl PlayerInfoView {
         let res = ui.text_edit_singleline(&mut editing_text);
         if res.changed() {
             result.any_name_changed = true;
-            result.changed_new_name = Some((editing_text.clone(), player_index));
+            result.changed_new_name = Some((editing_text.clone(), player.id));
         }
         if res.lost_focus() {
             result.any_lost_focus = true;
-            result.lost_focus_player_id = Some(player_index);
+            result.lost_focus_player_id = Some(player.id);
         }
         result
     }

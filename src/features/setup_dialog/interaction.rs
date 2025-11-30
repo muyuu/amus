@@ -1,3 +1,4 @@
+use crate::models::player::PlayerId;
 use crate::models::{Area, Color};
 use crate::state::AppState;
 
@@ -12,16 +13,12 @@ impl SetupInteraction {
         state.adjust_player_count(new_count);
     }
 
-    pub fn update_player_name(state: &mut AppState, index: usize, name: String) {
-        if index < state.setup_state().players.len() {
-            state.update_player_name(index, name);
-        }
+    pub fn update_player_name(state: &mut AppState, id: PlayerId, name: String) {
+        state.update_player_name(id, name);
     }
 
-    pub fn update_player_color(state: &mut AppState, index: usize, color: Color) {
-        if index < state.setup_state().players.len() {
-            state.update_player_color(index, color);
-        }
+    pub fn update_player_color(state: &mut AppState, id: PlayerId, color: Color) {
+        state.update_player_color(id, color);
     }
 
     pub fn start_game(state: &mut AppState) {

@@ -21,33 +21,31 @@ impl LocationView {
         };
 
         for (player_id, point) in spawn_locations {
-            let game = match state.game() {
-                Some(game) => game,
+            let player = match state.player(player_id) {
+                Some(player) => player,
                 None => return,
             };
 
-            if let Some(player) = game.players.get(player_id) {
-                let color = player.color.to_egui_color();
-                let rect = ui.max_rect();
-                let pos = pos2(
-                    rect.min.x + point.x * rect.size().x,
-                    rect.min.y + point.y * rect.size().y,
-                );
-                let size = LocationConstants::SPAWN_LOCATION_SIZE;
-                let stroke_width = LocationConstants::SPAWN_LOCATION_STROKE_WIDTH;
-                let painter = ui.painter();
-                painter.rect_filled(
-                    Rect::from_center_size(pos, Vec2::new(size, size)),
-                    stroke_width,
-                    color,
-                );
-                painter.rect_stroke(
-                    Rect::from_center_size(pos, Vec2::new(size, size)),
-                    stroke_width,
-                    (stroke_width, Color32::WHITE),
-                    StrokeKind::Inside,
-                );
-            }
+            let color = player.color.to_egui_color();
+            let rect = ui.max_rect();
+            let pos = pos2(
+                rect.min.x + point.x * rect.size().x,
+                rect.min.y + point.y * rect.size().y,
+            );
+            let size = LocationConstants::SPAWN_LOCATION_SIZE;
+            let stroke_width = LocationConstants::SPAWN_LOCATION_STROKE_WIDTH;
+            let painter = ui.painter();
+            painter.rect_filled(
+                Rect::from_center_size(pos, Vec2::new(size, size)),
+                stroke_width,
+                color,
+            );
+            painter.rect_stroke(
+                Rect::from_center_size(pos, Vec2::new(size, size)),
+                stroke_width,
+                (stroke_width, Color32::WHITE),
+                StrokeKind::Inside,
+            );
         }
     }
 
@@ -59,30 +57,28 @@ impl LocationView {
 
         // 終了時位置を描画（丸）
         for (player_id, point) in end_locations {
-            let game = match state.game() {
-                Some(game) => game,
-                None => return,
+            let player = match state.player(player_id) {
+                Some(p) => p,
+                None => continue,
             };
 
-            if let Some(player) = game.players.get(player_id) {
-                let color = player.color.to_egui_color();
-                let rect = ui.max_rect();
-                let pos = pos2(
-                    rect.min.x + point.x * rect.size().x,
-                    rect.min.y + point.y * rect.size().y,
-                );
+            let color = player.color.to_egui_color();
+            let rect = ui.max_rect();
+            let pos = pos2(
+                rect.min.x + point.x * rect.size().x,
+                rect.min.y + point.y * rect.size().y,
+            );
 
-                // サイズ定義は1辺の長さなので半径にするため2で割る
-                let radius = LocationConstants::END_LOCATION_SIZE / 2.0;
-                let stroke_width = LocationConstants::END_LOCATION_STROKE_WIDTH;
+            // サイズ定義は1辺の長さなので半径にするため2で割る
+            let radius = LocationConstants::END_LOCATION_SIZE / 2.0;
+            let stroke_width = LocationConstants::END_LOCATION_STROKE_WIDTH;
 
-                let painter = ui.painter();
-                painter.circle_filled(pos, radius, color);
-                painter.circle_stroke(pos, radius, (stroke_width, Color32::WHITE));
+            let painter = ui.painter();
+            painter.circle_filled(pos, radius, color);
+            painter.circle_stroke(pos, radius, (stroke_width, Color32::WHITE));
 
-                Self::render_dead_mark(player, painter, pos);
-                Self::render_label(ui, player, pos, radius);
-            }
+            Self::render_dead_mark(&player, painter, pos);
+            Self::render_label(ui, &player, pos, radius);
         }
     }
 

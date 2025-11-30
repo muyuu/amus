@@ -126,11 +126,9 @@ impl AmusApp {
 
                     // 4x4のターンボタングリッドを中央に配置
                     let grid_size = 280.0;
-                    let center_pos =
-                        screen_rect.center() - vec2(grid_size / 2.0, grid_size / 2.0);
+                    let center_pos = screen_rect.center() - vec2(grid_size / 2.0, grid_size / 2.0);
 
-                    let max_rect =
-                        Rect::from_min_size(center_pos, vec2(grid_size, grid_size));
+                    let max_rect = Rect::from_min_size(center_pos, vec2(grid_size, grid_size));
                     ui.scope_builder(UiBuilder::new().max_rect(max_rect), |ui| {
                         ui.visuals_mut().panel_fill = Color32::from_gray(240);
 
@@ -181,8 +179,7 @@ impl AmusApp {
                     let response = ui.allocate_response(screen_rect.size(), Sense::click());
                     if response.clicked() {
                         let click_pos = response.interact_pointer_pos().unwrap_or_default();
-                        let grid_rect =
-                            Rect::from_min_size(center_pos, vec2(grid_size, grid_size));
+                        let grid_rect = Rect::from_min_size(center_pos, vec2(grid_size, grid_size));
 
                         // グリッド外がクリックされた場合、メニューを閉じる
                         if !grid_rect.contains(click_pos) {

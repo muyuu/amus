@@ -1,5 +1,6 @@
 use crate::assets::AssetManager;
 use crate::i18n::{Language, Translator};
+use crate::models::player::PlayerId;
 use crate::models::*;
 use crate::state::location::DraggingLocation;
 use crate::state::setup_state::SetupState;
@@ -15,17 +16,17 @@ pub struct AppData {
     pub dragging_location: Option<DraggingLocation>,
 
     // ドラッグ中のプレイヤーID
-    pub dragging_player_id: Option<usize>,
+    pub dragging_player_id: Option<PlayerId>,
 
     /// プレイヤー名編集中のプレイヤーID
-    pub editing_name_player_id: Option<usize>,
+    pub editing_name_player_id: Option<PlayerId>,
 
     // 消しゴムモードの状態
     pub erase_mode: bool,
 
     pub game: Option<Game>,
 
-    pub selected_player_id: Option<usize>,
+    pub selected_player_id: Option<PlayerId>,
 
     // ゲーム設定の状態
     pub setup_state: SetupState,

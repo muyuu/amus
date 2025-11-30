@@ -1,4 +1,5 @@
 use crate::features::location::LocationConstants;
+use crate::models::player::PlayerId;
 use crate::models::Point;
 use crate::state::{AppState, DraggingLocation, LocationType};
 use egui::*;
@@ -128,10 +129,7 @@ impl LocationInteraction {
     }
 
     /// ドラッグ開始の検出（出現位置または終了時位置の上でドラッグ開始）
-    pub fn detect_drag_start(
-        state: &AppState,
-        response: &Response,
-    ) -> Option<DraggingLocation> {
+    pub fn detect_drag_start(state: &AppState, response: &Response) -> Option<DraggingLocation> {
         let pointer_pos = response.interact_pointer_pos()?;
 
         // 出現位置をチェック
@@ -222,11 +220,7 @@ impl LocationInteraction {
     }
 
     /// ユーザーをドラッグ&ドロップした時の処理（終了時位置を設定）
-    pub fn handle_player_drop(
-        state: &mut AppState,
-        response: &Response,
-        ctx: &Context,
-    ) {
+    pub fn handle_player_drop(state: &mut AppState, response: &Response, ctx: &Context) {
         let pointer_pos = match ctx.pointer_latest_pos() {
             Some(pos) => pos,
             None => return,
@@ -248,7 +242,7 @@ impl LocationInteraction {
     }
 
     /// 出現位置を設定
-    pub fn set_spawn_location(state: &AppState, player_id: usize, point: Point) {
+    pub fn set_spawn_location(state: &AppState, player_id: PlayerId, point: Point) {
         if state.spawn_location(player_id).is_none() {
             state.add_spawn_location(player_id, point);
         }

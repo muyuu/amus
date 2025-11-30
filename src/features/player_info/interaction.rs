@@ -50,7 +50,7 @@ impl PlayerInfoInteraction {
             None => return,
         };
 
-        let player = match game.players.get(player_id) {
+        let player = match game.players.iter().find(|p| p.id == player_id) {
             Some(p) => p,
             None => return,
         };

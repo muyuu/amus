@@ -13,7 +13,11 @@ impl PlayerListView {
             .scroll_bar_visibility(scroll_area::ScrollBarVisibility::AlwaysHidden)
             .show(ui, |ui| {
                 // プレイヤー数に基づいてコンテンツ幅を計算
-                let players = state.setup_state().players.clone();
+                let players = match state.players() {
+                    Some(players) => players,
+                    None => return,
+                };
+
                 let player_width = 50.0; // 各プレイヤーの幅
                 let total_content_width = players.len() as f32 * player_width;
                 let available_width = available_rect.width();
@@ -31,7 +35,7 @@ impl PlayerListView {
                         ui.add_space(padding);
                     }
 
-                    for (player_id, player) in players.iter().enumerate() {
+                    for player in players.iter() {
                         ui.vertical(|ui| {
                             // ユーザー色の矩形（30x30px）
                             let rect_size = Vec2::new(30.0, 30.0);
@@ -40,10 +44,10 @@ impl PlayerListView {
 
                             // クリックまたはドラッグ開始時にユーザーを選択
                             if response.clicked() || response.drag_started() {
-                                state.set_selected_player_id(Some(player_id));
+                                state.set_selected_player_id(Some(player.id));
                                 state.set_erase_mode(false);
                                 if response.drag_started() {
-                                    state.set_dragging_player_id(Some(player_id));
+                                    state.set_dragging_player_id(Some(player.id));
                                 }
                             }
 
@@ -53,20 +57,11 @@ impl PlayerListView {
                             }
 
                             // ユーザーの色を取得
-                            let player_color = if let Some(player_config) = state
-                                .setup_state()
-                                .players
-                                .iter()
-                                .find(|p| p.name == player.name)
-                            {
-                                player_config.color.to_egui_color()
-                            } else {
-                                Color32::GRAY
-                            };
+                            let player_color = player.color.to_egui_color();
 
                             // 選択中またはドラッグ中の視覚的フィードバック
-                            let is_selected = state.selected_player_id() == Some(player_id);
-                            let is_dragging = state.dragging_player_id() == Some(player_id);
+                            let is_selected = state.selected_player_id() == Some(player.id);
+                            let is_dragging = state.dragging_player_id() == Some(player.id);
                             let color = if is_dragging || (is_selected && response.hovered()) {
                                 player_color.linear_multiply(0.7) // 少し暗くする
                             } else if is_selected {

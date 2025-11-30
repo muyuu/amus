@@ -1,3 +1,5 @@
+use crate::models::player::PlayerId;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LocationType {
     Spawn, // 出現位置
@@ -7,5 +9,5 @@ pub enum LocationType {
 #[derive(Debug, Clone, Copy)]
 pub struct DraggingLocation {
     pub location_type: LocationType,
-    pub player_id: usize,
+    pub player_id: PlayerId,
 }
