@@ -42,7 +42,7 @@ impl MapView {
         }
     }
 
-    fn render_default_area(painter: &egui::Painter, rect: Rect) {
+    fn render_default_area(painter: &Painter, rect: Rect) {
         painter.rect_filled(rect, 0.0, Color32::from_gray(30));
     }
 
@@ -73,7 +73,7 @@ impl MapView {
     }
 
     /// 画像の外側の領域を黒で塗りつぶし
-    fn fill_outside_area(painter: &egui::Painter, container_rect: Rect, image_rect: Rect) {
+    fn fill_outside_area(painter: &Painter, container_rect: Rect, image_rect: Rect) {
         let black = Color32::BLACK;
 
         // 上側

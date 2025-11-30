@@ -11,14 +11,14 @@ pub fn background_label(ui: &mut Ui, text: &str) -> Response {
         .painter()
         .layout_no_wrap(text.to_owned(), font_id.clone(), Color32::WHITE);
 
-    let padding = egui::vec2(
+    let padding = vec2(
         AppConstants::COM_BG_LABEL_PADDING_X,
         AppConstants::COM_BG_LABEL_PADDING_Y,
     );
     let size = galley.size() + padding * 2.0;
 
     // レイアウトに従って領域を確保
-    let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
+    let (rect, response) = ui.allocate_exact_size(size, Sense::click());
 
     // 背景描画
     let bg_color = Color32::BLACK;

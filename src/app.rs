@@ -1,11 +1,11 @@
-use egui::{RichText, UiBuilder};
+use egui::*;
 
 use crate::assets::AssetManager;
 use crate::constants::AppConstants;
 use crate::features::main::MainView;
-use crate::features::setup_dialog::SetupView;
 use crate::features::player_info::PlayerInfoFeature;
 use crate::features::player_list::PlayerListView;
+use crate::features::setup_dialog::SetupView;
 use crate::i18n::keys;
 use crate::state::AppState;
 
@@ -22,7 +22,7 @@ impl Default for AmusApp {
 }
 
 impl eframe::App for AmusApp {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
         ctx.set_pixels_per_point(1.5);
 
         // アセットマネージャーの初期化（一度だけ実行）
@@ -38,7 +38,7 @@ impl eframe::App for AmusApp {
         }
 
         // 上部のメニューボタン
-        egui::TopBottomPanel::top("menu_button_panel")
+        TopBottomPanel::top("menu_button_panel")
             .resizable(false)
             .default_height(50.0)
             .frame(Self::get_frame())
@@ -50,7 +50,7 @@ impl eframe::App for AmusApp {
                     }
 
                     // 中央：デバッグボタン
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         // 右側：リセットボタン
                         if ui.button("🔄 リセット").clicked() {
                             self.state.data_mut().show_setup_dialog = true;
@@ -60,7 +60,7 @@ impl eframe::App for AmusApp {
                         // 中央：デバッグボタン（スペースで中央に配置）
                         ui.allocate_ui_with_layout(
                             ui.available_size(),
-                            egui::Layout::top_down(egui::Align::Center),
+                            Layout::top_down(Align::Center),
                             |ui| {
                                 if ui.button("🐛 デバッグ").clicked() {
                                     self.state.data_mut().show_debug_view =
@@ -83,27 +83,27 @@ impl eframe::App for AmusApp {
 }
 
 impl AmusApp {
-    fn build_main_ui(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::SidePanel::right("player_info_panel")
+    fn build_main_ui(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+        SidePanel::right("player_info_panel")
             .frame(Self::get_frame())
             .show(ctx, |ui| {
                 let head_text = RichText::new(self.state.t(keys::SIDEBAR_PLAYERS))
                     .heading()
-                    .color(egui::Color32::WHITE);
+                    .color(Color32::WHITE);
                 ui.heading(head_text);
                 ui.separator();
                 PlayerInfoFeature::render(&mut self.state, ui);
             });
 
         // 全画面のメインコンテンツエリア
-        egui::CentralPanel::default()
+        CentralPanel::default()
             .frame(Self::get_frame())
             .show(ctx, |ui| {
                 MainView::render(&mut self.state, ui);
             });
 
         // 下部のユーザー一覧パネル
-        egui::TopBottomPanel::bottom("player_list_panel")
+        TopBottomPanel::bottom("player_list_panel")
             .resizable(false)
             .default_height(90.0)
             .frame(Self::get_frame())
@@ -112,30 +112,30 @@ impl AmusApp {
             });
     }
 
-    fn show_turn_menu_overlay(&mut self, ctx: &egui::Context) {
+    fn show_turn_menu_overlay(&mut self, ctx: &Context) {
         // 背景の半透明オーバーレイ
         let screen_rect = ctx.content_rect();
 
-        egui::Area::new("turn_menu_overlay".into())
-            .fixed_pos(egui::pos2(0.0, 0.0))
+        Area::new("turn_menu_overlay".into())
+            .fixed_pos(pos2(0.0, 0.0))
             .show(ctx, |ui| {
                 // 全画面の半透明背景
                 ui.allocate_ui(screen_rect.size(), |ui| {
                     let painter = ui.painter();
-                    painter.rect_filled(screen_rect, 0.0, egui::Color32::from_black_alpha(128));
+                    painter.rect_filled(screen_rect, 0.0, Color32::from_black_alpha(128));
 
                     // 4x4のターンボタングリッドを中央に配置
                     let grid_size = 280.0;
                     let center_pos =
-                        screen_rect.center() - egui::vec2(grid_size / 2.0, grid_size / 2.0);
+                        screen_rect.center() - vec2(grid_size / 2.0, grid_size / 2.0);
 
                     let max_rect =
-                        egui::Rect::from_min_size(center_pos, egui::vec2(grid_size, grid_size));
+                        Rect::from_min_size(center_pos, vec2(grid_size, grid_size));
                     ui.scope_builder(UiBuilder::new().max_rect(max_rect), |ui| {
-                        ui.visuals_mut().panel_fill = egui::Color32::from_gray(240);
+                        ui.visuals_mut().panel_fill = Color32::from_gray(240);
 
-                        egui::Frame::popup(ui.style())
-                            .inner_margin(egui::Margin::same(20))
+                        Frame::popup(ui.style())
+                            .inner_margin(Margin::same(20))
                             .show(ui, |ui| {
                                 ui.heading("ターン選択");
                                 ui.separator();
@@ -143,7 +143,7 @@ impl AmusApp {
                                 // ターンボタングリッド
                                 if let Some(game) = &self.state.game() {
                                     let total_waves = game.waves.len();
-                                    egui::Grid::new("turn_grid")
+                                    Grid::new("turn_grid")
                                         .num_columns(4)
                                         .spacing([10.0, 10.0])
                                         .show(ui, |ui| {
@@ -178,11 +178,11 @@ impl AmusApp {
                     });
 
                     // オーバーレイ外のクリックを検知
-                    let response = ui.allocate_response(screen_rect.size(), egui::Sense::click());
+                    let response = ui.allocate_response(screen_rect.size(), Sense::click());
                     if response.clicked() {
                         let click_pos = response.interact_pointer_pos().unwrap_or_default();
                         let grid_rect =
-                            egui::Rect::from_min_size(center_pos, egui::vec2(grid_size, grid_size));
+                            Rect::from_min_size(center_pos, vec2(grid_size, grid_size));
 
                         // グリッド外がクリックされた場合、メニューを閉じる
                         if !grid_rect.contains(click_pos) {
@@ -193,9 +193,9 @@ impl AmusApp {
             });
     }
 
-    fn get_frame() -> egui::Frame {
-        egui::Frame::NONE
+    fn get_frame() -> Frame {
+        Frame::NONE
             .fill(AppConstants::WINDOW_BG_COLOR_DARK)
-            .stroke(egui::Stroke::NONE)
+            .stroke(Stroke::NONE)
     }
 }

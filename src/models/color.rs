@@ -1,3 +1,4 @@
+use egui::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -46,9 +47,9 @@ impl Color {
         }
     }
 
-    pub fn to_egui_color(&self) -> egui::Color32 {
+    pub fn to_egui_color(&self) -> Color32 {
         let rgb = self.to_rgb();
-        egui::Color32::from_rgb(rgb[0], rgb[1], rgb[2])
+        Color32::from_rgb(rgb[0], rgb[1], rgb[2])
     }
 
     pub fn all() -> Vec<Color> {

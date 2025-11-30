@@ -1,4 +1,4 @@
-use egui::{ColorImage, TextureHandle};
+use egui::*;
 use std::collections::HashMap;
 
 use crate::models::Area;
@@ -9,7 +9,7 @@ pub struct AssetManager {
 }
 
 impl AssetManager {
-    pub fn new(ctx: &egui::Context) -> Self {
+    pub fn new(ctx: &Context) -> Self {
         let mut manager = Self {
             area_images: HashMap::new(),
         };
@@ -19,7 +19,7 @@ impl AssetManager {
         manager
     }
 
-    fn load_area_images(&mut self, ctx: &egui::Context) {
+    fn load_area_images(&mut self, ctx: &Context) {
         let area_configs: [(&str, &str); 4] = [
             (&Area::Skeld.id(), "assets/images/map/skeld.png"),
             (&Area::Mira.id(), "assets/images/map/mira.png"),
@@ -39,7 +39,7 @@ impl AssetManager {
     }
 
     fn load_texture_from_path(
-        ctx: &egui::Context,
+        ctx: &Context,
         path: &str,
     ) -> Result<TextureHandle, Box<dyn std::error::Error>> {
         let image_bytes = std::fs::read(path)?;
@@ -53,7 +53,7 @@ impl AssetManager {
         Ok(ctx.load_texture(format!("area_{}", path), color_image, Default::default()))
     }
 
-    fn create_placeholder_texture(ctx: &egui::Context, area_name: &str) -> TextureHandle {
+    fn create_placeholder_texture(ctx: &Context, area_name: &str) -> TextureHandle {
         // プレースホルダー画像を作成（グレーの背景に文字）
         let size = [400, 300];
         let mut pixels = vec![100u8; size[0] * size[1] * 4]; // グレーの背景

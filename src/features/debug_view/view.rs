@@ -1,30 +1,32 @@
+use egui::*;
+
 use crate::state::AppState;
 
 pub struct DebugView;
 
 impl DebugView {
-    pub fn render(state: &AppState, render_flag: bool, ctx: &egui::Context) {
+    pub fn render(state: &AppState, render_flag: bool, ctx: &Context) {
         if !render_flag {
             return;
         }
 
         let screen_rect = ctx.content_rect();
         let window_width = 300.0; // 固定幅
-        let window_pos = egui::pos2(
+        let window_pos = pos2(
             screen_rect.center().x - window_width / 2.0,
             screen_rect.min.y + 60.0, // メニューバーの下に配置
         );
 
-        egui::Area::new(egui::Id::new("debug_view"))
+        Area::new(Id::new("debug_view"))
             .fixed_pos(window_pos)
             .show(ctx, |ui| {
                 Self::show_content(state, ui, ctx, window_width);
             });
     }
 
-    fn show_content(state: &AppState, ui: &mut egui::Ui, ctx: &egui::Context, window_width: f32) {
-        egui::Frame::popup(ui.style())
-            .inner_margin(egui::Margin::same(10))
+    fn show_content(state: &AppState, ui: &mut Ui, ctx: &Context, window_width: f32) {
+        Frame::popup(ui.style())
+            .inner_margin(Margin::same(10))
             .show(ui, |ui| {
                 ui.set_width(window_width);
                 ui.heading("🐛 デバッグ情報");
@@ -34,9 +36,9 @@ impl DebugView {
             });
     }
 
-    fn show_debug_table(state: &AppState, ui: &mut egui::Ui, ctx: &egui::Context) {
+    fn show_debug_table(state: &AppState, ui: &mut Ui, ctx: &Context) {
         // 2列のテーブル形式で表示
-        egui::Grid::new("debug_grid")
+        Grid::new("debug_grid")
             .num_columns(2)
             .spacing([10.0, 5.0])
             .show(ui, |ui| {

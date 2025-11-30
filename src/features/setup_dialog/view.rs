@@ -1,3 +1,5 @@
+use egui::*;
+
 use super::interaction::SetupInteraction;
 use crate::common::CommonTexts;
 use crate::i18n::keys::*;
@@ -7,23 +9,23 @@ use crate::state::AppState;
 pub struct SetupView;
 
 impl SetupView {
-    pub fn show(state: &mut AppState, ctx: &egui::Context) {
+    pub fn show(state: &mut AppState, ctx: &Context) {
         let texts = SetupTexts::get(state);
         let common = CommonTexts::get(state);
 
-        egui::Window::new(&texts.title)
+        Window::new(&texts.title)
             .collapsible(false)
             .resizable(true)
             .default_size([600.0, 700.0])
-            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
             .show(ctx, |ui| {
-                egui::ScrollArea::vertical().show(ui, |ui| {
+                ScrollArea::vertical().show(ui, |ui| {
                     ui.vertical(|ui| {
                         ui.heading(&texts.area_selection);
                         ui.add_space(8.0);
 
                         let setup_state = state.setup_state().clone();
-                        egui::ComboBox::from_label("")
+                        ComboBox::from_label("")
                             .selected_text(setup_state.selected_area.name())
                             .show_ui(ui, |ui| {
                                 for area in Area::all() {
@@ -49,7 +51,7 @@ impl SetupView {
                         ui.horizontal(|ui| {
                             ui.label(&texts.player_count);
                             let mut new_count = state.setup_state().player_count;
-                            if ui.add(egui::Slider::new(&mut new_count, 4..=18)).changed() {
+                            if ui.add(Slider::new(&mut new_count, 4..=18)).changed() {
                                 SetupInteraction::adjust_player_count(state, new_count);
                             }
                         });
@@ -78,8 +80,8 @@ impl SetupView {
 
                                 // 色プレビューのサイズと位置を調整
                                 let (rect, _response) = ui.allocate_exact_size(
-                                    egui::Vec2::new(20.0, 20.0),
-                                    egui::Sense::hover(),
+                                    Vec2::new(20.0, 20.0),
+                                    Sense::hover(),
                                 );
                                 ui.painter()
                                     .rect_filled(rect, 2.0, selected_color.to_egui_color());
@@ -87,17 +89,17 @@ impl SetupView {
                                 ui.add_space(4.0);
 
                                 // 色選択のためのComboBox
-                                egui::ComboBox::from_id_salt(format!("color_combo_{}", i))
+                                ComboBox::from_id_salt(format!("color_combo_{}", i))
                                     .selected_text(selected_color.name())
                                     .show_ui(ui, |ui| {
                                         for color in &available_colors {
                                             ui.horizontal(|ui| {
                                                 // 色のプレビューを表示
-                                                let color_rect = egui::Rect::from_min_size(
+                                                let color_rect = Rect::from_min_size(
                                                     ui.next_widget_position(),
-                                                    egui::Vec2::new(12.0, 12.0),
+                                                    Vec2::new(12.0, 12.0),
                                                 );
-                                                ui.allocate_rect(color_rect, egui::Sense::hover());
+                                                ui.allocate_rect(color_rect, Sense::hover());
                                                 ui.painter().rect_filled(
                                                     color_rect,
                                                     2.0,
