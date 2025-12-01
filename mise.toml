@@ -27,6 +27,14 @@ depends = ["fmt", "lint"]
 description = "テストを実行する"
 run = "cargo test"
 
+[tasks.analyzer-target-debug]
+description = "Rust Analyzerのターゲットを設定する。"
+run = "npm run rust-analyzer-target -- debug"
+
+[tasks.analyzer-target-release]
+description = "Rust Analyzerのターゲットを設定する。"
+run = "npm run rust-analyzer-target -- release"
+
 [tasks.release-linux]
 description = "Linux用リリースビルドを作成する"
 run = '''

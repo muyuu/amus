@@ -101,8 +101,7 @@ impl AssetManager {
 
         let image_bytes = ASSETS_DIR
             .get_file(path)
-            .ok_or_else(|| format!("File not found: {}", path))
-            .file
+            .ok_or_else(|| format!("File not found: {}", path))?
             .contents()
             .to_vec();
 
