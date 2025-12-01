@@ -16,6 +16,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 image = "0.25"
 uuid = { version = "1", features = ["v4", "serde"] }
+include_dir = "0.7"
 
 # Windows: wgpu + DirectX
 [target.'cfg(windows)'.dependencies]
