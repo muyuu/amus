@@ -122,7 +122,7 @@ impl LocationInteraction {
         match target_player_id {
             None => false,
             Some(player_id) => {
-                state.toggle_player_alive(player_id);
+                state.toggle_player_state(player_id);
                 true
             }
         }
