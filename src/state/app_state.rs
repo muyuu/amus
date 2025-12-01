@@ -35,13 +35,13 @@ impl AppState {
     }
 
     pub fn toggle_player_state(&self, player_id: PlayerId) {
-        self.data.borrow_mut().game.as_mut().map(|game| {
+        if let Some(game) = self.data.borrow_mut().game.as_mut() {
             game.players.iter_mut().for_each(|p| {
                 if p.id == player_id {
                     p.state = p.state.next();
                 }
             });
-        });
+        }
     }
 
     pub fn t(&self, key: &str) -> String {
