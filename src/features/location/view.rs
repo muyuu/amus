@@ -62,29 +62,39 @@ impl LocationView {
                 None => continue,
             };
 
-            let color = player.color.to_egui_color();
+            let painter = ui.painter();
             let rect = ui.max_rect();
             let pos = pos2(
                 rect.min.x + point.x * rect.size().x,
                 rect.min.y + point.y * rect.size().y,
             );
-
             // サイズ定義は1辺の長さなので半径にするため2で割る
             let radius = LocationConstants::END_LOCATION_SIZE / 2.0;
-            let stroke_width = LocationConstants::END_LOCATION_STROKE_WIDTH;
 
-            let painter = ui.painter();
-            painter.circle_filled(pos, radius, color);
-            painter.circle_stroke(pos, radius, (stroke_width, Color32::WHITE));
-
+            Self::render_mark(&player, painter, pos, radius);
             Self::render_dead_mark(&player, painter, pos);
+            Self::render_ejected_mark(&player, painter, pos);
             Self::render_label(ui, &player, pos, radius);
         }
     }
 
+    fn render_mark(player: &player::Player, painter: &Painter, pos: Pos2, radius: f32) {
+        let mut color = player.color.to_egui_color();
+
+        // 追放されたら不透明度を半分にする
+        if player.is_ejected() {
+            color = Color32::from_rgba_premultiplied(color.r(), color.g(), color.b(), 128);
+        }
+
+        let stroke_width = LocationConstants::END_LOCATION_STROKE_WIDTH;
+
+        painter.circle_filled(pos, radius, color);
+        painter.circle_stroke(pos, radius, (stroke_width, Color32::WHITE));
+    }
+
     // 死亡している場合はバツ印を描画
     fn render_dead_mark(player: &player::Player, painter: &Painter, pos: Pos2) {
-        if player.alive {
+        if !player.is_dead() {
             return;
         }
 
@@ -97,7 +107,7 @@ impl LocationView {
                 pos2(pos.x - cross_size, pos.y - cross_size),
                 pos2(pos.x + cross_size, pos.y + cross_size),
             ],
-            (cross_width, Color32::BLACK),
+            (cross_width, Color32::DARK_RED),
         );
 
         // 右上から左下への線
@@ -105,6 +115,25 @@ impl LocationView {
             [
                 pos2(pos.x + cross_size, pos.y - cross_size),
                 pos2(pos.x - cross_size, pos.y + cross_size),
+            ],
+            (cross_width, Color32::DARK_RED),
+        );
+    }
+
+    // 追放されたら中央に横線を描画
+    fn render_ejected_mark(player: &player::Player, painter: &Painter, pos: Pos2) {
+        if !player.is_ejected() {
+            return;
+        }
+
+        let cross_size = LocationConstants::END_LOCATION_DEAD_MARK_SIZE;
+        let cross_width = LocationConstants::END_LOCATION_DEAD_MARK_STROKE_WIDTH;
+
+        // 中央左から右への線
+        painter.line_segment(
+            [
+                pos2(pos.x - cross_size, pos.y),
+                pos2(pos.x + cross_size, pos.y),
             ],
             (cross_width, Color32::BLACK),
         );

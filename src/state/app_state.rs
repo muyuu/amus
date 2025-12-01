@@ -34,11 +34,11 @@ impl AppState {
         self.data.borrow_mut()
     }
 
-    pub fn toggle_player_alive(&self, player_id: PlayerId) {
+    pub fn toggle_player_state(&self, player_id: PlayerId) {
         self.data.borrow_mut().game.as_mut().map(|game| {
             game.players.iter_mut().for_each(|p| {
                 if p.id == player_id {
-                    p.alive = !p.alive;
+                    p.state = p.state.next();
                 }
             });
         });
