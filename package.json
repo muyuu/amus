@@ -1,0 +1,18 @@
+{
+  "name": "amus",
+  "version": "1.0.0",
+  "description": "",
+  "author": "muyuu",
+  "main": "index.js",
+  "scripts": {
+    "rust-analyzer-target": "node scripts/analyzer-target.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muyuu/amus.git"
+  },
+  "keywords": [],
+  "devDependencies": {
+    "json5": "^2.2.3"
+  }
+}
