@@ -37,7 +37,11 @@ impl Default for SetupState {
                 .get(i % default_colors.len())
                 .cloned()
                 .unwrap_or(Color::Red);
-            players.push(Player::new(Role::Crew, color, Self::get_default_player_name(i)));
+            players.push(Player::new(
+                Role::Crew,
+                color,
+                Self::get_default_player_name(i),
+            ));
         }
 
         Self {
