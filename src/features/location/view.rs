@@ -1,5 +1,5 @@
 use crate::{
-    components::background_label, constants::AppConstants,
+    components::background_label_with_font_size, constants::AppConstants,
     features::location::constants::LocationConstants, models::player, state::AppState,
 };
 use egui::*;
@@ -140,9 +140,10 @@ impl LocationView {
     }
 
     fn render_label(ui: &mut Ui, player: &player::Player, center: Pos2, radius: f32) {
+        let font_size = LocationConstants::END_LOCATION_LABEL_FONT_SIZE;
         let galley = ui.painter().layout_no_wrap(
             player.name.to_owned(),
-            FontId::proportional(16.0),
+            FontId::proportional(font_size),
             Color32::WHITE,
         );
 
@@ -152,10 +153,13 @@ impl LocationView {
         );
         let size = galley.size() + padding * 2.0;
 
-        let label_pos = Pos2::new(center.x, center.y - radius - 20.0);
+        let label_pos = Pos2::new(
+            center.x,
+            center.y - radius - LocationConstants::END_LOCATION_LABEL_Y_OFFSET,
+        );
         let rect = Rect::from_center_size(label_pos, size);
         ui.scope_builder(UiBuilder::new().max_rect(rect), |ui| {
-            background_label(ui, &player.name);
+            background_label_with_font_size(ui, &player.name, font_size);
         });
     }
 }

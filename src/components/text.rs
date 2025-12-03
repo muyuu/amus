@@ -4,7 +4,11 @@ use crate::constants::AppConstants;
 
 /// 背景付きラベルを描画し、クリック状態を返す関数
 pub fn background_label(ui: &mut Ui, text: &str) -> Response {
-    let font_id = FontId::proportional(AppConstants::DEFAULT_FONT_SIZE);
+    background_label_with_font_size(ui, text, AppConstants::DEFAULT_FONT_SIZE)
+}
+
+pub fn background_label_with_font_size(ui: &mut Ui, text: &str, font_size: f32) -> Response {
+    let font_id = FontId::proportional(font_size);
 
     // 文字サイズを計算
     let galley = ui

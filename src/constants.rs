@@ -11,7 +11,7 @@ impl AppConstants {
     pub const WINDOW_BG_COLOR_LIGHT: Color32 = Color32::from_rgb(255, 255, 255);
 
     /// コンポーネントの定数たち
-    pub const COM_BG_LABEL_PADDING_X: f32 = 8.0;
+    pub const COM_BG_LABEL_PADDING_X: f32 = 4.0;
     pub const COM_BG_LABEL_PADDING_Y: f32 = 4.0;
 
     /// ユーザー情報表示の定数たち
