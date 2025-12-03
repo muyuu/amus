@@ -36,9 +36,6 @@ pub struct AppData {
 
     pub show_setup_dialog: bool,
 
-    #[allow(dead_code)]
-    pub show_turn_menu: bool, // ターンメニューの表示状態
-
     pub translator: Translator,
 }
 
@@ -55,7 +52,6 @@ impl Default for AppData {
             selected_player_id: None,
             setup_state: SetupState::default(),
             show_setup_dialog: true, // 起動時はセットアップダイアログを表示
-            show_turn_menu: false,   // 初期状態では非表示
             show_debug_view: false,  // 初期状態では非表示
             translator: Translator::new(Language::Japanese), // デフォルトは日本語
         }

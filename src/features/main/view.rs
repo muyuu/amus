@@ -3,6 +3,7 @@ use crate::features::eraser::EraserFeature;
 use crate::features::location::LocationFeature;
 use crate::features::map::MapView;
 use crate::features::route_drawing::RouteDrawingFeature;
+use crate::features::turn::TurnFeature;
 use crate::features::welcome::WelcomeView;
 use crate::state::AppState;
 use egui::*;
@@ -26,6 +27,7 @@ impl MainView {
         LocationFeature::render(state, &response, ui);
         DebugView::render(state, state.show_debug_view(), ui.ctx());
         Self::render_eraser_tool(state, ui);
+        TurnFeature::render(state, ui);
     }
 
     fn render_eraser_tool(state: &mut AppState, ui: &mut Ui) {
