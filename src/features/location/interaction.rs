@@ -39,14 +39,7 @@ impl LocationInteraction {
 
         // 出現位置ドラッグ中
         if let Some(player_id) = result.spawn.dragging_player_id {
-            Self::add_location(
-                state,
-                DraggingLocation {
-                    location_type: LocationType::Spawn,
-                    player_id,
-                },
-                point.clone(),
-            );
+            Self::add_location(state, LocationType::Spawn, player_id, point.clone());
         }
 
         // 出現位置ドラッグ終了
@@ -69,14 +62,7 @@ impl LocationInteraction {
 
         // 終了時位置ドラッグ中
         if let Some(player_id) = result.end.dragging_player_id {
-            Self::add_location(
-                state,
-                DraggingLocation {
-                    location_type: LocationType::End,
-                    player_id,
-                },
-                point.clone(),
-            );
+            Self::add_location(state, LocationType::End, player_id, point.clone());
         }
 
         // 終了時位置ドラッグ終了
@@ -123,25 +109,22 @@ impl LocationInteraction {
                 Ok(wave) => wave,
                 _ => return,
             };
-            
+
             if wave.spawn_locations.contains_key(&selected_player_id) {
                 return;
             }
         }
 
-        Self::add_location(state, DraggingLocation {
-            location_type: LocationType::Spawn,
-            player_id: selected_player_id,
-        }, point);
+        Self::add_location(state, LocationType::Spawn, selected_player_id, point);
     }
 
-    fn add_location(state: &mut AppState, location: DraggingLocation, point: Point) {
-        match location.location_type {
+    fn add_location(state: &mut AppState, location_type: LocationType, id: PlayerId, point: Point) {
+        match location_type {
             LocationType::Spawn => {
-                state.add_spawn_location(location.player_id, point);
+                state.add_spawn_location(id, point);
             }
             LocationType::End => {
-                state.add_end_location(location.player_id, point);
+                state.add_end_location(id, point);
             }
         }
     }
