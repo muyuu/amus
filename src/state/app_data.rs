@@ -15,7 +15,7 @@ pub struct AppData {
     // ドラッグ中の位置（出現位置 or 終了時位置）
     pub dragging_location: Option<DraggingLocation>,
 
-    // ドラッグ中のプレイヤーID
+    // プレイヤーリストの player をドラッグしている場合のプレイヤーID
     pub dragging_player_id: Option<PlayerId>,
 
     /// プレイヤー名編集中のプレイヤーID

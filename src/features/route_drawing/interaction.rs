@@ -1,6 +1,6 @@
 use egui::*;
 
-use crate::features::location::LocationInteraction;
+use crate::common::current_point_with_response;
 use crate::models::route::{Draw, Erase};
 use crate::models::Route;
 use crate::state::AppState;
@@ -18,11 +18,6 @@ impl RouteDrawingInteraction {
     }
 
     fn handle_drag_start(state: &mut AppState, response: &Response) {
-        // 開始地点・終了時地点からドラッグ開始した場合は無視する
-        if LocationInteraction::detect_drag_start(state, response).is_some() {
-            return;
-        };
-
         let _ = match response.interact_pointer_pos() {
             Some(p) => p,
             None => return,
@@ -42,17 +37,10 @@ impl RouteDrawingInteraction {
     }
 
     fn handle_dragging(state: &mut AppState, response: &Response) {
-        if LocationInteraction::detect_drag_start(state, response).is_some() {
-            return;
-        };
-
-        let pos = match response.interact_pointer_pos() {
+        let point = match current_point_with_response(response, response.rect) {
             Some(p) => p,
             None => return,
         };
-
-        let rect = response.rect;
-        let point = LocationInteraction::screen_to_normalized_point(pos, rect);
 
         let _ = match state.current_wave() {
             Ok(wave) => wave,

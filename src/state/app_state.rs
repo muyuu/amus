@@ -355,15 +355,6 @@ impl AppState {
         wave.routes.push(route);
     }
 
-    pub fn spawn_location(&self, player_id: PlayerId) -> Option<Point> {
-        let wave = match self.current_wave() {
-            Ok(wave) => wave,
-            _ => return None,
-        };
-
-        wave.spawn_locations.get(&player_id).cloned()
-    }
-
     pub fn spawn_locations(&self) -> Option<HashMap<PlayerId, Point>> {
         match self.current_wave() {
             Ok(wave) => Some(wave.spawn_locations.clone()),
