@@ -4,26 +4,56 @@ use crate::{
 };
 use egui::*;
 
+#[derive(Default)]
+pub struct SpawnResult {
+    pub drag_start_player_id: Option<player::PlayerId>,
+    pub dragging_player_id: Option<player::PlayerId>,
+    pub drag_stop_player_id: Option<player::PlayerId>,
+    pub click_player_id: Option<player::PlayerId>,
+}
+
+#[derive(Default)]
+pub struct EndResult {
+    pub drag_start_player_id: Option<player::PlayerId>,
+    pub dragging_player_id: Option<player::PlayerId>,
+    pub drag_stop_player_id: Option<player::PlayerId>,
+    pub click_player_id: Option<player::PlayerId>,
+}
+
+#[derive(Default)]
+pub struct LocationViewResult {
+    pub spawn: SpawnResult,
+    pub end: EndResult,
+}
+
 pub struct LocationView;
 
 impl LocationView {
     /// 出現位置と終了時位置を描画
-    pub fn render(state: &AppState, ui: &mut Ui) {
-        Self::render_spawn_locations(state, ui);
-        Self::render_end_locations(state, ui);
+    pub fn render(state: &AppState, ui: &mut Ui) -> LocationViewResult {
+        let mut result = LocationViewResult::default();
+
+        let spawn_result = Self::render_spawn_locations(state, ui);
+        let end_result = Self::render_end_locations(state, ui);
+
+        result.spawn = spawn_result;
+        result.end = end_result;
+        result
     }
 
-    fn render_spawn_locations(state: &AppState, ui: &mut Ui) {
+    fn render_spawn_locations(state: &AppState, ui: &mut Ui) -> SpawnResult {
+        let mut result = SpawnResult::default();
+
         // 出現場所を描画（四角）
         let spawn_locations = match state.spawn_locations() {
             Some(spawn_locations) => spawn_locations,
-            None => return,
+            None => return result,
         };
 
         for (player_id, point) in spawn_locations {
             let player = match state.player(player_id) {
                 Some(player) => player,
-                None => return,
+                None => return result,
             };
 
             let color = player.color.to_egui_color();
@@ -33,26 +63,46 @@ impl LocationView {
                 rect.min.y + point.y * rect.size().y,
             );
             let size = LocationConstants::SPAWN_LOCATION_SIZE;
+
+            // 描画領域を確保してResponseを取得
+            let rect = Rect::from_center_size(pos, Vec2::new(size, size));
+            let response = ui.allocate_rect(rect, Sense::click_and_drag());
+
+            // イベント処理
+            if response.clicked() {
+                result.click_player_id = Some(player_id);
+            }
+            if response.drag_started() {
+                result.drag_start_player_id = Some(player_id);
+            }
+            if response.dragged() {
+                result.dragging_player_id = Some(player_id);
+            }
+            if response.drag_stopped() {
+                result.drag_stop_player_id = Some(player_id);
+            }
+
+            // 描画
             let stroke_width = LocationConstants::SPAWN_LOCATION_STROKE_WIDTH;
             let painter = ui.painter();
-            painter.rect_filled(
-                Rect::from_center_size(pos, Vec2::new(size, size)),
-                stroke_width,
-                color,
-            );
+            painter.rect_filled(rect, stroke_width, color);
             painter.rect_stroke(
-                Rect::from_center_size(pos, Vec2::new(size, size)),
+                rect,
                 stroke_width,
                 (stroke_width, Color32::WHITE),
                 StrokeKind::Inside,
             );
         }
+
+        result
     }
 
-    fn render_end_locations(state: &AppState, ui: &mut Ui) {
+    fn render_end_locations(state: &AppState, ui: &mut Ui) -> EndResult {
+        let mut result = EndResult::default();
+
         let end_locations = match state.end_locations() {
             Some(end_locations) => end_locations,
-            None => return,
+            None => return result,
         };
 
         // 終了時位置を描画（丸）
@@ -62,20 +112,40 @@ impl LocationView {
                 None => continue,
             };
 
-            let painter = ui.painter();
-            let rect = ui.max_rect();
-            let pos = pos2(
-                rect.min.x + point.x * rect.size().x,
-                rect.min.y + point.y * rect.size().y,
+            let ui_rect = ui.max_rect();
+            let center = pos2(
+                // 変数名を center に統一
+                ui_rect.min.x + point.x * ui_rect.size().x,
+                ui_rect.min.y + point.y * ui_rect.size().y,
             );
-            // サイズ定義は1辺の長さなので半径にするため2で割る
-            let radius = LocationConstants::END_LOCATION_SIZE / 2.0;
+            let size = LocationConstants::END_LOCATION_SIZE;
 
-            Self::render_mark(&player, painter, pos, radius);
-            Self::render_dead_mark(&player, painter, pos);
-            Self::render_ejected_mark(&player, painter, pos);
-            Self::render_label(ui, &player, pos, radius);
+            // 描画領域を確保してResponseを取得
+            let rect = Rect::from_center_size(center, Vec2::new(size, size));
+            let response = ui.allocate_rect(rect, Sense::click_and_drag());
+
+            // イベント処理
+            if response.clicked() {
+                result.click_player_id = Some(player_id);
+            }
+            if response.drag_started() {
+                result.drag_start_player_id = Some(player_id);
+            }
+            if response.dragged() {
+                result.dragging_player_id = Some(player_id);
+            }
+            if response.drag_stopped() {
+                result.drag_stop_player_id = Some(player_id);
+            }
+
+            let painter = ui.painter();
+            Self::render_mark(&player, painter, center, size / 2.0);
+            Self::render_dead_mark(&player, painter, center);
+            Self::render_ejected_mark(&player, painter, center);
+            Self::render_label(ui, &player, center, size / 2.0);
         }
+
+        result
     }
 
     fn render_mark(player: &player::Player, painter: &Painter, pos: Pos2, radius: f32) {
