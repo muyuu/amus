@@ -21,7 +21,7 @@ impl LocationInteraction {
 
         // dragging_player_id が Some の場合は終了時位置をドラッグしている
         // その間は常に end_location を更新する
-        if let Some(player_id) = state.dragging_player_id()  {
+        if let Some(player_id) = state.dragging_player_id() {
             Self::handle_end_location_dragged(state, ui, player_id);
         }
 
