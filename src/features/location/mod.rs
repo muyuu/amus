@@ -2,7 +2,6 @@ pub mod constants;
 pub mod interaction;
 pub mod view;
 
-pub use constants::LocationConstants;
 pub use interaction::LocationInteraction;
 pub use view::LocationView;
 

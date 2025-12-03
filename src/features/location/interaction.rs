@@ -1,4 +1,3 @@
-use crate::features::location::LocationConstants;
 use crate::common::current_point_with_ui;
 use crate::features::location::view::LocationViewResult;
 use crate::models::player::PlayerId;
@@ -89,69 +88,6 @@ impl LocationInteraction {
         if let Some(player_id) = result.end.click_player_id {
             state.toggle_player_state(player_id);
         }
-    }
-
-    /// ドラッグ開始の検出（出現位置または終了時位置の上でドラッグ開始）
-    pub fn detect_drag_start(state: &AppState, response: &Response) -> Option<DraggingLocation> {
-        let pointer_pos = response.interact_pointer_pos()?;
-
-        // 出現位置をチェック
-        if let Some(location) = Self::find_hit_spawn_location(state, pointer_pos, response.rect) {
-            return Some(location);
-        }
-
-        // 終了時位置をチェック
-        Self::find_hit_end_location(state, pointer_pos, response.rect)
-    }
-
-    /// 出現位置のヒット判定
-    fn find_hit_spawn_location(
-        state: &AppState,
-        pointer_pos: Pos2,
-        rect: Rect,
-    ) -> Option<DraggingLocation> {
-        let hit_size = LocationConstants::SPAWN_LOCATION_HIT_SIZE;
-        if let Ok(wave) = state.current_wave() {
-            for (player_id, spawn_point) in wave.spawn_locations.iter() {
-                let spawn_pos = pos2(
-                    rect.min.x + spawn_point.x * rect.size().x,
-                    rect.min.y + spawn_point.y * rect.size().y,
-                );
-                let distance = (pointer_pos - spawn_pos).length();
-                if distance <= hit_size {
-                    return Some(DraggingLocation {
-                        location_type: LocationType::Spawn,
-                        player_id: *player_id,
-                    });
-                }
-            }
-        }
-        None
-    }
-
-    /// 終了時位置のヒット判定
-    fn find_hit_end_location(
-        state: &AppState,
-        pointer_pos: Pos2,
-        rect: Rect,
-    ) -> Option<DraggingLocation> {
-        let hit_size = LocationConstants::END_LOCATION_HIT_SIZE;
-        if let Ok(wave) = state.current_wave() {
-            for (player_id, end_point) in wave.end_locations.iter() {
-                let end_pos = pos2(
-                    rect.min.x + end_point.x * rect.size().x,
-                    rect.min.y + end_point.y * rect.size().y,
-                );
-                let distance = (pointer_pos - end_pos).length();
-                if distance <= hit_size {
-                    return Some(DraggingLocation {
-                        location_type: LocationType::End,
-                        player_id: *player_id,
-                    });
-                }
-            }
-        }
-        None
     }
 
     fn handle_end_location_dragged(state: &mut AppState, ui: &mut Ui, player_id: PlayerId) {
