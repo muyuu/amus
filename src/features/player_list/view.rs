@@ -40,19 +40,19 @@ impl PlayerListView {
                             let is_selected = state.selected_player_id() == Some(player.id);
                             let is_dragging = state.dragging_player_id() == Some(player.id);
 
-                            let res = player_rect(ui, player, is_selected, is_dragging);
+                            let result = player_rect(ui, player, is_selected, is_dragging);
 
                             // クリックまたはドラッグ開始時にユーザーを選択
-                            if res.clicked || res.drag_started {
+                            if result.clicked || result.drag_started {
                                 state.set_selected_player_id(Some(player.id));
                                 state.set_erase_mode(false);
-                                if res.drag_started {
+                                if result.drag_started {
                                     state.set_dragging_player_id(Some(player.id));
                                 }
                             }
 
                             // ドラッグ終了時にクリア（選択状態は保持）
-                            if res.drag_stopped {
+                            if result.drag_stopped {
                                 state.set_dragging_player_id(None);
                             }
                         });
