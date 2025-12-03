@@ -319,15 +319,6 @@ impl AppState {
         self.data.borrow().show_setup_dialog
     }
 
-    #[allow(dead_code)]
-    pub fn show_turn_menu(&self) -> bool {
-        self.data.borrow().show_turn_menu
-    }
-
-    pub fn set_show_turn_menu(&self, show: bool) {
-        self.data.borrow_mut().show_turn_menu = show;
-    }
-
     pub fn routes(&self) -> Option<Vec<Route>> {
         match self.current_wave() {
             Ok(wave) => Some(wave.routes.clone()),
