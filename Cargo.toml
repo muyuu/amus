@@ -3,6 +3,9 @@ name = "amus"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+crate-type = ["cdylib"]
+
 [dependencies]
 # GUI framework - egui is recommended for this use case
 # Alternatives: gpui, bevy, iced
@@ -15,13 +18,13 @@ eframe = { version = "0.33", default-features = false, features = [
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 image = "0.25"
-uuid = { version = "1", features = ["v4", "serde"] }
+uuid = { version = "1.19", features = ["v4", "serde"] }
 include_dir = "0.7"
 
 # Windows: wgpu + DirectX
 [target.'cfg(windows)'.dependencies]
 eframe = { version = "0.33", features = ["wgpu"] }
-wgpu = { version = "27.0.1", features = ["dx12"] }
+wgpu = { version = "27", features = ["dx12"] }
 
 # Linux: wgpu + Vulkan
 [target.'cfg(unix)'.dependencies]
@@ -36,4 +39,17 @@ wgpu = { version = "27", features = ["metal"] }
 # どのプラットフォームでも使えるフォールバック
 [target.'cfg(not(any(windows, unix, target_os = "macos")))'.dependencies]
 eframe = { version = "0.33", features = ["glow"] }
+
+# wasm
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+eframe = { version = "0.33", features = ["default"] }
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = [
+    "Window",
+    "Document",
+    "HtmlCanvasElement",
+] }
+console_error_panic_hook = "0.1"
+uuid = { version = "1.19", features = ["v4", "serde", "js"] }
 

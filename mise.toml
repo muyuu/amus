@@ -61,68 +61,7 @@ run = '''
 
 [tasks.init]
 description = "開発環境の初期設定を行う"
-run = '''
-  # watchexecをインストール（mise watchで使用）
-  if mise which watchexec >/dev/null 2>&1; then
-    echo "watchexecは既にインストールされています"
-  else
-    echo "watchexecをインストール中..."
-    mise use -g watchexec@latest || {
-      echo "警告: watchexecのインストールに失敗しました"
-      echo "代替方法: mise use -g watchexec@latest"
-    }
-  fi
-
-  # Linux用リリースターゲットを追加
-  echo "Linux用リリースターゲットを追加中..."
-  rustup target add x86_64-unknown-linux-gnu
-
-  # Windows用リリースターゲットを追加
-  echo "Windows用リリースターゲットを追加中..."
-  rustup target add x86_64-pc-windows-gnu
-  rustup target add x86_64-pc-windows-msvc
-
-  # Windows用クロスコンパイルツールをチェック・インストール
-  echo "Windows用クロスコンパイルツールをチェック中..."
-  if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
-    echo "mingw-w64は既にインストールされています"
-  else
-    echo "mingw-w64がインストールされていません。インストール中..."
-    
-    # OSを判定してインストールコマンドを実行
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-      # macOS
-      if command -v brew >/dev/null 2>&1; then
-        brew install mingw-w64
-      else
-        echo "エラー: Homebrewがインストールされていません"
-        echo "Homebrewをインストールしてください: https://brew.sh/"
-        exit 1
-      fi
-    elif [[ -f /etc/debian_version ]]; then
-      # Ubuntu/Debian
-      sudo apt update && sudo apt install -y gcc-mingw-w64-x86-64
-    elif [[ -f /etc/fedora-release ]]; then
-      # Fedora
-      sudo dnf install -y mingw64-gcc
-    elif [[ -f /etc/arch-release ]]; then
-      # Arch Linux
-      sudo pacman -S --noconfirm mingw-w64-gcc
-    else
-      echo "警告: サポートされていないOSです"
-      echo "手動でmingw-w64をインストールしてください"
-    fi
-    
-    # インストール確認
-    if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
-      echo "mingw-w64のインストールが完了しました"
-    else
-      echo "警告: mingw-w64のインストールに失敗しました"
-    fi
-  fi
-
-  echo "セットアップ完了"
-'''
+run = "bash scripts/init.sh"
 
 # ============================================
 # プライベートタスク（内部使用）
@@ -157,3 +96,14 @@ run = "mise watch -r start"
 hide = true
 description = "ビルドの成果物を削除する"
 run = "cargo clean"
+
+[tasks.build-wasm]
+description = "WASMを作成する（./web/pkg/ に出力）"
+run = '''
+  wasm-pack build --release --target web --out-dir ./web/pkg
+  echo "WASMビルドが完了しました: ./web/pkg/"
+'''
+
+[tasks.serve]
+description = "ローカルサーバーを起動する（web/ をルート）"
+run = "miniserve web --port 8080"
