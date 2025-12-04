@@ -9,7 +9,8 @@
             "amus",
             "egui",
             "Polus",
-            "Skeld"
+            "Skeld",
+            "watchexec"
         ]
     }
 }
