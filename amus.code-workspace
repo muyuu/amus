@@ -7,9 +7,21 @@
     "settings": {
         "cSpell.words": [
             "amus",
+            "clippy",
+            "eframe",
             "egui",
+            "elif",
+            "gpui",
+            "miniserve",
+            "msvc",
+            "noconfirm",
+            "OSTYPE",
+            "pacman",
             "Polus",
-            "Skeld"
+            "rustup",
+            "Skeld",
+            "watchexec",
+            "wgpu"
         ]
     }
 }
