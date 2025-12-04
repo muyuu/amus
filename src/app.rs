@@ -38,33 +38,7 @@ impl eframe::App for AmusApp {
         }
 
         // 上部のメニューボタン
-        TopBottomPanel::top("menu_button_panel")
-            .resizable(false)
-            .default_height(50.0)
-            .frame(Self::get_frame())
-            .show(ctx, |ui| {
-                ui.horizontal(|ui| {
-                    // 中央：デバッグボタン
-                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        // 右側：リセットボタン
-                        if ui.button("🔄 リセット").clicked() {
-                            self.state.data_mut().show_setup_dialog = true;
-                        }
-
-                        // 中央：デバッグボタン（スペースで中央に配置）
-                        ui.allocate_ui_with_layout(
-                            ui.available_size(),
-                            Layout::top_down(Align::Center),
-                            |ui| {
-                                if ui.button("🐛 デバッグ").clicked() {
-                                    self.state.data_mut().show_debug_view =
-                                        !self.state.show_debug_view();
-                                }
-                            },
-                        );
-                    });
-                });
-            });
+        self.build_menu_ui(ctx, frame);
 
         // メインUIの構築
         self.build_main_ui(ctx, frame);
@@ -98,6 +72,36 @@ impl AmusApp {
             .frame(Self::get_frame())
             .show(ctx, |ui| {
                 PlayerListView::show(&mut self.state, ui);
+            });
+    }
+
+    fn build_menu_ui(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+        TopBottomPanel::top("menu_button_panel")
+            .resizable(false)
+            .default_height(50.0)
+            .frame(Self::get_frame())
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    // 中央：デバッグボタン
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        // 右側：リセットボタン
+                        if ui.button("🔄 リセット").clicked() {
+                            self.state.data_mut().show_setup_dialog = true;
+                        }
+
+                        // 中央：デバッグボタン（スペースで中央に配置）
+                        ui.allocate_ui_with_layout(
+                            ui.available_size(),
+                            Layout::top_down(Align::Center),
+                            |ui| {
+                                if ui.button("🐛 デバッグ").clicked() {
+                                    self.state.data_mut().show_debug_view =
+                                        !self.state.show_debug_view();
+                                }
+                            },
+                        );
+                    });
+                });
             });
     }
 
