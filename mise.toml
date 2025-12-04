@@ -82,6 +82,34 @@ run = '''
   rustup target add x86_64-pc-windows-gnu
   rustup target add x86_64-pc-windows-msvc
 
+  # WASM用ターゲットを追加
+  echo "WASM用ターゲットを追加中..."
+  rustup target add wasm32-unknown-unknown
+
+  # wasm-packをインストール
+  echo "wasm-packをチェック中..."
+  if command -v wasm-pack >/dev/null 2>&1; then
+    echo "wasm-packは既にインストールされています"
+  else
+    echo "wasm-packをインストール中..."
+    cargo install wasm-pack || {
+      echo "警告: wasm-packのインストールに失敗しました"
+      echo "手動でインストールしてください: cargo install wasm-pack"
+    }
+  fi
+
+  # miniserveをインストール
+  echo "miniserveをチェック中..."
+  if command -v miniserve >/dev/null 2>&1; then
+    echo "miniserveは既にインストールされています"
+  else
+    echo "miniserveをインストール中..."
+    cargo install miniserve || {
+      echo "警告: miniserveのインストールに失敗しました"
+      echo "手動でインストールしてください: cargo install miniserve"
+    }
+  fi
+
   # Windows用クロスコンパイルツールをチェック・インストール
   echo "Windows用クロスコンパイルツールをチェック中..."
   if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
@@ -157,3 +185,14 @@ run = "mise watch -r start"
 hide = true
 description = "ビルドの成果物を削除する"
 run = "cargo clean"
+
+[tasks.build-wasm]
+description = "WASMを作成する（./web/pkg/ に出力）"
+run = '''
+  wasm-pack build --release --target web --out-dir ./web/pkg
+  echo "WASMビルドが完了しました: ./web/pkg/"
+'''
+
+[tasks.serve]
+description = "ローカルサーバーを起動する（web/ をルート）"
+run = "miniserve web --port 8080"
