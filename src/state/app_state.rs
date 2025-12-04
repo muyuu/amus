@@ -55,7 +55,8 @@ impl AppState {
     pub fn create_game_from_setup(&self) {
         let mut data = self.data_mut();
         let area = data.setup_state.selected_area.clone();
-        let players = data.setup_state.players.clone();
+        let player_count = data.setup_state.player_count;
+        let players = data.setup_state.players.iter().take(player_count).cloned().collect();
 
         let mut game = Game::new(area, players);
         // とりあえず20ウェーブ作成
@@ -107,9 +108,6 @@ impl AppState {
                     format!("Player {}", i + 1),
                 ));
             }
-        } else if new_count < old_count {
-            // プレイヤーを削除
-            data.setup_state.players.truncate(new_count);
         }
     }
 
