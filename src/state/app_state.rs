@@ -21,6 +21,7 @@ impl Default for AppState {
     }
 }
 
+// 基本的なコンストラクタとデータアクセス
 impl AppState {
     pub fn new() -> Self {
         Self::default()
@@ -34,20 +35,22 @@ impl AppState {
         self.data.borrow_mut()
     }
 
-    pub fn toggle_player_state(&self, player_id: PlayerId) {
-        if let Some(game) = self.data.borrow_mut().game.as_mut() {
-            game.players.iter_mut().for_each(|p| {
-                if p.id == player_id {
-                    p.state = p.state.next();
-                }
-            });
-        }
-    }
-
     pub fn t(&self, key: &str) -> String {
         self.data.borrow().translator.t(key).to_string()
     }
 
+    pub fn asset_manager(&self) -> Option<AssetManager> {
+        let data = self.data.borrow();
+        data.asset_manager.clone()
+    }
+
+    pub fn set_asset_manager(&self, asset_manager: AssetManager) {
+        self.data.borrow_mut().asset_manager = Some(asset_manager);
+    }
+}
+
+// ゲーム管理関連
+impl AppState {
     pub fn start_new_game(&self) {
         self.data_mut().show_setup_dialog = true;
     }
@@ -70,6 +73,44 @@ impl AppState {
 
     pub fn cancel_setup(&self) {
         self.data_mut().show_setup_dialog = false;
+    }
+
+    pub fn reset_game(&self) {
+        // setup_state は変えなくて良いケースが多いはずなので保持
+        let setup_state = self.data.borrow().setup_state.clone();
+        *self.data.borrow_mut() = AppData::default();
+        self.data.borrow_mut().setup_state = setup_state;
+    }
+
+    pub fn select_wave(&self, index: usize) {
+        self.data_mut().current_wave_index = index;
+    }
+
+    pub fn game(&self) -> Option<Game> {
+        let data = self.data.borrow();
+        data.game.clone()
+    }
+
+    pub fn area(&self) -> Option<Area> {
+        let game = self.game();
+        if let Some(game) = game {
+            Some(game.area)
+        } else {
+            None
+        }
+    }
+}
+
+// プレイヤー操作関連
+impl AppState {
+    pub fn toggle_player_state(&self, player_id: PlayerId) {
+        if let Some(game) = self.data.borrow_mut().game.as_mut() {
+            game.players.iter_mut().for_each(|p| {
+                if p.id == player_id {
+                    p.state = p.state.next();
+                }
+            });
+        }
     }
 
     pub fn adjust_player_count(&self, new_count: usize) {
@@ -111,48 +152,6 @@ impl AppState {
         }
     }
 
-    pub fn select_wave(&self, index: usize) {
-        self.data_mut().current_wave_index = index;
-    }
-
-    pub fn player_name_editing(&self, player_id: PlayerId) -> bool {
-        let data = self.data.borrow();
-        data.editing_name_player_id == Some(player_id)
-    }
-
-    pub fn toggle_player_name_editing(&self, player_id: PlayerId) {
-        let mut data = self.data_mut();
-        if data.editing_name_player_id == Some(player_id) {
-            data.editing_name_player_id = None;
-        } else {
-            data.editing_name_player_id = Some(player_id);
-        }
-    }
-}
-
-// 既存のコードとの互換性のため、フィールドへの直接アクセスを提供
-impl AppState {
-    pub fn reset_game(&self) {
-        // setup_state は変えなくて良いケースが多いはずなので保持
-        let setup_state = self.data.borrow().setup_state.clone();
-        *self.data.borrow_mut() = AppData::default();
-        self.data.borrow_mut().setup_state = setup_state;
-    }
-
-    pub fn game(&self) -> Option<Game> {
-        let data = self.data.borrow();
-        data.game.clone()
-    }
-
-    pub fn area(&self) -> Option<Area> {
-        let game = self.game();
-        if let Some(game) = game {
-            Some(game.area)
-        } else {
-            None
-        }
-    }
-
     pub fn players(&self) -> Option<Vec<Player>> {
         let game = self.game();
         if let Some(game) = game {
@@ -167,83 +166,18 @@ impl AppState {
         players.into_iter().find(|p| p.id == player_id)
     }
 
-    /// 現在の wave への不変参照を取得
-    #[allow(dead_code)]
-    pub fn current_wave(&self) -> Result<Ref<'_, Wave>, String> {
+    pub fn player_name_editing(&self, player_id: PlayerId) -> bool {
         let data = self.data.borrow();
-        let wave_index = data.current_wave_index;
-        if data.game.is_none() {
-            return Err("Game not found".to_string());
+        data.editing_name_player_id == Some(player_id)
+    }
+
+    pub fn toggle_player_name_editing(&self, player_id: PlayerId) {
+        let mut data = self.data_mut();
+        if data.editing_name_player_id == Some(player_id) {
+            data.editing_name_player_id = None;
+        } else {
+            data.editing_name_player_id = Some(player_id);
         }
-        // Ref::map を使って Ref<AppData> から Ref<Wave> を作成
-        Ok(Ref::map(data, |d| {
-            d.game
-                .as_ref()
-                .and_then(|game| game.get_wave(wave_index))
-                .expect("Wave should exist at this index")
-        }))
-    }
-
-    /// 現在の wave への可変参照を取得
-    pub fn current_wave_mut(&self) -> Result<RefMut<'_, Wave>, String> {
-        let data = self.data.borrow_mut();
-        let wave_index = data.current_wave_index;
-        if data.game.is_none() {
-            return Err("Game not found".to_string());
-        }
-        // RefMut::map を使って RefMut<AppData> から RefMut<Wave> を作成
-        Ok(std::cell::RefMut::map(data, |d| {
-            d.game
-                .as_mut()
-                .and_then(|game| game.get_wave_mut(wave_index))
-                .expect("Wave should exist at this index")
-        }))
-    }
-
-    pub fn asset_manager(&self) -> Option<AssetManager> {
-        let data = self.data.borrow();
-        data.asset_manager.clone()
-    }
-
-    pub fn set_asset_manager(&self, asset_manager: AssetManager) {
-        self.data.borrow_mut().asset_manager = Some(asset_manager);
-    }
-
-    pub fn current_wave_index(&self) -> usize {
-        let i = self.data.borrow().current_wave_index;
-        i
-    }
-
-    pub fn dragging_player_id(&self) -> Option<PlayerId> {
-        self.data.borrow().dragging_player_id
-    }
-
-    pub fn set_dragging_player_id(&self, player_id: Option<PlayerId>) {
-        self.data.borrow_mut().dragging_player_id = player_id;
-    }
-
-    pub fn dragging_location(&self) -> Option<DraggingLocation> {
-        self.data.borrow().dragging_location
-    }
-
-    pub fn set_dragging_location(&self, location: Option<DraggingLocation>) {
-        self.data.borrow_mut().dragging_location = location;
-    }
-
-    pub fn selected_player_id(&self) -> Option<PlayerId> {
-        self.data.borrow().selected_player_id
-    }
-
-    pub fn set_selected_player_id(&self, player_id: Option<PlayerId>) {
-        self.data.borrow_mut().selected_player_id = player_id;
-    }
-
-    pub fn setup_state(&self) -> Ref<'_, SetupState> {
-        Ref::map(self.data.borrow(), |data| &data.setup_state)
-    }
-
-    pub fn set_selected_area(&self, area: Area) {
-        self.data.borrow_mut().setup_state.selected_area = area;
     }
 
     pub fn update_player_name(&self, id: PlayerId, name: String) {
@@ -307,6 +241,14 @@ impl AppState {
             self.data.borrow_mut().game = Some(game);
         }
     }
+}
+
+// UI状態管理関連
+impl AppState {
+    pub fn current_wave_index(&self) -> usize {
+        let i = self.data.borrow().current_wave_index;
+        i
+    }
 
     pub fn show_debug_view(&self) -> bool {
         self.data.borrow().show_debug_view
@@ -315,6 +257,117 @@ impl AppState {
     #[allow(dead_code)]
     pub fn show_setup_dialog(&self) -> bool {
         self.data.borrow().show_setup_dialog
+    }
+
+    pub fn erase_mode(&self) -> bool {
+        self.data.borrow().erase_mode
+    }
+
+    pub fn set_erase_mode(&self, mode: bool) {
+        self.data.borrow_mut().erase_mode = mode;
+    }
+
+    pub fn selected_player_id(&self) -> Option<PlayerId> {
+        self.data.borrow().selected_player_id
+    }
+
+    pub fn set_selected_player_id(&self, player_id: Option<PlayerId>) {
+        self.data.borrow_mut().selected_player_id = player_id;
+    }
+
+    pub fn setup_state(&self) -> Ref<'_, SetupState> {
+        Ref::map(self.data.borrow(), |data| &data.setup_state)
+    }
+
+    pub fn set_selected_area(&self, area: Area) {
+        self.data.borrow_mut().setup_state.selected_area = area;
+    }
+}
+
+// ドラッグ&ドロップ関連
+impl AppState {
+    pub fn dragging_player_id(&self) -> Option<PlayerId> {
+        self.data.borrow().dragging_player_id
+    }
+
+    pub fn set_dragging_player_id(&self, player_id: Option<PlayerId>) {
+        self.data.borrow_mut().dragging_player_id = player_id;
+    }
+
+    pub fn dragging_location(&self) -> Option<DraggingLocation> {
+        self.data.borrow().dragging_location
+    }
+
+    pub fn set_dragging_location(&self, location: Option<DraggingLocation>) {
+        self.data.borrow_mut().dragging_location = location;
+    }
+
+    pub fn spawn_locations(&self) -> Option<HashMap<PlayerId, Point>> {
+        match self.current_wave() {
+            Ok(wave) => Some(wave.spawn_locations.clone()),
+            _ => None,
+        }
+    }
+
+    pub fn add_spawn_location(&self, player_id: PlayerId, point: Point) {
+        let mut wave = match self.current_wave_mut() {
+            Ok(wave) => wave,
+            _ => return,
+        };
+
+        wave.spawn_locations.insert(player_id, point);
+    }
+
+    pub fn end_locations(&self) -> Option<HashMap<PlayerId, Point>> {
+        match self.current_wave() {
+            Ok(wave) => Some(wave.end_locations.clone()),
+            _ => None,
+        }
+    }
+
+    pub fn add_end_location(&self, player_id: PlayerId, point: Point) {
+        let mut wave = match self.current_wave_mut() {
+            Ok(wave) => wave,
+            _ => return,
+        };
+
+        wave.end_locations.insert(player_id, point);
+    }
+}
+
+// ウェーブとルート管理関連
+impl AppState {
+    /// 現在の wave への不変参照を取得
+    #[allow(dead_code)]
+    pub fn current_wave(&self) -> Result<Ref<'_, Wave>, String> {
+        let data = self.data.borrow();
+        let wave_index = data.current_wave_index;
+        if data.game.is_none() {
+            return Err("Game not found".to_string());
+        }
+        // Ref::map を使って Ref<AppData> から Ref<Wave> を作成
+        Ok(Ref::map(data, |d| {
+            d.game
+                .as_ref()
+                .and_then(|game| game.get_wave(wave_index))
+                .expect("Wave should exist at this index")
+        }))
+    }
+
+    /// 現在の wave への可変参照を取得
+    pub fn current_wave_mut(&self) -> Result<RefMut<'_, Wave>, String> {
+        let data = self.data.borrow_mut();
+        let wave_index = data.current_wave_index;
+        if data.game.is_none() {
+            return Err("Game not found".to_string());
+        }
+        // RefMut::map を使って RefMut<AppData> から RefMut<Wave> を作成
+        Ok(std::cell::RefMut::map(data, |d| {
+            d.game
+                .as_mut()
+                .and_then(|game| game.get_wave_mut(wave_index))
+                .expect("Wave should exist at this index")
+        }))
     }
 
     pub fn routes(&self) -> Option<Vec<Route>> {
@@ -351,45 +404,5 @@ impl AppState {
         };
 
         wave.routes.push(route);
-    }
-
-    pub fn spawn_locations(&self) -> Option<HashMap<PlayerId, Point>> {
-        match self.current_wave() {
-            Ok(wave) => Some(wave.spawn_locations.clone()),
-            _ => None,
-        }
-    }
-
-    pub fn add_spawn_location(&self, player_id: PlayerId, point: Point) {
-        let mut wave = match self.current_wave_mut() {
-            Ok(wave) => wave,
-            _ => return,
-        };
-
-        wave.spawn_locations.insert(player_id, point);
-    }
-
-    pub fn end_locations(&self) -> Option<HashMap<PlayerId, Point>> {
-        match self.current_wave() {
-            Ok(wave) => Some(wave.end_locations.clone()),
-            _ => None,
-        }
-    }
-
-    pub fn add_end_location(&self, player_id: PlayerId, point: Point) {
-        let mut wave = match self.current_wave_mut() {
-            Ok(wave) => wave,
-            _ => return,
-        };
-
-        wave.end_locations.insert(player_id, point);
-    }
-
-    pub fn erase_mode(&self) -> bool {
-        self.data.borrow().erase_mode
-    }
-
-    pub fn set_erase_mode(&self, mode: bool) {
-        self.data.borrow_mut().erase_mode = mode;
     }
 }
