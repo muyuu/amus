@@ -142,4 +142,40 @@ impl AssetManager {
     pub fn get_area_texture(&self, area: &Area) -> Option<&TextureHandle> {
         self.area_images.get(&area.id())
     }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn load_font_from_assets(path: &str) -> Option<Vec<u8>> {
+        #[cfg(debug_assertions)]
+        {
+            // デバッグビルド: ファイルシステムから読み込む
+            std::fs::read(format!("assets/{}", path)).ok()
+        }
+
+        #[cfg(not(debug_assertions))]
+        {
+            // リリースビルド: 埋め込みアセットから読み込む
+            #[cfg(target_arch = "wasm32")]
+            use web_sys::console;
+            
+            match ASSETS_DIR.get_file(path) {
+                Some(file) => {
+                    let data = file.contents().to_vec();
+                    #[cfg(target_arch = "wasm32")]
+                    console::log_1(&format!("Font loaded: {} ({} bytes)", path, data.len()).into());
+                    Some(data)
+                }
+                None => {
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        console::error_1(&format!("Font not found: {}", path).into());
+                        console::log_1(&"Available files in ASSETS_DIR:".into());
+                        ASSETS_DIR.files().for_each(|file| {
+                            console::log_1(&format!("  - {}", file.path().display()).into());
+                        });
+                    }
+                    None
+                }
+            }
+        }
+    }
 }
