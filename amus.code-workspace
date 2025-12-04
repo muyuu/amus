@@ -7,6 +7,7 @@
     "settings": {
         "cSpell.words": [
             "amus",
+            "cdylib",
             "clippy",
             "eframe",
             "egui",
@@ -18,6 +19,7 @@
             "OSTYPE",
             "pacman",
             "Polus",
+            "rlib",
             "rustup",
             "Skeld",
             "watchexec",
