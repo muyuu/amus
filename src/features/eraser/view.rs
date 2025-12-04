@@ -1,4 +1,5 @@
-use crate::egui::*;
+use egui::*;
+
 use crate::{i18n::keys::ERASER_BUTTON, state::AppState};
 
 pub struct EraserView;
