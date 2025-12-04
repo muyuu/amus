@@ -6,7 +6,9 @@ use crate::models::player::PlayerId;
 use crate::models::*;
 use crate::state::app_data::AppData;
 use crate::state::location::DraggingLocation;
-use crate::state::setup_state::SetupState;
+use crate::state::AppStorage;
+use crate::state::SetupState;
+use crate::state::StorageKeys;
 
 /// アプリケーション状態へのアクセスを提供する構造体
 pub struct AppState {
@@ -59,7 +61,13 @@ impl AppState {
         let mut data = self.data_mut();
         let area = data.setup_state.selected_area.clone();
         let player_count = data.setup_state.player_count;
-        let players = data.setup_state.players.iter().take(player_count).cloned().collect();
+        let players = data
+            .setup_state
+            .players
+            .iter()
+            .take(player_count)
+            .cloned()
+            .collect();
 
         let mut game = Game::new(area, players);
         // とりあえず20ウェーブ作成
@@ -404,5 +412,123 @@ impl AppState {
         };
 
         wave.routes.push(route);
+    }
+}
+
+// ストレージ関連
+impl AppState {
+    /// ストレージからアプリケーション状態を復元
+    pub fn load_from_storage(&self, storage: Option<&dyn eframe::Storage>) -> Result<(), String> {
+        // セットアップ状態を復元
+        if let Ok(Some(setup_state)) =
+            AppStorage::get::<SetupState>(storage, StorageKeys::SETUP_STATE)
+        {
+            self.data.borrow_mut().setup_state = setup_state;
+        }
+
+        // ゲーム状態を復元
+        if let Ok(Some(game)) = AppStorage::get::<Game>(storage, StorageKeys::GAME) {
+            self.data.borrow_mut().game = Some(game);
+        }
+
+        // 現在のウェーブインデックスを復元
+        if let Ok(Some(wave_index)) =
+            AppStorage::get::<usize>(storage, StorageKeys::CURRENT_WAVE_INDEX)
+        {
+            self.data.borrow_mut().current_wave_index = wave_index;
+        }
+
+        // UI状態を復元
+        if let Ok(Some(show_debug)) = AppStorage::get::<bool>(storage, StorageKeys::SHOW_DEBUG_VIEW)
+        {
+            self.data.borrow_mut().show_debug_view = show_debug;
+        }
+
+        if let Ok(Some(erase_mode)) = AppStorage::get::<bool>(storage, StorageKeys::ERASE_MODE) {
+            self.data.borrow_mut().erase_mode = erase_mode;
+        }
+
+        Ok(())
+    }
+
+    /// アプリケーション状態をストレージに保存
+    pub fn save_to_storage(&self, storage: Option<&mut dyn eframe::Storage>) -> Result<(), String> {
+        use crate::state::storage::AppStorage;
+        use crate::state::storage_keys::StorageKeys;
+
+        let data = self.data.borrow();
+
+        AppStorage::save_multiple(storage, |s| {
+            // セットアップ状態を保存
+            AppStorage::set(Some(s), StorageKeys::SETUP_STATE, &data.setup_state)?;
+
+            // ゲーム状態を保存
+            if let Some(ref game) = data.game {
+                AppStorage::set(Some(s), StorageKeys::GAME, game)?;
+            }
+
+            // 現在のウェーブインデックスを保存
+            AppStorage::set(
+                Some(s),
+                StorageKeys::CURRENT_WAVE_INDEX,
+                &data.current_wave_index,
+            )?;
+
+            // UI状態を保存
+            AppStorage::set(Some(s), StorageKeys::SHOW_DEBUG_VIEW, &data.show_debug_view)?;
+            AppStorage::set(Some(s), StorageKeys::ERASE_MODE, &data.erase_mode)?;
+
+            Ok(())
+        })
+    }
+
+    #[allow(dead_code)]
+    /// ストレージから特定のキーのデータを読み込み
+    pub fn load_value<T>(
+        &self,
+        storage: Option<&dyn eframe::Storage>,
+        key: &str,
+    ) -> Result<Option<T>, String>
+    where
+        T: for<'de> serde::Deserialize<'de>,
+    {
+        use crate::state::storage::AppStorage;
+        AppStorage::get(storage, key)
+    }
+
+    #[allow(dead_code)]
+    /// ストレージに特定のキーでデータを保存
+    pub fn save_value<T>(
+        &self,
+        storage: Option<&mut dyn eframe::Storage>,
+        key: &str,
+        value: &T,
+    ) -> Result<(), String>
+    where
+        T: serde::Serialize,
+    {
+        use crate::state::storage::AppStorage;
+        AppStorage::set(storage, key, value)
+    }
+
+    #[allow(dead_code)]
+    /// ゲームデータのみをクリア（設定は保持）
+    pub fn clear_game_data(&self, storage: Option<&mut dyn eframe::Storage>) -> Result<(), String> {
+        use crate::state::storage::AppStorage;
+        use crate::state::storage_keys::StorageKeys;
+
+        AppStorage::save_multiple(storage, |s| {
+            // ゲーム関連のデータを削除
+            s.set_string(StorageKeys::GAME, "".to_string());
+            s.set_string(StorageKeys::CURRENT_WAVE_INDEX, "0".to_string());
+            Ok(())
+        })?;
+
+        // メモリ上のデータもクリア
+        let mut data = self.data.borrow_mut();
+        data.game = None;
+        data.current_wave_index = 0;
+
+        Ok(())
     }
 }

@@ -21,7 +21,26 @@ impl Default for AmusApp {
     }
 }
 
+impl AmusApp {
+    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
+        let app = Self::default();
+
+        if let Some(storage) = _cc.storage {
+            app.state
+                .load_from_storage(Some(storage))
+                .unwrap_or_default();
+        }
+        app
+    }
+}
+
 impl eframe::App for AmusApp {
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        if let Err(e) = self.state.save_to_storage(Some(storage)) {
+            eprintln!("Failed to save to storage: {}", e);
+        }
+    }
+
     fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
         ctx.set_pixels_per_point(1.5);
 

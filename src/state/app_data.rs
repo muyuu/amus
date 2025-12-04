@@ -51,8 +51,8 @@ impl Default for AppData {
             game: None,
             selected_player_id: None,
             setup_state: SetupState::default(),
-            show_setup_dialog: true, // 起動時はセットアップダイアログを表示
-            show_debug_view: false,  // 初期状態では非表示
+            show_setup_dialog: false,
+            show_debug_view: false,
             translator: Translator::new(Language::Japanese), // デフォルトは日本語
         }
     }
