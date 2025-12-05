@@ -5,6 +5,7 @@ pub mod player;
 pub mod point;
 pub mod role;
 pub mod route;
+pub mod theme;
 pub mod wave;
 
 pub use area::Area;
@@ -14,4 +15,5 @@ pub use player::Player;
 pub use point::Point;
 pub use role::Role;
 pub use route::Route;
+pub use theme::Theme;
 pub use wave::Wave;

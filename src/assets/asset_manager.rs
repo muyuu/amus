@@ -4,6 +4,7 @@ use include_dir::{include_dir, Dir};
 use std::collections::HashMap;
 
 use crate::models::Area;
+use crate::models::Theme;
 
 // include_dir! はビルド時に実行されるため、プロジェクトルートからの相対パスを指定
 #[cfg(not(debug_assertions))]
@@ -43,21 +44,16 @@ impl AssetManager {
     }
 
     fn load_area_images(&mut self, ctx: &Context) {
-        let area_configs: [(&str, &str); 4] = [
-            (&Area::Skeld.id(), "assets/images/map/skeld.png"),
-            (&Area::Mira.id(), "assets/images/map/mira.png"),
-            (&Area::Polus.id(), "assets/images/map/polus.png"),
-            (&Area::AirShip.id(), "assets/images/map/the_airship.png"),
-        ];
+        for area in Area::all() {
+            let path = format!("assets/images/map/{}_{}.png", area.id(), Theme::Dark.as_str());
+            let normalized_path = Self::normalize_path(&path);
 
-        for (area_id, path) in &area_configs {
-            let normalized_path = Self::normalize_path(path);
             if let Ok(texture) = Self::load_texture_from_path(ctx, &normalized_path) {
-                self.area_images.insert(area_id.to_string(), texture);
+                self.area_images.insert(area.id().to_string(), texture);
             } else {
                 // 画像が見つからない場合はプレースホルダーを作成
-                let placeholder = Self::create_placeholder_texture(ctx, area_id);
-                self.area_images.insert(area_id.to_string(), placeholder);
+                let placeholder = Self::create_placeholder_texture(ctx, &area.id());
+                self.area_images.insert(area.id().to_string(), placeholder);
             }
         }
     }
