@@ -65,3 +65,9 @@ impl Erase {
         }
     }
 }
+
+impl Default for Erase {
+    fn default() -> Self {
+        Erase::new()
+    }
+}

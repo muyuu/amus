@@ -25,7 +25,7 @@ impl RouteDrawingInteraction {
 
         // ドラッグ開始時に新しいルートを作成
         let route = if state.erase_mode() {
-            Route::Erase(Erase::new())
+            Route::Erase(Erase::default())
         } else {
             let player_id = match state.selected_player_id() {
                 Some(player_id) => player_id,
