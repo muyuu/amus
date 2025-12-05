@@ -156,7 +156,7 @@ impl AssetManager {
             // リリースビルド: 埋め込みアセットから読み込む
             #[cfg(target_arch = "wasm32")]
             use web_sys::console;
-            
+
             match ASSETS_DIR.get_file(path) {
                 Some(file) => {
                     let data = file.contents().to_vec();

@@ -27,7 +27,7 @@ fn main() -> eframe::Result<()> {
             // 日本語フォントの設定
             setup_custom_fonts(&cc.egui_ctx);
             setup_panel_bg(&cc.egui_ctx);
-            Ok(Box::new(AmusApp::default()))
+            Ok(Box::new(AmusApp::new(cc)))
         }),
     )
 }

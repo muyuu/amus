@@ -21,7 +21,7 @@ impl Game {
     }
 
     pub fn add_wave(&mut self) {
-        self.waves.push(Wave::new());
+        self.waves.push(Wave::default());
         self.current_wave_index += 1;
     }
 

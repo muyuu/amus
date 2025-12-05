@@ -1,16 +1,18 @@
-mod app;
-mod assets;
-mod common;
-mod components;
-mod constants;
-mod features;
-mod i18n;
-mod models;
-mod state;
+pub mod app;
+pub mod assets;
+pub mod common;
+pub mod components;
+pub mod constants;
+pub mod features;
+pub mod i18n;
+pub mod models;
+pub mod state;
 
 #[cfg(target_arch = "wasm32")]
 use app::AmusApp;
+#[cfg(target_arch = "wasm32")]
 use eframe::egui;
+#[cfg(target_arch = "wasm32")]
 use egui::*;
 
 #[cfg(target_arch = "wasm32")]
@@ -23,8 +25,7 @@ pub async fn start(canvas_id: &str) -> Result<(), eframe::wasm_bindgen::JsValue>
     console_error_panic_hook::set_once();
 
     // DOMからcanvas要素を取得
-    let window = web_sys::window()
-        .ok_or_else(|| JsValue::from_str("window not found"))?;
+    let window = web_sys::window().ok_or_else(|| JsValue::from_str("window not found"))?;
     let document = window
         .document()
         .ok_or_else(|| JsValue::from_str("document not found"))?;
@@ -64,10 +65,17 @@ fn setup_japanese_fonts_wasm(ctx: &Context) {
     // assets.rsのメソッドを使ってフォントを読み込む
     // リリースビルドではinclude_dir!から、デバッグビルドではファイルシステムから読み込む
     use web_sys::console;
-    
+
     let font_path = "fonts/NotoSansJP-Regular.ttf";
     if let Some(font_data) = crate::assets::AssetManager::load_font_from_assets(font_path) {
-        console::log_1(&format!("Successfully loaded font: {} ({} bytes)", font_path, font_data.len()).into());
+        console::log_1(
+            &format!(
+                "Successfully loaded font: {} ({} bytes)",
+                font_path,
+                font_data.len()
+            )
+            .into(),
+        );
         fonts.font_data.insert(
             "japanese".to_owned(),
             FontData::from_owned(font_data).into(),
@@ -105,4 +113,3 @@ fn setup_panel_bg(ctx: &Context) {
     style.visuals.panel_fill = Color32::BLACK;
     ctx.set_style(style);
 }
-

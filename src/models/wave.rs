@@ -28,3 +28,9 @@ impl Wave {
         }
     }
 }
+
+impl Default for Wave {
+    fn default() -> Self {
+        Self::new()
+    }
+}

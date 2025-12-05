@@ -3,8 +3,16 @@ name = "amus"
 version = "0.1.0"
 edition = "2021"
 
+# バイナリターゲット
+[[bin]]
+name = "amus"
+path = "src/main.rs"
+
+# ライブラリターゲット
 [lib]
-crate-type = ["cdylib"]
+name = "amus_wasm"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 # GUI framework - egui is recommended for this use case
