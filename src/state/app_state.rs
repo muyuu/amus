@@ -8,7 +8,7 @@ use crate::state::location::DraggingLocation;
 use crate::state::AppStorage;
 use crate::state::SetupState;
 use crate::state::StorageKeys;
-use crate::{log_debug, models::*};
+use crate::{log_debug, log_info, models::*};
 
 /// アプリケーション状態へのアクセスを提供する構造体
 pub struct AppState {
@@ -212,7 +212,12 @@ impl AppState {
         }
     }
 
-    pub fn update_player_color(&self, id: PlayerId, color: Color) {
+    pub fn player_color(&self, player_id: PlayerId) -> Option<Color> {
+        let player = self.player(player_id)?;
+        Some(player.color)
+    }
+
+    pub fn update_player(&self, id: PlayerId, color: Color) {
         self.data
             .borrow_mut()
             .setup_state
@@ -234,6 +239,22 @@ impl AppState {
             game.players = players;
             self.data.borrow_mut().game = Some(game)
         }
+
+        // 選択中の色も更新
+        {
+            let mut data = self.data_mut();
+            data.selected_player_color = Some((id, color));
+        }
+    }
+
+    pub fn selected_player_color(&self) -> Option<(PlayerId, Color)> {
+        let data = self.data.borrow();
+        data.selected_player_color.clone()
+    }
+
+    pub fn reset_selected_player_color(&self) {
+        // log_info!("AppState", "Resetting selected_player_color");
+        self.data.borrow_mut().selected_player_color = None;
     }
 
     pub fn update_player_button(&self, id: PlayerId, done: bool) {
