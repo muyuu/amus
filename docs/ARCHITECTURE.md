@@ -28,19 +28,21 @@ Model (更新された状態)
 
 ```
 AppState (アプリケーション全体の状態)
-    ├─ Model (グローバルなデータ)
+    ├─ AppData (実際のデータを保持)
+    │   ├─ Model (Game, Player, Wave, Route など)
+    │   ├─ UI状態 (選択中のプレイヤー、ドラッグ状態など)
+    │   └─ 設定 (SetupState, Translator など)
     └─ 各feature
-        ├─ Feature Model (必要に応じて)
-        ├─ State (機能固有の状態)
+        ├─ Feature (機能のエントリーポイント)
         ├─ View (描画)
-        └─ Interaction (インタラクション処理)
+        └─ Interaction (インタラクション処理、オプション)
 ```
 
 **重要**: 
 - **画面に描画されているものは全てfeatureとして扱う**
 - `app.rs`は`AppState`と各featureだけを使用する
-- Stateは2種類ある: `AppState`（アプリケーション全体）と各featureの`State`（機能固有）
-- Viewには必ず対になるinteraction.rsがある
+- Stateは`AppState`（`RefCell<AppData>`を内包）で一元管理
+- Viewには必要に応じてInteractionが対になる
 - データフローは `model > state > view > interaction > model更新 > state更新` で統一
 
 ## レイヤー構成
@@ -53,84 +55,180 @@ AppState (アプリケーション全体の状態)
 - アプリ再起動後に復元されるデータ
 - ビジネスロジックを持たない（純粋なデータ構造）
 
-**例**: `Game`, `Wave`, `User`, `Route`
+**現在のモデル**:
+- `Game` - ゲーム全体の状態（プレイヤー、ウェーブ、エリア）
+- `Player` - プレイヤー情報（名前、色、役職、状態）
+- `Wave` - 各ターンの状態（出現位置、終了位置、ルート）
+- `Route` - プレイヤーの移動軌跡
+- `Area` - マップエリア（Skeld, Mira, Polus, Airship）
+- `Color` - プレイヤーの色
+- `Role` - 役職（Crew, Impostor）
+- `Point` - 座標データ
+- `Theme` - UIテーマ
 
 ### 2. State (状態管理)
 
-Stateには2種類あります：
-
-#### AppState (`src/game/state.rs`)
+#### AppState (`src/state/app_state.rs`)
 
 **役割**: アプリケーション全体の状態管理
 
-- Modelを保持（`model: AppModel`）
-- グローバルな状態（現在のwave、選択中のユーザーなど）
-- 各featureのStateを保持
-- 共通リソース（画像、翻訳など）
+- `RefCell<AppData>`を内包し、内部可変性を提供
+- 各種データへのアクセスメソッドを提供
+- ストレージへの保存・読み込みを担当
 
-**重要**: AppStateはModelを保持するだけで、直接更新しない
+**主な機能**:
+- ゲーム管理（`start_new_game`, `create_game_from_setup`, `reset_game`）
+- プレイヤー操作（`toggle_player_state`, `update_player_name`, `update_player_color`）
+- UI状態管理（`selected_player_id`, `erase_mode`, `show_debug_view`）
+- ドラッグ&ドロップ管理
+- ウェーブ・ルート管理
+- ストレージ操作（`load_from_storage`, `save_to_storage`）
 
-#### 各featureのState (`src/features/<feature_name>/state.rs`)
+#### AppData (`src/state/app_data.rs`)
 
-**役割**: 機能固有の状態管理
+**役割**: 実際のアプリケーションデータを保持
 
-- UI状態（選択中、ドラッグ中など）
-- Model操作メソッド（Modelを更新する）
-- State更新メソッド（State自身を更新する）
+```rust
+pub struct AppData {
+    pub asset_manager: Option<AssetManager>,  // 画像リソース管理
+    pub current_wave_index: usize,            // 現在のターン
+    pub dragging_location: Option<DraggingLocation>,  // ドラッグ状態
+    pub dragging_player_id: Option<PlayerId>,
+    pub editing_name_player_id: Option<PlayerId>,
+    pub erase_mode: bool,
+    pub game: Option<Game>,
+    pub selected_player_id: Option<PlayerId>,
+    pub setup_state: SetupState,
+    pub show_debug_view: bool,
+    pub show_setup_dialog: bool,
+    pub translator: Translator,
+}
+```
 
-**例**: `LocationState`, `RouteDrawingState`
+#### その他のState
 
-### 3. View (`src/features/<feature_name>/view.rs`)
+- `SetupState` (`src/state/setup_state.rs`) - ゲーム設定時の状態
+- `DraggingLocation` (`src/state/location.rs`) - 位置ドラッグの状態管理
+- `StorageKeys` (`src/state/storage_keys.rs`) - ストレージキーの定数
+- `AppStorage` (`src/state/storage.rs`) - ストレージ操作ユーティリティ
+
+### 3. Feature (`src/features/<feature_name>/`)
+
+**役割**: 機能単位のモジュール
+
+各featureは以下の構成を持つ:
+- `mod.rs` - モジュール定義とFeature構造体
+- `view.rs` - UI描画
+- `interaction.rs` - インタラクション処理（オプション）
+- `constants.rs` - 定数定義（オプション）
+
+**典型的なFeature構成**:
+
+```rust
+pub struct SomeFeature;
+
+impl SomeFeature {
+    pub fn render(state: &mut AppState, ui: &mut Ui) {
+        let result = SomeView::render(state, ui);
+        SomeInteraction::handle(state, &result);
+    }
+}
+```
+
+### 4. View (`src/features/<feature_name>/view.rs`)
 
 **役割**: UI描画のみ
 
-- Modelを参照して描画
-- Stateを参照して描画の挙動を変える
-- Interactionを実行する（インタラクション検出時に呼び出す）
+- Stateを参照して描画
+- ユーザー操作の結果（クリック、ドラッグなど）を返す
+- 直接ModelやStateを更新しない
 
-**例**: `LocationView`, `RouteDrawingView`
+### 5. Interaction (`src/features/<feature_name>/interaction.rs`)
 
-**重要**: Viewは描画のみを担当し、ModelやStateを更新しない
+**役割**: インタラクション処理とState更新
 
-### 4. Interaction (`src/features/<feature_name>/interaction.rs`)
+- Viewから受け取った操作結果を処理
+- AppStateのメソッドを通じてデータを更新
 
-**役割**: インタラクション処理とModel/State更新
+## 現在のFeature一覧
 
-- インタラクションを処理する
-- Modelを更新する
-- Stateを更新する
+| Feature | 説明 | Interaction |
+|---------|------|-------------|
+| `debug_view` | デバッグ情報の表示 | なし |
+| `eraser` | 消しゴムモード（軌跡削除） | あり |
+| `location` | 出現位置・終了位置の配置・移動 | あり |
+| `main` | メイン画面（マップ表示エリア） | なし |
+| `map` | マップ画像の表示 | なし |
+| `player_info` | サイドバーのプレイヤー情報表示 | あり |
+| `player_list` | 下部のプレイヤー一覧 | なし |
+| `route_drawing` | プレイヤーの移動軌跡描画 | あり |
+| `setup_dialog` | ゲーム設定ダイアログ | あり |
+| `turn` | ターン選択UI | あり |
+| `welcome` | ウェルカム画面 | なし |
 
-**例**: `LocationInteraction`, `RouteDrawingInteraction`
+## その他のモジュール
 
-**重要**: 
-- Viewには必ず対になるinteraction.rsがある
-- InteractionはModelとStateを更新する唯一の場所
+### assets (`src/assets/`)
+
+**役割**: 画像リソースの管理
+
+- `AssetManager` - マップ画像などのアセットを読み込み・管理
+
+### common (`src/common/`)
+
+**役割**: 共通ユーティリティ
+
+- `position` - 座標計算のユーティリティ
+- `texts` - 共通テキスト定義
+
+### components (`src/components/`)
+
+**役割**: 再利用可能なUIコンポーネント
+
+- `player` - プレイヤー表示コンポーネント
+- `text` - テキスト表示コンポーネント
+
+### i18n (`src/i18n/`)
+
+**役割**: 多言語対応（国際化）
+
+- `Translator` - 翻訳処理
+- `Language` - 言語選択（Japanese, English）
+- `keys` - 翻訳キーの定数
+- `ja`, `en` - 各言語の翻訳定義
+- `words/` - 単語レベルの翻訳定義
+
+### log (`src/log/`)
+
+**役割**: アプリケーションロギング
+
+- `LogLevel` - ログレベル（Error, Warn, Info, Debug, Trace）
+- `Logger` - ログ出力
+- WASM/ネイティブ両対応
+
+### constants (`src/constants.rs`)
+
+**役割**: アプリケーション全体の定数
+
+- 色定義（`WINDOW_BG_COLOR_DARK`など）
+- サイズ定義
 
 ## ディレクトリ構造
 
 ```
 src/
-├── models/              # グローバルなデータモデル
-│   ├── game.rs
-│   ├── wave.rs
-│   └── mod.rs
-├── game/                # アプリケーション状態管理
-│   ├── state.rs         # AppState
-│   └── mod.rs
+├── app.rs               # アプリケーションエントリーポイント
+├── main.rs              # メイン関数
+├── lib.rs               # ライブラリルート
+├── constants.rs         # グローバル定数
+├── assets/              # アセット管理
+├── common/              # 共通ユーティリティ
+├── components/          # 再利用可能なUIコンポーネント
 ├── features/            # 機能単位のモジュール
-│   ├── main/            # メイン画面機能
-│   │   ├── view.rs      # MainView (描画のみ)
-│   │   ├── interaction.rs # MainInteraction (インタラクション処理)
-│   │   └── mod.rs
-│   ├── location/        # 出現位置・終了時位置機能
-│   │   ├── model.rs     # LocationData (必要に応じて)
-│   │   ├── state.rs     # LocationState
-│   │   ├── view.rs      # LocationView (描画のみ)
-│   │   ├── interaction.rs # LocationInteraction (インタラクション処理)
-│   │   └── mod.rs
-│   └── mod.rs
-├── app.rs               # アプリケーションエントリーポイント (AppStateと各featureのみを使用)
-└── main.rs
+├── i18n/                # 多言語対応
+├── log/                 # ロギング
+├── models/              # データモデル
+└── state/               # 状態管理
 ```
 
 ## Feature の粒度
@@ -141,331 +239,134 @@ src/
 
 **重要な原則**: **画面に描画されているものは全てfeatureとして扱う**
 
-**例**:
-- **メイン画面**: マップとユーザー一覧を表示する機能
-- **出現位置・終了時位置の管理**: ユーザーの開始地点と終了地点を設定・移動する機能
-- **軌跡描画**: ユーザーの移動軌跡を描画する機能
-- **ターン選択**: ターンを切り替える機能
-- **ユーザー選択**: 操作対象のユーザーを選択する機能
-- **デバッグビュー**: デバッグ情報を表示する機能
-
 ### Feature の分割基準
 
-1. **データの独立性**: 機能が独自のデータ（Model）を持つ、または既存のModelの特定部分を操作する
-2. **UIの独立性**: 機能が独自のUI要素（View）を持つ、または既存のViewの特定部分を描画する
-3. **状態の独立性**: 機能が独自の状態（State）を持つ、または既存のStateの特定部分を管理する
-4. **操作の独立性**: 機能が独立した操作フローを持つ
+1. **データの独立性**: 機能が独自のデータを操作する
+2. **UIの独立性**: 機能が独自のUI要素を持つ
+3. **操作の独立性**: 機能が独立した操作フローを持つ
 
-### Feature Model の必要性
+### Interactionの必要性
 
-**各featureにmodelが必要かどうかは、featureによる**
+**Interactionが必要なfeature**:
+- ユーザー操作に応じてStateを更新する必要がある
+- クリック、ドラッグなどのイベントを処理する
 
-#### Modelが必要なfeature
-
-以下の条件を満たすfeatureは、独自のModelを持つ：
-
-1. **永続化可能なデータを持つ**: ファイルに保存したいデータがある
-2. **機能固有のデータ構造を持つ**: 他のfeatureと独立したデータ構造
-3. **複雑なデータ構造を持つ**: 単純な値ではなく、構造化されたデータ
-
-**例**: `location` (出現位置・終了時位置), `route_drawing` (軌跡)
-
-#### Modelが不要なfeature
-
-以下の条件を満たすfeatureは、独自のModelを持たない：
-
-1. **UI状態のみを持つ**: 選択中、ドラッグ中などの一時的な状態
-2. **グローバルなModelで十分**: 既存のModel（`Game`, `Wave`など）で表現できる
-3. **単純な状態のみ**: `bool`, `Option<usize>`などの単純な値のみ
-
-**例**: `debug_view` (表示/非表示), `user_selection` (選択中のユーザー)
-
-## グローバルなModelの更新
-
-### 原則
-
-**グローバルなModel（`Game`, `User`など）の更新は、各featureのStateのメソッドで行う**
-
-### 実装パターン
-
-#### パターン1: Feature固有のModelを更新する場合
-
-```rust
-// features/location/interaction.rs
-impl LocationInteraction {
-    // Model更新とState更新を同時に行う
-    pub fn handle_click(
-        model: &mut AppModel,
-        state: &mut LocationState,
-        wave_index: usize,
-        user_id: usize,
-        point: Point,
-    ) {
-        // Model更新: feature固有のModelを更新
-        model.location_data.spawn_locations.insert(user_id, point);
-        
-        // State更新: 必要に応じてStateも更新
-        // (この例ではStateの更新は不要)
-    }
-}
-
-// features/location/view.rs
-impl LocationView {
-    pub fn show(
-        model: &AppModel,
-        state: &LocationState,
-        // ... 描画処理
-    ) {
-        // ModelとStateを参照して描画
-    }
-    
-    pub fn handle_interaction(
-        model: &mut AppModel,
-        state: &mut LocationState,
-        response: &egui::Response,
-    ) {
-        if response.clicked() {
-            // Interactionを実行
-            LocationInteraction::handle_click(model, state, wave_index, user_id, point);
-        }
-    }
-}
-```
-
-#### パターン2: グローバルなModelを更新する場合
-
-```rust
-// features/user_management/interaction.rs
-impl UserManagementInteraction {
-    // Model更新とState更新を同時に行う
-    pub fn handle_name_update(
-        model: &mut AppModel,
-        state: &mut UserManagementState,
-        user_id: usize,
-        name: String,
-    ) {
-        // Model更新: グローバルなModelを更新
-        if let Some(game) = &mut model.game {
-            if let Some(user) = game.users.get_mut(user_id) {
-                user.name = name;
-            }
-        }
-        
-        // State更新: 必要に応じてStateも更新
-        // (この例ではStateの更新は不要)
-    }
-}
-```
-
-#### パターン3: 複数のModelを更新する場合（AppStateで調整）
-
-```rust
-// game/state.rs
-impl AppState {
-    // 複数のfeatureを連携させる場合
-    pub fn handle_user_removed(&mut self, user_id: usize) {
-        // Model更新: 複数のModelを更新
-        if let Some(game) = &mut self.model.game {
-            game.users.remove(user_id);
-            
-            for wave in &mut game.waves {
-                wave.location_data.spawn_locations.remove(&user_id);
-                wave.route_drawing_data.routes.retain(|r| r.user_id != user_id);
-            }
-        }
-        
-        // State更新: 必要に応じてStateも更新
-        self.location_state.clear_dragging();
-        self.route_drawing_state.clear_temp_points();
-    }
-}
-```
-
-#### パターン4: State更新のみの場合
-
-```rust
-// features/debug_view/interaction.rs
-impl DebugViewInteraction {
-    // State更新のみ（Model更新は不要）
-    pub fn handle_toggle(state: &mut DebugViewState) {
-        // State更新: UI状態のみを更新
-        state.show_debug_view = !state.show_debug_view;
-    }
-}
-
-// features/debug_view/view.rs
-impl DebugView {
-    pub fn show(state: &DebugViewState) {
-        // Stateを参照して描画
-    }
-    
-    pub fn handle_interaction(state: &mut DebugViewState, response: &egui::Response) {
-        if response.clicked() {
-            // Interactionを実行
-            DebugViewInteraction::handle_toggle(state);
-        }
-    }
-}
-```
-
-### 重要な原則
-
-1. **データフローは `model > state > view > interaction > model更新 > state更新` で統一**
-2. **Viewには必ず対になるinteraction.rsがある**
-3. **Viewは描画のみを担当し、ModelやStateを更新しない**
-4. **InteractionはModelとStateを更新する唯一の場所**
-5. **Modelの更新は各featureのInteractionで行う**
-6. **Stateの更新も各featureのInteractionで行う**
-7. **AppStateはModelを保持するだけで、直接更新しない**
-8. **複数のfeatureを連携させる必要がある場合は、AppStateで調整する**
+**Interactionが不要なfeature**:
+- 表示のみで、ユーザー操作を処理しない
+- 他のfeatureから呼び出される描画専用コンポーネント
 
 ## データフロー
 
 ### 統一されたデータフロー
 
 ```
-Model → State → View → Interaction → Model更新 → State更新 → Model
+AppState.data (AppData) → Feature.render() → View.render() → Interaction.handle() → AppState更新
 ```
 
 ### フレーム N: 描画とインタラクション
 
 ```
-1. Model (データを参照)
+1. AppState.data を参照
    ↓
-2. State (状態を参照)
+2. Feature.render() を呼び出し
    ↓
-3. View (ModelとStateを参照して描画)
+3. View.render() で描画（操作結果を返す）
    ↓
-4. Viewがインタラクションを検出
+4. Interaction.handle() で操作を処理
    ↓
-5. Interactionを実行
-   ├─ Model更新 (データを更新)
-   └─ State更新 (状態を更新)
+5. AppStateのメソッドを通じてデータを更新
 ```
 
 ### フレーム N+1: 更新された描画
 
 ```
-1. Model (更新されたデータを参照)
+1. 更新された AppState.data を参照
    ↓
-2. State (更新された状態を参照)
+2. Feature.render() を呼び出し
    ↓
-3. View (更新されたModelとStateを参照して描画 - 変更が反映される)
+3. View.render() で描画（変更が反映される）
 ```
 
 ### 具体例
 
 ```rust
-// フレーム N: ユーザーがクリック
+// features/location/mod.rs
+pub struct LocationFeature;
 
-// features/location/view.rs
-impl LocationView {
-    pub fn show(
-        model: &AppModel,           // 1. Modelを参照
-        state: &LocationState,      // 2. Stateを参照
-        // ... 描画処理
-    ) {
-        // 3. Viewで描画
-    }
-    
-    pub fn handle_interaction(
-        model: &mut AppModel,
-        state: &mut LocationState,
-        response: &egui::Response,
-    ) {
-        if response.clicked() {     // 4. インタラクションを検出
-            // 5. Interactionを実行
-            LocationInteraction::handle_click(model, state, wave_index, user_id, point);
-        }
+impl LocationFeature {
+    pub fn render(state: &mut AppState, response: &Response, ui: &mut Ui) {
+        // 1. Viewで描画し、操作結果を取得
+        let result = LocationView::render(state, ui);
+        // 2. Interactionで操作を処理
+        LocationInteraction::handle(state, &result, response, ui);
     }
 }
 
 // features/location/interaction.rs
 impl LocationInteraction {
-    pub fn handle_click(
-        model: &mut AppModel,       // 5. Model更新
-        state: &mut LocationState,  // 5. State更新
-        wave_index: usize,
-        user_id: usize,
-        point: Point,
-    ) {
-        // Model更新
-        model.location_data.spawn_locations.insert(user_id, point);
-        
-        // State更新
-        state.start_dragging(location);
-    }
-}
-
-// フレーム N+1: 更新されたModelとStateを参照して描画
-impl LocationView {
-    pub fn show(
-        model: &AppModel,           // 更新されたModelを参照
-        state: &LocationState,      // 更新されたStateを参照
-        // ... 描画処理（変更が反映される）
-    ) {
+    pub fn handle(state: &mut AppState, result: &LocationResult, response: &Response, ui: &mut Ui) {
+        // AppStateのメソッドを通じて更新
+        if let Some(player_id) = result.clicked_player {
+            state.set_selected_player_id(Some(player_id));
+        }
+        if let Some((player_id, point)) = result.dropped_spawn {
+            state.add_spawn_location(player_id, point);
+        }
     }
 }
 ```
 
 ## 命名規則
 
-- **Model**: 既存の命名規則に従う（例: `Game`, `Wave`, `LocationData`）
-- **State**: `<FeatureName>State` (例: `LocationState`)
-- **View**: `<FeatureName>View` (例: `LocationView`)
-- **Interaction**: `<FeatureName>Interaction` (例: `LocationInteraction`)
+- **Model**: PascalCase（例: `Game`, `Player`, `Wave`）
+- **Feature**: `<FeatureName>Feature`（例: `LocationFeature`）
+- **View**: `<FeatureName>View`（例: `LocationView`）
+- **Interaction**: `<FeatureName>Interaction`（例: `LocationInteraction`）
+- **State**: `AppState`, `AppData`, `SetupState`
 
 ## 禁止事項
 
-### ❌ 禁止: AppStateから直接Modelを更新
-
-```rust
-// ❌ 悪い例
-impl AppState {
-    pub fn update_spawn_location(&mut self, user_id: usize, point: Point) {
-        // AppStateから直接Modelを更新しない
-    }
-}
-```
-
-### ❌ 禁止: Viewから直接ModelやStateを更新
+### ❌ 禁止: Viewから直接AppDataを更新
 
 ```rust
 // ❌ 悪い例
 impl LocationView {
-    pub fn handle_interaction(&mut self, model: &mut AppModel, state: &mut LocationState) {
-        // Viewから直接ModelやStateを更新しない
-        model.location_data.spawn_locations.insert(user_id, point);
-        state.start_dragging(location);
+    pub fn render(state: &mut AppState, ui: &mut Ui) {
+        // Viewから直接データを更新しない
+        state.data_mut().selected_player_id = Some(player_id);
     }
 }
 ```
 
-**正しい例**: ViewはInteractionを実行するだけ
+**正しい例**: ViewはInteractionに処理を委譲
 
 ```rust
 // ✅ 良い例
 impl LocationView {
-    pub fn handle_interaction(
-        &mut self,
-        model: &mut AppModel,
-        state: &mut LocationState,
-        response: &egui::Response,
-    ) {
-        if response.clicked() {
-            // Interactionを実行
-            LocationInteraction::handle_click(model, state, wave_index, user_id, point);
+    pub fn render(state: &mut AppState, ui: &mut Ui) -> LocationResult {
+        // 操作結果を返すだけ
+        LocationResult { clicked_player: Some(player_id) }
+    }
+}
+
+impl LocationInteraction {
+    pub fn handle(state: &mut AppState, result: &LocationResult) {
+        // Interactionで更新
+        if let Some(player_id) = result.clicked_player {
+            state.set_selected_player_id(Some(player_id));
         }
     }
 }
 ```
 
-### ❌ 禁止: ModelからAppStateを参照（循環参照）
+### ❌ 禁止: Modelから直接UIを操作
 
 ```rust
 // ❌ 悪い例
-pub struct Game {
-    pub app_state: AppState,  // 循環参照になる
+impl Game {
+    pub fn render(&self, ui: &mut Ui) {
+        // ModelはUIを知らない
+    }
 }
 ```
 
@@ -473,30 +374,42 @@ pub struct Game {
 
 ### app.rs の構成
 
-`app.rs`は以下のみを使用します：
+`app.rs`は以下のみを使用:
 
 1. **AppState**: アプリケーション全体の状態
-2. **各feature**: 画面に描画される全ての機能
+2. **各Feature**: 画面に描画される全ての機能
 
 ```rust
 // app.rs
 impl eframe::App for AmusApp {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        // AppStateと各featureのみを使用
-        MainView::show(&mut self.state, ctx);
-        LocationView::show(&mut self.state, ctx);
-        // ...
+    fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
+        // セットアップダイアログの表示
+        if self.state.show_setup_dialog() {
+            SetupView::show(&mut self.state, ctx);
+            return;
+        }
+
+        // メニューUI
+        self.build_menu_ui(ctx, frame);
+
+        // メインUI
+        SidePanel::right("player_info_panel").show(ctx, |ui| {
+            PlayerInfoFeature::render(&mut self.state, ui);
+        });
+
+        CentralPanel::default().show(ctx, |ui| {
+            MainView::render(&mut self.state, ui);
+        });
+
+        TopBottomPanel::bottom("player_list_panel").show(ctx, |ui| {
+            PlayerListView::show(&mut self.state, ui);
+        });
     }
 }
 ```
-
-**重要**: 
-- `app.rs`は`AppState`と各featureだけを使用する
-- 画面に描画されているものは全てfeatureとして扱う
-- `ui/`ディレクトリは不要（全て`features/`に統合）
 
 ## 参考
 
 - eframe/eguiの状態管理: `eframe::App`トレイトを実装する構造体が状態を保持
 - AppStateはeframe/eguiの機能ではなく、独自に定義した構造体
-
+- `RefCell`を使用した内部可変性パターンにより、借用の競合を回避
