@@ -1,0 +1,16 @@
+# 開発タスク
+[dev]
+description = "開発環境を起動する（ファイル監視 + 自動リロード）"
+run = "mise watch -r start"
+
+[start]
+description = "アプリケーションを起動する"
+run = "cargo run"
+
+["start-release"]
+description = "リリースビルドでアプリケーションを起動"
+run = "cargo run --release"
+
+["check-watch"]
+description = "コードチェックを監視する"
+run = "mise watch -r check"

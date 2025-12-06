@@ -1,0 +1,16 @@
+# コード品質タスク
+[fmt]
+description = "コードをフォーマットする"
+run = "cargo fmt"
+
+[lint]
+description = "コードの静的解析を行う"
+run = "cargo clippy"
+
+[test]
+description = "テストを実行する"
+run = "cargo test"
+
+[verify]
+description = "コミット前のコード品質調整（フォーマット + 静的解析）"
+depends = ["fmt", "lint"]

@@ -1,0 +1,24 @@
+# リリースビルドタスク
+["release-linux"]
+description = "Linux用リリースビルドを作成する"
+run = '''
+  cargo build --release --target x86_64-unknown-linux-gnu
+  echo "Linux用バイナリが作成されました:"
+  echo "  target/x86_64-unknown-linux-gnu/release/amus"
+'''
+
+["release-windows"]
+description = "Windows用リリースビルドを作成する（GNU toolchain）"
+run = '''
+  cargo build --release --target x86_64-pc-windows-gnu
+  echo "Windows用バイナリが作成されました:"
+  echo "  target/x86_64-pc-windows-gnu/release/amus.exe"
+'''
+
+["release-windows-msvc"]
+description = "Windows用リリースビルドを作成する（MSVC toolchain）"
+run = '''
+  cargo build --release --target x86_64-pc-windows-msvc
+  echo "Windows用バイナリが作成されました:"
+  echo "  target/x86_64-pc-windows-msvc/release/amus.exe"
+'''

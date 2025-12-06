@@ -1,0 +1,16 @@
+# Rust Analyzerとツール設定タスク
+["analyzer-debug"]
+description = "Rust Analyzerのターゲットをdebugに設定"
+run = "node scripts/analyzer-target.js debug"
+
+["analyzer-release"]
+description = "Rust Analyzerのターゲットをreleaseに設定"
+run = "node scripts/analyzer-target.js release"
+
+["analyzer-wasm"]
+description = "Rust Analyzerのターゲットをwasmに設定"
+run = "node scripts/analyzer-target.js wasm"
+
+[init]
+description = "開発環境の初期設定を行う"
+run = "bash scripts/init.sh"
