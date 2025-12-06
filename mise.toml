@@ -35,6 +35,10 @@ run = "npm run rust-analyzer-target -- debug"
 description = "Rust Analyzerのターゲットを設定する。"
 run = "npm run rust-analyzer-target -- release"
 
+[tasks.analyzer-target-wasm]
+description = "Rust Analyzerのターゲットを設定する。"
+run = "npm run rust-analyzer-target -- wasm"
+
 [tasks.release-linux]
 description = "Linux用リリースビルドを作成する"
 run = '''
