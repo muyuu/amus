@@ -1,0 +1,12 @@
+# ビルドタスク
+[build]
+description = "アプリケーションをビルドする"
+run = "cargo build"
+
+[check]
+description = "コードの構文チェックを行う"
+run = "cargo check"
+
+[clean]
+description = "ビルドの成果物を削除する"
+run = "cargo clean"
