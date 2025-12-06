@@ -20,11 +20,11 @@ impl DebugView {
         Area::new(Id::new("debug_view"))
             .fixed_pos(window_pos)
             .show(ctx, |ui| {
-                Self::show_content(state, ui, ctx, window_width);
+                Self::render_content(state, ui, ctx, window_width);
             });
     }
 
-    fn show_content(state: &AppState, ui: &mut Ui, ctx: &Context, window_width: f32) {
+    fn render_content(state: &AppState, ui: &mut Ui, ctx: &Context, window_width: f32) {
         Frame::popup(ui.style())
             .inner_margin(Margin::same(10))
             .show(ui, |ui| {
@@ -32,11 +32,11 @@ impl DebugView {
                 ui.heading("🐛 デバッグ情報");
                 ui.separator();
 
-                Self::show_debug_table(state, ui, ctx);
+                Self::render_debug_table(state, ui, ctx);
             });
     }
 
-    fn show_debug_table(state: &AppState, ui: &mut Ui, ctx: &Context) {
+    fn render_debug_table(state: &AppState, ui: &mut Ui, ctx: &Context) {
         // 2列のテーブル形式で表示
         Grid::new("debug_grid")
             .num_columns(2)

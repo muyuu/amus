@@ -9,7 +9,7 @@ use crate::state::AppState;
 pub struct SetupView;
 
 impl SetupView {
-    pub fn show(state: &mut AppState, ctx: &Context) {
+    pub fn render(state: &mut AppState, ctx: &Context) {
         let texts = SetupTexts::get(state);
         let common = CommonTexts::get(state);
 
