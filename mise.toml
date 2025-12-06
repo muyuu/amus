@@ -86,6 +86,11 @@ hide = true
 description = "アプリケーションを起動する"
 run = "cargo run"
 
+[tasks.start-release]
+hide = true
+description = "リリースビルドでアプリケーションを起動する"
+run = "cargo run --release"
+
 [tasks.check]
 hide = true
 description = "コードの構文チェックを行う"

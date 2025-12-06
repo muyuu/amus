@@ -109,6 +109,7 @@ impl AmusApp {
                         }
 
                         // 中央：デバッグボタン（スペースで中央に配置）
+                        #[cfg(debug_assertions)]
                         ui.allocate_ui_with_layout(
                             ui.available_size(),
                             Layout::top_down(Align::Center),
