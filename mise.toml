@@ -102,7 +102,23 @@ description = "ビルドの成果物を削除する"
 run = "cargo clean"
 
 [tasks.build-wasm]
-description = "WASMを作成する（./web/pkg/ に出力）"
+description = "infoログ出力でWASMを作成する（./web/pkg/ に出力）"
+run = '''
+  wasm-pack build --release --target web --out-dir ./web/pkg
+  echo "WASMビルドが完了しました: ./web/pkg/"
+'''
+
+[tasks.build-wasm-debug]
+description = "debugログ出力のWASMを作成する（./web/pkg/ に出力）"
+env = { RUST_LOG = "debug" }
+run = '''
+  wasm-pack build --release --target web --out-dir ./web/pkg
+  echo "WASMビルドが完了しました: ./web/pkg/"
+'''
+
+[tasks.build-wasm-release]
+description = "release用にログなしWASMを作成する（./web/pkg/ に出力）"
+env = { RUST_LOG = "error" }
 run = '''
   wasm-pack build --release --target web --out-dir ./web/pkg
   echo "WASMビルドが完了しました: ./web/pkg/"
