@@ -98,28 +98,34 @@ impl SetupView {
                                 .selected_text(selected_color.name())
                                 .show_ui(ui, |ui| {
                                     for color in &available_colors {
-                                        ui.horizontal(|ui| {
-                                            // 色のプレビューを表示
-                                            let color_rect = Rect::from_min_size(
-                                                ui.next_widget_position(),
-                                                Vec2::new(12.0, 12.0),
-                                            );
-                                            ui.allocate_rect(color_rect, Sense::hover());
-                                            ui.painter().rect_filled(
-                                                color_rect,
-                                                2.0,
-                                                color.to_egui_color(),
-                                            );
+                                        let (rect, response) = ui.allocate_exact_size(
+                                            ui.available_size_before_wrap(),
+                                            Sense::click(),
+                                        );
 
-                                            if ui
-                                                .selectable_label(
-                                                    selected_color == *color,
-                                                    color.name(),
-                                                )
-                                                .clicked()
-                                            {
-                                                result.update_player = Some((player.id, player.name.clone(), color.clone()));
-                                            }
+                                        if response.clicked() {
+                                            result.update_player = Some((player.id, player.name.clone(), color.clone()));
+                                        }
+
+                                        ui.scope_builder(UiBuilder::new().max_rect(rect), |ui| {
+                                            ui.horizontal(|ui| {
+                                                let color_rect = Rect::from_min_size(
+                                                    ui.next_widget_position(),
+                                                    Vec2::new(12.0, 12.0),
+                                                );
+                                                ui.allocate_rect(color_rect, Sense::hover());
+                                                ui.painter().rect_filled(
+                                                    color_rect,
+                                                    2.0,
+                                                    color.to_egui_color(),
+                                                );
+
+                                                ui
+                                                    .selectable_label(
+                                                        selected_color == *color,
+                                                        color.name(),
+                                                    )
+                                            });
                                         });
                                     }
                                 });
