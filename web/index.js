@@ -1,4 +1,4 @@
-import init, { start } from './pkg/amus.js';
+import init, { start } from './pkg/amus_wasm.js';
 
 async function run() {
     // WASMモジュールを初期化

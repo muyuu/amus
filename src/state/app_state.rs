@@ -3,12 +3,12 @@ use std::collections::HashMap;
 
 use crate::assets::AssetManager;
 use crate::models::player::PlayerId;
-use crate::models::*;
 use crate::state::app_data::AppData;
 use crate::state::location::DraggingLocation;
 use crate::state::AppStorage;
 use crate::state::SetupState;
 use crate::state::StorageKeys;
+use crate::{log_debug, models::*};
 
 /// アプリケーション状態へのアクセスを提供する構造体
 pub struct AppState {
@@ -423,11 +423,13 @@ impl AppState {
         if let Ok(Some(setup_state)) =
             AppStorage::get::<SetupState>(storage, StorageKeys::SETUP_STATE)
         {
+            log_debug!("AppState", "SetupState をストレージから復元");
             self.data.borrow_mut().setup_state = setup_state;
         }
 
         // ゲーム状態を復元
         if let Ok(Some(game)) = AppStorage::get::<Game>(storage, StorageKeys::GAME) {
+            log_debug!("AppState", "Game をストレージから復元");
             self.data.borrow_mut().game = Some(game);
         }
 
@@ -435,6 +437,7 @@ impl AppState {
         if let Ok(Some(wave_index)) =
             AppStorage::get::<usize>(storage, StorageKeys::CURRENT_WAVE_INDEX)
         {
+            log_debug!("AppState", "現在のターンをストレージから復元");
             self.data.borrow_mut().current_wave_index = wave_index;
         }
 
