@@ -52,7 +52,7 @@ impl eframe::App for AmusApp {
 
         // セットアップダイアログの表示
         if self.state.show_setup_dialog() {
-            SetupView::show(&mut self.state, ctx);
+            SetupView::render(&mut self.state, ctx);
             return;
         }
 
@@ -90,7 +90,7 @@ impl AmusApp {
             .default_height(90.0)
             .frame(Self::get_frame())
             .show(ctx, |ui| {
-                PlayerListView::show(&mut self.state, ui);
+                PlayerListView::render(&mut self.state, ui);
             });
     }
 

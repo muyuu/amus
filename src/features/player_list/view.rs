@@ -4,7 +4,7 @@ use egui::*;
 pub struct PlayerListView;
 
 impl PlayerListView {
-    pub fn show(state: &mut AppState, ui: &mut Ui) {
+    pub fn render(state: &mut AppState, ui: &mut Ui) {
         // 利用可能なエリア全体を取得
         let available_rect = ui.available_rect_before_wrap();
 
