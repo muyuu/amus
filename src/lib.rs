@@ -5,8 +5,11 @@ pub mod components;
 pub mod constants;
 pub mod features;
 pub mod i18n;
+pub mod log;
 pub mod models;
 pub mod state;
+
+use crate::log::Log;
 
 #[cfg(target_arch = "wasm32")]
 use app::AmusApp;
@@ -23,6 +26,7 @@ use wasm_bindgen::prelude::*;
 pub async fn start(canvas_id: &str) -> Result<(), eframe::wasm_bindgen::JsValue> {
     // コンソールにログを出力するための設定
     console_error_panic_hook::set_once();
+    Log::init();
 
     // DOMからcanvas要素を取得
     let window = web_sys::window().ok_or_else(|| JsValue::from_str("window not found"))?;

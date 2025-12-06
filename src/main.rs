@@ -5,15 +5,19 @@ mod components;
 mod constants;
 mod features;
 mod i18n;
+mod log;
 mod models;
 mod state;
 
+use amus_wasm::log::Log;
 use app::AmusApp;
 use eframe::egui;
 use egui::*;
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result<()> {
+    Log::init();
+
     let options = eframe::NativeOptions {
         viewport: ViewportBuilder::default()
             .with_inner_size([1200.0, 840.0])
