@@ -97,6 +97,10 @@ case "$OS" in
         ;;
 esac
 
+echo "📥 npm パッケージをインストール中..."
+npm install
+echo "✅ npm パッケージのインストールが完了しました"
+
 echo ""
 echo "🎉 セットアップ完了！"
 echo ""
