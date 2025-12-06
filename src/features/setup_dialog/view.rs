@@ -76,26 +76,44 @@ impl SetupView {
 
                             let player = &state.setup_state().players[i].clone();
                             let mut name = player.name.clone();
-                            if ui.text_edit_singleline(&mut name).changed() {
-                                result.update_player = Some((player.id, name, player.color.clone()));
-                            }
+                            let res = ui.text_edit_singleline(&mut name);
 
                             ui.add_space(8.0);
 
-                            // 現在の色のプレビューをComboBoxの前に表示
-                            let selected_color = player.color.clone();
+                            // 選択中の色と同じ場合は別の色を表示する
+                            let (selected_id, selected_color) = match state.selected_player_color() {
+                                Some((id, color)) => (Some(id), Some(color)),
+                                None => (None, None),
+                            };
+                            let player_color = if selected_id != Some(player.id) && selected_color == Some(player.color.clone()) {
+                                let a = available_colors
+                                .iter()
+                                .find(|c| **c != player.color)
+                                .cloned()
+                                .unwrap_or(player.color.clone());
+
+                                result.update_player = Some((player.id, name.clone(), a.clone()));
+
+                                a
+                            } else {
+                                player.color.clone()
+                            };
 
                             // 色プレビューのサイズと位置を調整
                             let (rect, _response) =
                                 ui.allocate_exact_size(Vec2::new(20.0, 20.0), Sense::hover());
                             ui.painter()
-                                .rect_filled(rect, 2.0, selected_color.to_egui_color());
+                                .rect_filled(rect, 2.0, player_color.to_egui_color());
+
+                            if res.changed() {
+                                result.update_player = Some((player.id, name, player_color.clone()));
+                            }
 
                             ui.add_space(4.0);
 
                             // 色選択のためのComboBox
                             ComboBox::from_id_salt(format!("color_combo_{}", i))
-                                .selected_text(selected_color.name())
+                                .selected_text(player_color.name())
                                 .show_ui(ui, |ui| {
                                     for color in &available_colors {
                                         let (rect, response) = ui.allocate_exact_size(
@@ -122,7 +140,7 @@ impl SetupView {
 
                                                 ui
                                                     .selectable_label(
-                                                        selected_color == *color,
+                                                        player_color == *color,
                                                         color.name(),
                                                     )
                                             });

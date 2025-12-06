@@ -26,6 +26,10 @@ pub struct AppData {
 
     pub game: Option<Game>,
 
+    /// ユーザーの色を選択した場合の情報を保持
+    /// 選択された色は絶対重複しないし、選択したものが優先なので保持する
+    pub selected_player_color: Option<(PlayerId, Color)>,
+
     pub selected_player_id: Option<PlayerId>,
 
     // ゲーム設定の状態
@@ -49,6 +53,7 @@ impl Default for AppData {
             editing_name_player_id: None, // ユーザー名編集中はNone
             erase_mode: false,            // 初期状態では消しゴムモードオフ
             game: None,
+            selected_player_color: None,
             selected_player_id: None,
             setup_state: SetupState::default(),
             show_setup_dialog: false,

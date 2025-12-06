@@ -20,9 +20,14 @@ impl SetupDialogFeature {
             interaction::SetupInteraction::adjust_player_count(state, count);
         }
 
-        if let Some((id, name, color)) = result.update_player {
-            interaction::SetupInteraction::update_player_name(state, id, name);
-            interaction::SetupInteraction::update_player_color(state, id, color);
+        match result.update_player {
+            Some((id, name, color)) => {
+                interaction::SetupInteraction::update_player_name(state, id, name);
+                interaction::SetupInteraction::update_player_color(state, id, color);
+            }
+            None => {
+                interaction::SetupInteraction::reset_selected_player_color(state);
+            }
         }
 
         if result.start_game {

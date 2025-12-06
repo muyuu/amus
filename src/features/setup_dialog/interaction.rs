@@ -18,7 +18,18 @@ impl SetupInteraction {
     }
 
     pub fn update_player_color(state: &mut AppState, id: PlayerId, color: Color) {
-        state.update_player_color(id, color);
+        // 現在の色と同じ色なら何もしない
+        if let Some(current_color) = state.player_color(id) {
+            if current_color == color {
+                return;
+            }
+        }
+
+        state.update_player(id, color);
+    }
+
+    pub fn reset_selected_player_color(state: &mut AppState) {
+        state.reset_selected_player_color();
     }
 
     pub fn start_game(state: &mut AppState) {
