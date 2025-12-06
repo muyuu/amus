@@ -45,7 +45,7 @@ pub async fn start(canvas_id: &str) -> Result<(), eframe::wasm_bindgen::JsValue>
                 // 日本語フォントの設定
                 setup_japanese_fonts_wasm(&cc.egui_ctx);
                 setup_panel_bg(&cc.egui_ctx);
-                Ok(Box::new(AmusApp::default()))
+                Ok(Box::new(AmusApp::new(cc)))
             }),
         )
         .await
