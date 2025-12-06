@@ -5,7 +5,7 @@ use crate::constants::AppConstants;
 use crate::features::main::MainView;
 use crate::features::player_info::PlayerInfoFeature;
 use crate::features::player_list::PlayerListView;
-use crate::features::setup_dialog::SetupView;
+use crate::features::setup_dialog::SetupDialogFeature;
 use crate::i18n::keys;
 use crate::state::AppState;
 
@@ -52,7 +52,7 @@ impl eframe::App for AmusApp {
 
         // セットアップダイアログの表示
         if self.state.show_setup_dialog() {
-            SetupView::render(&mut self.state, ctx);
+            SetupDialogFeature::render(&mut self.state, ctx);
             return;
         }
 

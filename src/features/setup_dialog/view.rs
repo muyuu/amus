@@ -1,17 +1,28 @@
 use egui::*;
 
-use super::interaction::SetupInteraction;
 use crate::common::CommonTexts;
 use crate::i18n::keys::*;
+use crate::models::player::PlayerId;
 use crate::models::{Area, Color};
 use crate::state::AppState;
+
+#[derive(Default)]
+pub struct SetupViewResult {
+    pub select_area: Option<Area>,
+    pub player_count: Option<usize>,
+    pub update_player: Option<(PlayerId, String, Color)>,
+    pub start_game: bool,
+    pub cancel: bool,
+}
 
 pub struct SetupView;
 
 impl SetupView {
-    pub fn render(state: &mut AppState, ctx: &Context) {
+    pub fn render(state: &AppState, ctx: &Context) -> SetupViewResult {
         let texts = SetupTexts::get(state);
         let common = CommonTexts::get(state);
+
+        let mut result = SetupViewResult::default();
 
         Window::new(&texts.title)
             .collapsible(false)
@@ -36,7 +47,7 @@ impl SetupView {
                                         )
                                         .clicked()
                                     {
-                                        SetupInteraction::select_area(state, area.clone());
+                                        result.select_area = Some(area.clone());
                                     }
                                 }
                             });
@@ -48,7 +59,7 @@ impl SetupView {
                         ui.label(&texts.player_count);
                         let mut new_count = state.setup_state().player_count;
                         if ui.add(Slider::new(&mut new_count, 4..=18)).changed() {
-                            SetupInteraction::adjust_player_count(state, new_count);
+                            result.player_count = Some(new_count);
                         }
                     });
 
@@ -66,7 +77,7 @@ impl SetupView {
                             let player = &state.setup_state().players[i].clone();
                             let mut name = player.name.clone();
                             if ui.text_edit_singleline(&mut name).changed() {
-                                SetupInteraction::update_player_name(state, player.id, name);
+                                result.update_player = Some((player.id, name, player.color.clone()));
                             }
 
                             ui.add_space(8.0);
@@ -107,11 +118,7 @@ impl SetupView {
                                                 )
                                                 .clicked()
                                             {
-                                                SetupInteraction::update_player_color(
-                                                    state,
-                                                    player.id,
-                                                    color.clone(),
-                                                );
+                                                result.update_player = Some((player.id, player.name.clone(), color.clone()));
                                             }
                                         });
                                     }
@@ -126,15 +133,17 @@ impl SetupView {
 
                     ui.horizontal(|ui| {
                         if ui.button(&common.button_start_game).clicked() {
-                            SetupInteraction::start_game(state);
+                            result.start_game = true;
                         }
 
                         if ui.button(&common.button_cancel).clicked() {
-                            SetupInteraction::cancel(state);
+                            result.cancel = true;
                         }
                     });
                 });
             });
+
+        result
     }
 }
 
@@ -147,7 +156,7 @@ struct SetupTexts {
 }
 
 impl SetupTexts {
-    fn get(state: &mut AppState) -> Self {
+    fn get(state: &AppState) -> Self {
         Self {
             title: state.t(SETUP_TITLE).to_string(),
             area_selection: state.t(SETUP_AREA_SELECTION).to_string(),
