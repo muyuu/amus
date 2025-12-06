@@ -45,7 +45,11 @@ impl AssetManager {
 
     fn load_area_images(&mut self, ctx: &Context) {
         for area in Area::all() {
-            let path = format!("assets/images/map/{}_{}.png", area.id(), Theme::Dark.as_str());
+            let path = format!(
+                "assets/images/map/{}_{}.png",
+                area.id(),
+                Theme::Dark.as_str()
+            );
             let normalized_path = Self::normalize_path(&path);
 
             if let Ok(texture) = Self::load_texture_from_path(ctx, &normalized_path) {
