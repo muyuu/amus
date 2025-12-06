@@ -39,12 +39,17 @@ try {
         workspaceJson.settings = {};
     }
 
-    workspaceJson.settings["rust-analyzer.cargo.extraArgs"] = [`--${arg}`];
-    
-    if (arg === 'wasm') {
-        workspaceJson.settings["rust-analyzer.cargo.target"] = target;
-    } else {
-        delete workspaceJson.settings["rust-analyzer.cargo.target"];
+    delete workspaceJson.settings["rust-analyzer.cargo.target"];
+    delete workspaceJson.settings["rust-analyzer.cargo.extraArgs"];
+
+    if (arg !== null) {
+        workspaceJson.settings["rust-analyzer.cargo.extraArgs"] = [`--${arg}`];
+
+        if (arg === 'wasm') {
+            workspaceJson.settings["rust-analyzer.cargo.target"] = target;
+        } else {
+            delete workspaceJson.settings["rust-analyzer.cargo.target"];
+        }
     }
 
     // 変更をファイルに書き戻す
