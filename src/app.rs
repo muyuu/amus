@@ -84,8 +84,6 @@ impl AmusApp {
 
         // 下部のユーザー一覧パネル
         TopBottomPanel::bottom(PanelIds::PLAYER_LIST)
-            .resizable(false)
-            .default_height(90.0)
             .frame(Self::get_frame())
             .show(ctx, |ui| {
                 ui.vertical(|ui| {
