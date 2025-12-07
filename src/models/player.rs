@@ -32,6 +32,7 @@ pub struct Player {
     pub state: PlayerState,
     pub death: Option<usize>, // 何ターン目か（1始まり）
     pub done_button: bool,    // ボタンを押したかどうか
+    pub resolved_comms: bool, // 通信妨害を解決したかどうか
 }
 
 impl Player {
@@ -44,6 +45,7 @@ impl Player {
             state: PlayerState::Alive,
             death: None,
             done_button: false,
+            resolved_comms: false,
         }
     }
 

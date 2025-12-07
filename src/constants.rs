@@ -24,3 +24,8 @@ impl PanelIds {
     pub const PLAYER_LIST: &str = "player_list_panel";
     pub const MENU: &str = "menu_panel";
 }
+
+pub struct GridIds;
+impl GridIds {
+    pub const COMMS: &str = "comms_grid";
+}

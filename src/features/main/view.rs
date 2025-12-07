@@ -1,4 +1,5 @@
 use crate::common::aspect_ratio_centered;
+use crate::features::comms::CommsFeature;
 use crate::features::debug_view::DebugView;
 use crate::features::eraser::EraserFeature;
 use crate::features::location::LocationFeature;
@@ -40,6 +41,8 @@ impl MainView {
             Self::render_eraser_tool(state, ui);
             TurnFeature::render(state, ui);
         });
+
+        CommsFeature::render(state, ui);
     }
 
     fn render_eraser_tool(state: &mut AppState, ui: &mut Ui) {

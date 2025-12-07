@@ -174,6 +174,15 @@ impl AppState {
         players.into_iter().find(|p| p.id == player_id)
     }
 
+    pub fn player_mut(&self, player_id: PlayerId) -> Option<RefMut<'_, Player>> {
+        let mut data = self.data_mut();
+        let game = data.game.as_mut()?;
+        let index = game.players.iter().position(|p| p.id == player_id)?;
+        Some(std::cell::RefMut::map(data, |d| {
+            &mut d.game.as_mut().unwrap().players[index]
+        }))
+    }
+
     pub fn player_name_editing(&self, player_id: PlayerId) -> bool {
         let data = self.data.borrow();
         data.editing_name_player_id == Some(player_id)
@@ -248,6 +257,15 @@ impl AppState {
             game.players = players;
             self.data.borrow_mut().game = Some(game);
         }
+    }
+
+    pub fn toggle_comms(&self, id: PlayerId) {
+        let mut player = match self.player_mut(id) {
+            Some(p) => p,
+            None => return,
+        };
+
+        player.resolved_comms = !player.resolved_comms;
     }
 }
 
