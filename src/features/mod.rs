@@ -1,6 +1,7 @@
 pub mod comms;
 pub mod debug_view;
 pub mod eraser;
+pub mod lights;
 pub mod location;
 pub mod main;
 pub mod map;

@@ -2,6 +2,7 @@ use crate::common::aspect_ratio_centered;
 use crate::features::comms::CommsFeature;
 use crate::features::debug_view::DebugView;
 use crate::features::eraser::EraserFeature;
+use crate::features::lights::LightsFeature;
 use crate::features::location::LocationFeature;
 use crate::features::main::MainConstants;
 use crate::features::map::MapView;
@@ -43,6 +44,7 @@ impl MainView {
         });
 
         CommsFeature::render(state, ui);
+        LightsFeature::render(state, ui);
     }
 
     fn render_eraser_tool(state: &mut AppState, ui: &mut Ui) {

@@ -267,6 +267,15 @@ impl AppState {
 
         player.resolved_comms = !player.resolved_comms;
     }
+
+    pub fn toggle_lights(&self, id: PlayerId) {
+        let mut player = match self.player_mut(id) {
+            Some(p) => p,
+            None => return,
+        };
+
+        player.resolved_lights = !player.resolved_lights;
+    }
 }
 
 // UI状態管理関連

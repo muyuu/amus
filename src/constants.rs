@@ -28,4 +28,5 @@ impl PanelIds {
 pub struct GridIds;
 impl GridIds {
     pub const COMMS: &str = "comms_grid";
+    pub const LIGHTS: &str = "lights_grid";
 }
