@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::Utc;
+use chrono::{Local, Utc};
 use serde::Serialize;
 
 use crate::log::LogLevel;
@@ -20,7 +20,7 @@ impl LogEntry {
             tag: tag.into(),
             message: message.into(),
             data: None,
-            timestamp: Utc::now().format("%Y-%m-%d %H:%M:%S%.3f UTC").to_string(),
+            timestamp: Local::now().format("%Y-%m-%d %H:%M:%S%.3f").to_string(),
             file: None,
             line: None,
         }
@@ -62,7 +62,7 @@ impl LogEntry {
         let timestamp_color = "\x1b[90m"; // グレー
 
         let mut output = format!(
-            "{}[{}]{} {}{}{}: {}{}{}",
+            "{}{} {}{}{}{} {}{} {}",
             timestamp_color,
             self.timestamp,
             level_color,

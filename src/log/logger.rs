@@ -18,6 +18,13 @@ impl Log {
                     .filter_module("amus", log::LevelFilter::Info); // 自分のアプリのみINFO
             }
 
+            // env_loggerのフォーマットをシンプルにする
+            builder.format(|buf, record| {
+                use std::io::Write;
+                // メッセージのみを出力（自作フォーマットが既に含まれているため）
+                writeln!(buf, "{}", record.args())
+            });
+
             builder.init();
         }
 
