@@ -3,20 +3,23 @@ use crate::log::{LogEntry, LogLevel};
 
 pub struct Log;
 
+#[allow(dead_code)]
 impl Log {
     /// ログシステムを初期化
     pub fn init() {
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let mut builder = env_logger::Builder::from_default_env();
+            let mut builder = env_logger::Builder::new();
 
-            // RUST_LOGが設定されていない場合のみデフォルトレベルを設定
-            if std::env::var("RUST_LOG").is_err() {
-                // 自分のアプリのみログを有効化
-                builder
-                    .filter_level(log::LevelFilter::Off) // 全体はOFFに
-                    .filter_module("amus", log::LevelFilter::Info); // 自分のアプリのみINFO
-            }
+            // RUST_LOGの値を取得して、自分のクレートにのみ適用
+            let log_level = std::env::var("RUST_LOG")
+                .ok()
+                .and_then(|s| s.parse::<log::LevelFilter>().ok())
+                .unwrap_or(log::LevelFilter::Info);
+
+            builder
+                .filter_level(log::LevelFilter::Off) // 全体はOFFに
+                .filter_module("amus", log_level); // 自分のアプリのみRUST_LOGのレベル
 
             // env_loggerのフォーマットをシンプルにする
             builder.format(|buf, record| {
@@ -161,13 +164,13 @@ impl Log {
 #[macro_export]
 macro_rules! log_info {
     ($tag:expr, $message:expr) => {
-        crate::log::Log::info(
-            crate::log::LogEntry::new($tag, $message).with_location(file!(), line!()),
+        $crate::log::Log::info(
+            $crate::log::LogEntry::new($tag, $message).with_location(file!(), line!()),
         );
     };
     ($tag:expr, $message:expr, $data:expr) => {
-        crate::log::Log::info(
-            crate::log::LogEntry::new($tag, $message)
+        $crate::log::Log::info(
+            $crate::log::LogEntry::new($tag, $message)
                 .with_data($data)
                 .with_location(file!(), line!()),
         );
@@ -177,13 +180,13 @@ macro_rules! log_info {
 #[macro_export]
 macro_rules! log_error {
     ($tag:expr, $message:expr) => {
-        crate::log::Log::error(
-            crate::log::LogEntry::new($tag, $message).with_location(file!(), line!()),
+        $crate::log::Log::error(
+            $crate::log::LogEntry::new($tag, $message).with_location(file!(), line!()),
         );
     };
     ($tag:expr, $message:expr, $data:expr) => {
-        crate::log::Log::error(
-            crate::log::LogEntry::new($tag, $message)
+        $crate::log::Log::error(
+            $crate::log::LogEntry::new($tag, $message)
                 .with_data($data)
                 .with_location(file!(), line!()),
         );
@@ -193,13 +196,13 @@ macro_rules! log_error {
 #[macro_export]
 macro_rules! log_warn {
     ($tag:expr, $message:expr) => {
-        crate::log::Log::warn(
-            crate::log::LogEntry::new($tag, $message).with_location(file!(), line!()),
+        $crate::log::Log::warn(
+            $crate::log::LogEntry::new($tag, $message).with_location(file!(), line!()),
         );
     };
     ($tag:expr, $message:expr, $data:expr) => {
-        crate::log::Log::warn(
-            crate::log::LogEntry::new($tag, $message)
+        $crate::log::Log::warn(
+            $crate::log::LogEntry::new($tag, $message)
                 .with_data($data)
                 .with_location(file!(), line!()),
         );
@@ -209,13 +212,13 @@ macro_rules! log_warn {
 #[macro_export]
 macro_rules! log_debug {
     ($tag:expr, $message:expr) => {
-        crate::log::Log::debug(
-            crate::log::LogEntry::new($tag, $message).with_location(file!(), line!()),
+        $crate::log::Log::debug(
+            $crate::log::LogEntry::new($tag, $message).with_location(file!(), line!()),
         );
     };
     ($tag:expr, $message:expr, $data:expr) => {
-        crate::log::Log::debug(
-            crate::log::LogEntry::new($tag, $message)
+        $crate::log::Log::debug(
+            $crate::log::LogEntry::new($tag, $message)
                 .with_data($data)
                 .with_location(file!(), line!()),
         );

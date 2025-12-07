@@ -66,6 +66,7 @@ impl eframe::App for AmusApp {
 
 impl AmusApp {
     fn build_main_ui(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+        // 右側のプレイヤー情報パネル
         SidePanel::right(PanelIds::PLAYER_INFO)
             .frame(Self::get_frame())
             .show(ctx, |ui| {
@@ -81,13 +82,6 @@ impl AmusApp {
                 PlayerInfoFeature::render(&mut self.state, ui);
             });
 
-        // 全画面のメインコンテンツエリア
-        CentralPanel::default()
-            .frame(Self::get_frame())
-            .show(ctx, |ui| {
-                MainView::render(&mut self.state, ui);
-            });
-
         // 下部のユーザー一覧パネル
         TopBottomPanel::bottom(PanelIds::PLAYER_LIST)
             .resizable(false)
@@ -99,6 +93,13 @@ impl AmusApp {
                     PlayerListView::render(&mut self.state, ui);
                     ui.add_space(8.0);
                 });
+            });
+
+        // 残りの中央領域
+        CentralPanel::default()
+            .frame(Self::get_frame())
+            .show(ctx, |ui| {
+                MainView::render(&mut self.state, ui);
             });
     }
 

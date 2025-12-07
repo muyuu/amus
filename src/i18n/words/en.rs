@@ -1,6 +1,7 @@
 // 英語の基本単語辞書
 pub struct EnglishWords;
 
+#[allow(dead_code)]
 impl EnglishWords {
     // 基本動詞
     pub const START: &'static str = "Start";
