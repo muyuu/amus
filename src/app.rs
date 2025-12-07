@@ -108,28 +108,25 @@ impl AmusApp {
             .frame(Self::get_frame())
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
-                    // 中央：デバッグボタン
-                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        // 右側：リセットボタン
-                        if ui.button("🔄 リセット").clicked() {
-                            self.state.data_mut().show_setup_dialog = true;
-                        }
-
-                        // 中央：デバッグボタン（スペースで中央に配置）
-                        #[cfg(debug_assertions)]
-                        ui.allocate_ui_with_layout(
-                            ui.available_size(),
-                            Layout::top_down(Align::Center),
-                            |ui| {
-                                if ui.button("🐛 デバッグ").clicked() {
-                                    self.state.data_mut().show_debug_view =
-                                        !self.state.show_debug_view();
-                                }
-                            },
-                        );
-                    });
+                    Self::build_debug_button(&mut self.state, ui);
                 });
             });
+    }
+
+    fn build_debug_button(state: &mut AppState, ui: &mut Ui) {
+        // 中央：デバッグボタン
+        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+            // リセットボタン
+            if ui.button("🔄 リセット").clicked() {
+                state.data_mut().show_setup_dialog = true;
+            }
+
+            // デバッグボタン
+            #[cfg(debug_assertions)]
+            if ui.button("🐛 デバッグ").clicked() {
+                state.data_mut().show_debug_view = !state.show_debug_view();
+            }
+        });
     }
 
     fn get_frame() -> Frame {
