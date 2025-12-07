@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::{Local, Utc};
+use chrono::Local;
 use serde::Serialize;
 
 use crate::log::LogLevel;
