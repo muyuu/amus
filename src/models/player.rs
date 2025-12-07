@@ -30,11 +30,11 @@ pub struct Player {
     pub color: Color,
     pub name: String,
     pub state: PlayerState,
-    pub death: Option<usize>, // 何ターン目か（1始まり）
-    pub done_button: bool,    // ボタンを押したかどうか
-    pub resolved_comms: bool, // 通信妨害を解決したかどうか
-    pub resolved_lights: bool, // 停電を解決したかどうか
-    pub resolved_o2: bool,    // 酸素妨害を解決したかどうか
+    pub death: Option<usize>,   // 何ターン目か（1始まり）
+    pub done_button: bool,      // ボタンを押したかどうか
+    pub resolved_comms: bool,   // 通信妨害を解決したかどうか
+    pub resolved_lights: bool,  // 停電を解決したかどうか
+    pub resolved_o2: bool,      // 酸素妨害を解決したかどうか
     pub resolved_reactor: bool, // 原子炉妨害を解決したかどうか
 }
 
