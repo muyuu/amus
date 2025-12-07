@@ -7,8 +7,14 @@ run = "mise watch -r start"
 description = "アプリケーションを起動する"
 run = "cargo run"
 
+[start-debug]
+description = "アプリケーションを起動する"
+env = { RUST_LOG = "debug" }
+run = "cargo run"
+
 ["start-release"]
 description = "リリースビルドでアプリケーションを起動"
+env = { RUST_LOG = "error" }
 run = "cargo run --release"
 
 ["check-watch"]
