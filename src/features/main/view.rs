@@ -41,9 +41,9 @@ impl MainView {
             RouteDrawingFeature::render(state, &response, ui);
             LocationFeature::render(state, &response, ui);
             DebugView::render(state, state.show_debug_view(), ui.ctx());
-            Self::render_eraser_tool(state, ui);
         });
-
+        
+        Self::render_eraser_tool(state, ui);
         Self::render_windows(state, ui);
     }
 
@@ -58,7 +58,7 @@ impl MainView {
 
     fn render_eraser_tool(state: &mut AppState, ui: &mut Ui) {
         // 消しゴムツールの描画位置を計算
-        let main_rect = ui.max_rect(); // メイン領域全体のサイズ
+        let main_rect = ui.available_rect_before_wrap();
         let tool_size = Vec2::new(60.0, 60.0);
         let margin_x = 10.0;
         let margin_y = 100.0;
