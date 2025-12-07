@@ -44,4 +44,14 @@ impl EnglishWords {
     pub const CLICK: &'static str = "Click";
     pub const LINE: &'static str = "Line";
     pub const FREEHAND: &'static str = "Freehand";
+
+    // アモアス用語
+    pub const SABOTAGE: &'static str = "Sabotage";
+    pub const SABOTAGE_COMMS: &'static str = "Comms Sabotage";
+    pub const SABOTAGE_LIGHTS: &'static str = "Lights Sabotage";
+    pub const SABOTAGE_REACTOR: &'static str = "Meltdown Reactor";
+    pub const SABOTAGE_O2: &'static str = "O2 Depletion";
+    pub const SABOTAGE_DOORS: &'static str = "Doors Sabotage";
+
+    pub const VENT: &'static str = "Vent";
 }

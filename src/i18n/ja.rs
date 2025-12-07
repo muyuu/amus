@@ -93,5 +93,13 @@ pub fn get_translations() -> HashMap<&'static str, String> {
     // 消しゴム
     translations.insert(ERASER_BUTTON, W::ERASER.to_string());
 
+    // サボタージュ
+    translations.insert(SABOTAGE, W::SABOTAGE.to_string());
+    translations.insert(SABOTAGE_COMMS, W::SABOTAGE_COMMS.to_string());
+    translations.insert(SABOTAGE_LIGHTS, W::SABOTAGE_LIGHTS.to_string());
+    translations.insert(SABOTAGE_REACTOR, W::SABOTAGE_REACTOR.to_string());
+    translations.insert(SABOTAGE_O2, W::SABOTAGE_O2.to_string());
+    translations.insert(SABOTAGE_DOORS, W::SABOTAGE_DOORS.to_string());
+
     translations
 }
