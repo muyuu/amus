@@ -1,3 +1,5 @@
+#![cfg_attr(not(target_arch = "wasm32"), allow(dead_code, unused_imports))]
+
 pub mod app;
 pub mod assets;
 pub mod common;
@@ -11,11 +13,8 @@ pub mod state;
 
 use crate::log::Log;
 
-#[cfg(target_arch = "wasm32")]
 use app::AmusApp;
-#[cfg(target_arch = "wasm32")]
 use eframe::egui;
-#[cfg(target_arch = "wasm32")]
 use egui::*;
 
 #[cfg(target_arch = "wasm32")]
