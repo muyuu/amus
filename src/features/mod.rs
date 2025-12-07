@@ -8,6 +8,7 @@ pub mod map;
 pub mod o2;
 pub mod player_info;
 pub mod player_list;
+pub mod reactor;
 pub mod route_drawing;
 pub mod setup_dialog;
 pub mod turn;

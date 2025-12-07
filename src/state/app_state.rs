@@ -285,6 +285,15 @@ impl AppState {
 
         player.resolved_o2 = !player.resolved_o2;
     }
+
+    pub fn toggle_reactor(&self, id: PlayerId) {
+        let mut player = match self.player_mut(id) {
+            Some(p) => p,
+            None => return,
+        };
+
+        player.resolved_reactor = !player.resolved_reactor;
+    }
 }
 
 // UI状態管理関連

@@ -7,6 +7,7 @@ use crate::features::location::LocationFeature;
 use crate::features::main::MainConstants;
 use crate::features::map::MapView;
 use crate::features::o2::O2Feature;
+use crate::features::reactor::ReactorFeature;
 use crate::features::route_drawing::RouteDrawingFeature;
 use crate::features::turn::TurnFeature;
 use crate::features::welcome::WelcomeView;
@@ -52,6 +53,7 @@ impl MainView {
         CommsFeature::render(state, ui);
         LightsFeature::render(state, ui);
         O2Feature::render(state, ui);
+        ReactorFeature::render(state, ui);
     }
 
     fn render_eraser_tool(state: &mut AppState, ui: &mut Ui) {

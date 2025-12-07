@@ -30,4 +30,5 @@ impl GridIds {
     pub const COMMS: &str = "comms_grid";
     pub const LIGHTS: &str = "lights_grid";
     pub const O2: &str = "o2_grid";
+    pub const REACTOR: &str = "reactor_grid";
 }
