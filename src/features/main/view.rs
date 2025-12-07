@@ -1,6 +1,8 @@
+use crate::common::aspect_ratio_centered;
 use crate::features::debug_view::DebugView;
 use crate::features::eraser::EraserFeature;
 use crate::features::location::LocationFeature;
+use crate::features::main::MainConstants;
 use crate::features::map::MapView;
 use crate::features::route_drawing::RouteDrawingFeature;
 use crate::features::turn::TurnFeature;
@@ -19,15 +21,25 @@ impl MainView {
             return;
         }
 
-        // マップ表示エリア（ここにエリア画像と軌跡を描画）
-        let response = ui.allocate_response(ui.available_size(), Sense::click_and_drag());
+        // 全体の背景を灰色に
+        let full_rect = ui.max_rect();
+        ui.painter().rect_filled(
+            full_rect,
+            0.0,
+            Color32::from_rgb(128, 128, 128), // 灰色
+        );
 
-        MapView::render(state, &response, ui);
-        RouteDrawingFeature::render(state, &response, ui);
-        LocationFeature::render(state, &response, ui);
-        DebugView::render(state, state.show_debug_view(), ui.ctx());
-        Self::render_eraser_tool(state, ui);
-        TurnFeature::render(state, ui);
+        aspect_ratio_centered(ui, MainConstants::VIEW_RATIO, |ui| {
+            // マップ表示エリア（ここにエリア画像と軌跡を描画）
+            let response = ui.allocate_response(ui.available_size(), Sense::click_and_drag());
+
+            MapView::render(state, &response, ui);
+            RouteDrawingFeature::render(state, &response, ui);
+            LocationFeature::render(state, &response, ui);
+            DebugView::render(state, state.show_debug_view(), ui.ctx());
+            Self::render_eraser_tool(state, ui);
+            TurnFeature::render(state, ui);
+        });
     }
 
     fn render_eraser_tool(state: &mut AppState, ui: &mut Ui) {
