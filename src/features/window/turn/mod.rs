@@ -5,6 +5,7 @@ pub mod view;
 use egui::Ui;
 pub use interaction::TurnInteraction;
 pub use view::TurnView;
+pub use constants::TurnConstants;
 
 use crate::state::AppState;
 
