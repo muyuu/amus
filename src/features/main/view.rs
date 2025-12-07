@@ -40,9 +40,14 @@ impl MainView {
             LocationFeature::render(state, &response, ui);
             DebugView::render(state, state.show_debug_view(), ui.ctx());
             Self::render_eraser_tool(state, ui);
-            TurnFeature::render(state, ui);
         });
 
+        Self::render_windows(state, ui);
+    }
+
+    // 各種機能ウィンドウの描画
+    fn render_windows(state: &mut AppState, ui: &mut Ui) {
+        TurnFeature::render(state, ui);
         CommsFeature::render(state, ui);
         LightsFeature::render(state, ui);
     }
