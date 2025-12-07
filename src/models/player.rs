@@ -34,6 +34,7 @@ pub struct Player {
     pub done_button: bool,    // ボタンを押したかどうか
     pub resolved_comms: bool, // 通信妨害を解決したかどうか
     pub resolved_lights: bool, // 停電を解決したかどうか
+    pub resolved_o2: bool,    // 酸素妨害を解決したかどうか
 }
 
 impl Player {
@@ -48,6 +49,7 @@ impl Player {
             done_button: false,
             resolved_comms: false,
             resolved_lights: false,
+            resolved_o2: false,
         }
     }
 
