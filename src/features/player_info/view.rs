@@ -27,7 +27,6 @@ pub struct PlayerInfoView;
 
 impl PlayerInfoView {
     pub fn render(state: &AppState, ui: &mut Ui) -> PlayerInfoResult {
-        let texts = PlayerInfoText::get(state);
         let mut result = PlayerInfoResult::default();
 
         let players = match state.players() {
@@ -37,21 +36,33 @@ impl PlayerInfoView {
 
         ui.vertical(|ui| {
             for player in players.iter() {
-                ui.horizontal(|ui| {
-                    Self::render_player_color_box(ui, player);
+                let r = Self::render_player(state, ui, player);
+                if r != PlayerInfoResult::default() {
+                    result = r;
+                }
+            }
+        });
+        result
+    }
 
-                    let (clicked, next) = Self::render_button(ui, player, &texts);
-                    if clicked {
-                        result.any_done_button_clicked = true;
-                        result.done_button_clicked_player_id = Some(player.id);
-                        result.done_button_new_state = Some(next);
-                    }
+    fn render_player(state: &AppState, ui: &mut Ui, player: &Player) -> PlayerInfoResult {
+        let mut result: PlayerInfoResult = PlayerInfoResult::default();
+        let texts = PlayerInfoText::get(state);
 
-                    let r = Self::render_player_name(state, ui, player);
-                    if r != PlayerInfoResult::default() {
-                        result = r;
-                    }
-                });
+        ui.horizontal(|ui| {
+            ui.add_space(8.0);
+            Self::render_player_color_box(ui, player);
+
+            let (clicked, next) = Self::render_button(ui, player, &texts);
+            if clicked {
+                result.any_done_button_clicked = true;
+                result.done_button_clicked_player_id = Some(player.id);
+                result.done_button_new_state = Some(next);
+            }
+
+            let r = Self::render_player_name(state, ui, player);
+            if r != PlayerInfoResult::default() {
+                result = r;
             }
         });
         result
