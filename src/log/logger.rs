@@ -162,13 +162,13 @@ impl Log {
 #[macro_export]
 macro_rules! log_info {
     ($tag:expr, $message:expr) => {
-        crate::log::Log::info(
-            crate::log::LogEntry::new($tag, $message).with_location(file!(), line!()),
+        $crate::log::Log::info(
+            $crate::log::LogEntry::new($tag, $message).with_location(file!(), line!()),
         );
     };
     ($tag:expr, $message:expr, $data:expr) => {
-        crate::log::Log::info(
-            crate::log::LogEntry::new($tag, $message)
+        $crate::log::Log::info(
+            $crate::log::LogEntry::new($tag, $message)
                 .with_data($data)
                 .with_location(file!(), line!()),
         );
@@ -178,13 +178,13 @@ macro_rules! log_info {
 #[macro_export]
 macro_rules! log_error {
     ($tag:expr, $message:expr) => {
-        crate::log::Log::error(
-            crate::log::LogEntry::new($tag, $message).with_location(file!(), line!()),
+        $crate::log::Log::error(
+            $crate::log::LogEntry::new($tag, $message).with_location(file!(), line!()),
         );
     };
     ($tag:expr, $message:expr, $data:expr) => {
-        crate::log::Log::error(
-            crate::log::LogEntry::new($tag, $message)
+        $crate::log::Log::error(
+            $crate::log::LogEntry::new($tag, $message)
                 .with_data($data)
                 .with_location(file!(), line!()),
         );
@@ -194,13 +194,13 @@ macro_rules! log_error {
 #[macro_export]
 macro_rules! log_warn {
     ($tag:expr, $message:expr) => {
-        crate::log::Log::warn(
-            crate::log::LogEntry::new($tag, $message).with_location(file!(), line!()),
+        $crate::log::Log::warn(
+            $crate::log::LogEntry::new($tag, $message).with_location(file!(), line!()),
         );
     };
     ($tag:expr, $message:expr, $data:expr) => {
-        crate::log::Log::warn(
-            crate::log::LogEntry::new($tag, $message)
+        $crate::log::Log::warn(
+            $crate::log::LogEntry::new($tag, $message)
                 .with_data($data)
                 .with_location(file!(), line!()),
         );
@@ -210,13 +210,13 @@ macro_rules! log_warn {
 #[macro_export]
 macro_rules! log_debug {
     ($tag:expr, $message:expr) => {
-        crate::log::Log::debug(
-            crate::log::LogEntry::new($tag, $message).with_location(file!(), line!()),
+        $crate::log::Log::debug(
+            $crate::log::LogEntry::new($tag, $message).with_location(file!(), line!()),
         );
     };
     ($tag:expr, $message:expr, $data:expr) => {
-        crate::log::Log::debug(
-            crate::log::LogEntry::new($tag, $message)
+        $crate::log::Log::debug(
+            $crate::log::LogEntry::new($tag, $message)
                 .with_data($data)
                 .with_location(file!(), line!()),
         );
