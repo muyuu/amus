@@ -9,15 +9,17 @@ impl Log {
     pub fn init() {
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let mut builder = env_logger::Builder::from_default_env();
+            let mut builder = env_logger::Builder::new();
 
-            // RUST_LOGが設定されていない場合のみデフォルトレベルを設定
-            if std::env::var("RUST_LOG").is_err() {
-                // 自分のアプリのみログを有効化
-                builder
-                    .filter_level(log::LevelFilter::Off) // 全体はOFFに
-                    .filter_module("amus", log::LevelFilter::Info); // 自分のアプリのみINFO
-            }
+            // RUST_LOGの値を取得して、自分のクレートにのみ適用
+            let log_level = std::env::var("RUST_LOG")
+                .ok()
+                .and_then(|s| s.parse::<log::LevelFilter>().ok())
+                .unwrap_or(log::LevelFilter::Info);
+
+            builder
+                .filter_level(log::LevelFilter::Off) // 全体はOFFに
+                .filter_module("amus", log_level); // 自分のアプリのみRUST_LOGのレベル
 
             // env_loggerのフォーマットをシンプルにする
             builder.format(|buf, record| {
