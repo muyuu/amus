@@ -30,8 +30,12 @@ pub struct Player {
     pub color: Color,
     pub name: String,
     pub state: PlayerState,
-    pub death: Option<usize>, // 何ターン目か（1始まり）
-    pub done_button: bool,    // ボタンを押したかどうか
+    pub death: Option<usize>,   // 何ターン目か（1始まり）
+    pub done_button: bool,      // ボタンを押したかどうか
+    pub resolved_comms: bool,   // 通信妨害を解決したかどうか
+    pub resolved_lights: bool,  // 停電を解決したかどうか
+    pub resolved_o2: bool,      // 酸素妨害を解決したかどうか
+    pub resolved_reactor: bool, // 原子炉妨害を解決したかどうか
 }
 
 impl Player {
@@ -44,6 +48,10 @@ impl Player {
             state: PlayerState::Alive,
             death: None,
             done_button: false,
+            resolved_comms: false,
+            resolved_lights: false,
+            resolved_o2: false,
+            resolved_reactor: false,
         }
     }
 

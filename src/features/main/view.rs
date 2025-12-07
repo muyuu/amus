@@ -1,9 +1,13 @@
 use crate::common::aspect_ratio_centered;
+use crate::features::comms::CommsFeature;
 use crate::features::debug_view::DebugView;
 use crate::features::eraser::EraserFeature;
+use crate::features::lights::LightsFeature;
 use crate::features::location::LocationFeature;
 use crate::features::main::MainConstants;
 use crate::features::map::MapView;
+use crate::features::o2::O2Feature;
+use crate::features::reactor::ReactorFeature;
 use crate::features::route_drawing::RouteDrawingFeature;
 use crate::features::turn::TurnFeature;
 use crate::features::welcome::WelcomeView;
@@ -38,8 +42,18 @@ impl MainView {
             LocationFeature::render(state, &response, ui);
             DebugView::render(state, state.show_debug_view(), ui.ctx());
             Self::render_eraser_tool(state, ui);
-            TurnFeature::render(state, ui);
         });
+
+        Self::render_windows(state, ui);
+    }
+
+    // 各種機能ウィンドウの描画
+    fn render_windows(state: &mut AppState, ui: &mut Ui) {
+        TurnFeature::render(state, ui);
+        CommsFeature::render(state, ui);
+        LightsFeature::render(state, ui);
+        O2Feature::render(state, ui);
+        ReactorFeature::render(state, ui);
     }
 
     fn render_eraser_tool(state: &mut AppState, ui: &mut Ui) {

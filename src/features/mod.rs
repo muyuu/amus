@@ -1,10 +1,14 @@
+pub mod comms;
 pub mod debug_view;
 pub mod eraser;
+pub mod lights;
 pub mod location;
 pub mod main;
 pub mod map;
+pub mod o2;
 pub mod player_info;
 pub mod player_list;
+pub mod reactor;
 pub mod route_drawing;
 pub mod setup_dialog;
 pub mod turn;

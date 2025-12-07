@@ -1,7 +1,7 @@
 use egui::*;
 
 use crate::assets::AssetManager;
-use crate::constants::AppConstants;
+use crate::constants::{AppConstants, PanelIds};
 use crate::features::main::MainView;
 use crate::features::player_info::PlayerInfoFeature;
 use crate::features::player_list::PlayerListView;
@@ -66,7 +66,7 @@ impl eframe::App for AmusApp {
 
 impl AmusApp {
     fn build_main_ui(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
-        SidePanel::right("player_info_panel")
+        SidePanel::right(PanelIds::PLAYER_INFO)
             .frame(Self::get_frame())
             .show(ctx, |ui| {
                 ui.add_space(4.0);
@@ -89,7 +89,7 @@ impl AmusApp {
             });
 
         // 下部のユーザー一覧パネル
-        TopBottomPanel::bottom("player_list_panel")
+        TopBottomPanel::bottom(PanelIds::PLAYER_LIST)
             .resizable(false)
             .default_height(90.0)
             .frame(Self::get_frame())
@@ -103,7 +103,7 @@ impl AmusApp {
     }
 
     fn build_menu_ui(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
-        TopBottomPanel::top("menu_button_panel")
+        TopBottomPanel::top(PanelIds::MENU)
             .resizable(false)
             .default_height(50.0)
             .frame(Self::get_frame())

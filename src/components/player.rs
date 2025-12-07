@@ -6,6 +6,8 @@ pub struct PlayerRectResult {
     pub clicked: bool,
     pub drag_started: bool,
     pub drag_stopped: bool,
+    pub rect: Rect,
+    pub response: Response,
 }
 pub fn player_rect(
     ui: &mut Ui,
@@ -54,6 +56,8 @@ pub fn player_rect(
         clicked: response.clicked(),
         drag_started: response.drag_started(),
         drag_stopped: response.drag_stopped(),
+        rect,
+        response,
     }
 }
 

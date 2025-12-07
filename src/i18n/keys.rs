@@ -56,3 +56,11 @@ pub const PLAYER_INFO_BUTTON_NOT_DONE: &str = "player_info.button_not_done";
 
 // 消しゴムボタン
 pub const ERASER_BUTTON: &str = "eraser.button";
+
+// サボタージュ
+pub const SABOTAGE: &str = "sabotage";
+pub const SABOTAGE_COMMS: &str = "sabotage.comms";
+pub const SABOTAGE_LIGHTS: &str = "sabotage.lights";
+pub const SABOTAGE_REACTOR: &str = "sabotage.meltdown_reactor";
+pub const SABOTAGE_O2: &str = "sabotage.o2_depletion";
+pub const SABOTAGE_DOORS: &str = "sabotage.doors";
