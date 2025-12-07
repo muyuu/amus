@@ -69,10 +69,14 @@ impl AmusApp {
         SidePanel::right("player_info_panel")
             .frame(Self::get_frame())
             .show(ctx, |ui| {
-                let head_text = RichText::new(self.state.t(keys::SIDEBAR_PLAYERS))
+                ui.add_space(4.0);
+                ui.horizontal(|ui| {
+                    ui.add_space(8.0);
+                    let head_text = RichText::new(self.state.t(keys::SIDEBAR_PLAYERS))
                     .heading()
                     .color(Color32::WHITE);
-                ui.heading(head_text);
+                    ui.heading(head_text);
+                });
                 ui.separator();
                 PlayerInfoFeature::render(&mut self.state, ui);
             });
@@ -90,7 +94,11 @@ impl AmusApp {
             .default_height(90.0)
             .frame(Self::get_frame())
             .show(ctx, |ui| {
-                PlayerListView::render(&mut self.state, ui);
+                ui.vertical(|ui| {
+                    ui.add_space(8.0);
+                    PlayerListView::render(&mut self.state, ui);
+                    ui.add_space(8.0);
+                });
             });
     }
 

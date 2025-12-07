@@ -38,6 +38,7 @@ impl PlayerInfoView {
         ui.vertical(|ui| {
             for player in players.iter() {
                 ui.horizontal(|ui| {
+                    ui.add_space(8.0);
                     Self::render_player_color_box(ui, player);
 
                     let (clicked, next) = Self::render_button(ui, player, &texts);
