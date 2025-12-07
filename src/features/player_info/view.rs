@@ -74,7 +74,9 @@ impl PlayerInfoView {
             return (res, false);
         }
 
-        let text = RichText::new(&texts.button_not_done).color(Color32::GRAY);
+        let text = RichText::new(&texts.button_not_done)
+            .strong()
+            .color(Color32::WHITE);
         let button = Button::new(text)
             .fill(Color32::RED)
             .stroke(Stroke::new(2.0, Color32::BROWN));
