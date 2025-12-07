@@ -3,6 +3,7 @@ use crate::log::{LogEntry, LogLevel};
 
 pub struct Log;
 
+#[allow(dead_code)]
 impl Log {
     /// ログシステムを初期化
     pub fn init() {

@@ -1,6 +1,7 @@
 // 日本語の基本単語辞書
 pub struct JapaneseWords;
 
+#[allow(dead_code)]
 impl JapaneseWords {
     // 基本動詞
     pub const START: &'static str = "開始";
