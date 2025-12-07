@@ -73,8 +73,8 @@ impl AmusApp {
                 ui.horizontal(|ui| {
                     ui.add_space(8.0);
                     let head_text = RichText::new(self.state.t(keys::SIDEBAR_PLAYERS))
-                    .heading()
-                    .color(Color32::WHITE);
+                        .heading()
+                        .color(Color32::WHITE);
                     ui.heading(head_text);
                 });
                 ui.separator();

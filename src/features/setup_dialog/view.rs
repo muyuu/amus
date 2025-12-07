@@ -77,7 +77,8 @@ impl SetupView {
                             let player = &state.setup_state().players[i].clone();
                             let mut name = player.name.clone();
                             if ui.text_edit_singleline(&mut name).changed() {
-                                result.update_player = Some((player.id, name, player.color.clone()));
+                                result.update_player =
+                                    Some((player.id, name, player.color.clone()));
                             }
 
                             ui.add_space(8.0);
@@ -118,7 +119,11 @@ impl SetupView {
                                                 )
                                                 .clicked()
                                             {
-                                                result.update_player = Some((player.id, player.name.clone(), color.clone()));
+                                                result.update_player = Some((
+                                                    player.id,
+                                                    player.name.clone(),
+                                                    color.clone(),
+                                                ));
                                             }
                                         });
                                     }
