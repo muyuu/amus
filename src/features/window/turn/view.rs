@@ -1,7 +1,7 @@
 use egui::*;
 
-use crate::{state::AppState};
 use super::TurnConstants;
+use crate::state::AppState;
 
 pub struct TurnViewResult {
     pub selected_wave_index: Option<usize>,

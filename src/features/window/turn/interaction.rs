@@ -1,5 +1,5 @@
-use crate::{state::AppState};
 use super::view::TurnViewResult;
+use crate::state::AppState;
 
 pub struct TurnInteraction;
 
