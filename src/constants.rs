@@ -21,7 +21,6 @@ impl AppConstants {
 pub struct PanelIds;
 impl PanelIds {
     pub const PLAYER_INFO: &str = "player_info_panel";
-    pub const PLAYER_LIST: &str = "player_list_panel";
     pub const MENU: &str = "menu_panel";
 }
 
