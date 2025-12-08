@@ -1,5 +1,6 @@
 use crate::common::current_point_with_ui;
 use crate::features::location::view::LocationViewResult;
+use crate::log_debug;
 use crate::models::player::PlayerId;
 use crate::models::Point;
 use crate::state::{AppState, DraggingLocation, LocationType};
@@ -81,10 +82,7 @@ impl LocationInteraction {
             Some(p) => p,
             None => return,
         };
-
-        if let Ok(mut wave) = state.current_wave_mut() {
-            wave.end_locations.insert(player_id, point);
-        }
+        state.add_end_location(player_id, point);
     }
 
     fn handle_area_click(state: &mut AppState, ui: &mut Ui) {
