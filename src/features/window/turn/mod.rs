@@ -2,10 +2,10 @@ pub mod constants;
 pub mod interaction;
 pub mod view;
 
+pub use constants::TurnConstants;
 use egui::Ui;
 pub use interaction::TurnInteraction;
 pub use view::TurnView;
-pub use constants::TurnConstants;
 
 use crate::state::AppState;
 

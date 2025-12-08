@@ -4,13 +4,14 @@ use crate::features::eraser::EraserFeature;
 use crate::features::location::LocationFeature;
 use crate::features::main::MainConstants;
 use crate::features::map::MapView;
+use crate::features::player_list::PlayerListView;
 use crate::features::route_drawing::RouteDrawingFeature;
+use crate::features::welcome::WelcomeView;
 use crate::features::window::comms::CommsFeature;
 use crate::features::window::lights::LightsFeature;
 use crate::features::window::o2::O2Feature;
 use crate::features::window::reactor::ReactorFeature;
 use crate::features::window::turn::TurnFeature;
-use crate::features::welcome::WelcomeView;
 use crate::state::AppState;
 use egui::*;
 
@@ -27,24 +28,33 @@ impl MainView {
 
         // 全体の背景を灰色に
         let full_rect = ui.max_rect();
-        ui.painter().rect_filled(
-            full_rect,
-            0.0,
-            Color32::from_rgb(128, 128, 128), // 灰色
-        );
+        ui.painter()
+            .rect_filled(full_rect, 0.0, MainConstants::BG_COLOR);
 
+        Self::render_main(state, ui);
+    }
+
+    fn render_main(state: &mut AppState, ui: &mut Ui) {
         aspect_ratio_centered(ui, MainConstants::VIEW_RATIO, |ui| {
-            // マップ表示エリア（ここにエリア画像と軌跡を描画）
+            // メイン領域の描画領域レスポンスを取得
             let response = ui.allocate_response(ui.available_size(), Sense::click_and_drag());
 
             MapView::render(state, &response, ui);
             RouteDrawingFeature::render(state, &response, ui);
-            LocationFeature::render(state, &response, ui);
             DebugView::render(state, state.show_debug_view(), ui.ctx());
+            LocationFeature::render(state, &response, ui);
+
+            Self::render_eraser_tool(state, ui);
+            Self::render_player_pallet(state, ui);
         });
-        
-        Self::render_eraser_tool(state, ui);
+
         Self::render_windows(state, ui);
+    }
+
+    fn render_player_pallet(state: &mut AppState, ui: &mut Ui) {
+        ui.vertical(|ui| {
+            PlayerListView::render(state, ui);
+        });
     }
 
     // 各種機能ウィンドウの描画

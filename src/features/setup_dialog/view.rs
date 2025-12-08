@@ -4,7 +4,7 @@ use crate::common::CommonTexts;
 use crate::i18n::keys::*;
 use crate::models::player::PlayerId;
 use crate::models::{Area, Color};
-use crate::state::AppState;
+use crate::state::{AppState, SetupState};
 
 #[derive(Default)]
 pub struct SetupViewResult {
@@ -32,25 +32,14 @@ impl SetupView {
             .show(ctx, |ui| {
                 ScrollArea::vertical().show(ui, |ui| {
                     ui.horizontal(|ui| {
-                        ui.label(&texts.area_selection);
-                        ui.add_space(8.0);
-
-                        let setup_state = state.setup_state().clone();
-                        ComboBox::from_label("")
-                            .selected_text(setup_state.selected_area.name())
-                            .show_ui(ui, |ui| {
-                                for area in Area::all() {
-                                    if ui
-                                        .selectable_label(
-                                            state.setup_state().selected_area == area,
-                                            &*area.name(),
-                                        )
-                                        .clicked()
-                                    {
-                                        result.select_area = Some(area.clone());
-                                    }
-                                }
-                            });
+                        let area = Self::render_area_combo_box(
+                            ui,
+                            &state.setup_state(),
+                            &texts.area_selection,
+                        );
+                        if area.is_some() {
+                            result.select_area = area;
+                        }
                     });
 
                     ui.add_space(12.0);
@@ -148,6 +137,27 @@ impl SetupView {
                 });
             });
 
+        result
+    }
+
+    fn render_area_combo_box(ui: &mut Ui, setup_state: &SetupState, text: &str) -> Option<Area> {
+        let mut result = None;
+
+        ui.label(text);
+        ui.add_space(8.0);
+
+        ComboBox::from_label("")
+            .selected_text(setup_state.selected_area.name())
+            .show_ui(ui, |ui| {
+                for area in Area::all() {
+                    if ui
+                        .selectable_label(setup_state.selected_area == area, &*area.name())
+                        .clicked()
+                    {
+                        result = Some(area.clone());
+                    }
+                }
+            });
         result
     }
 }

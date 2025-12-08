@@ -4,7 +4,6 @@ use crate::assets::AssetManager;
 use crate::constants::{AppConstants, PanelIds};
 use crate::features::main::MainView;
 use crate::features::player_info::PlayerInfoFeature;
-use crate::features::player_list::PlayerListView;
 use crate::features::setup_dialog::SetupDialogFeature;
 use crate::i18n::keys;
 use crate::state::AppState;
@@ -80,17 +79,6 @@ impl AmusApp {
                 });
                 ui.separator();
                 PlayerInfoFeature::render(&mut self.state, ui);
-            });
-
-        // 下部のユーザー一覧パネル
-        TopBottomPanel::bottom(PanelIds::PLAYER_LIST)
-            .frame(Self::get_frame())
-            .show(ctx, |ui| {
-                ui.vertical(|ui| {
-                    ui.add_space(8.0);
-                    PlayerListView::render(&mut self.state, ui);
-                    ui.add_space(8.0);
-                });
             });
 
         // 残りの中央領域

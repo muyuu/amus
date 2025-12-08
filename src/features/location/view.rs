@@ -57,15 +57,17 @@ impl LocationView {
             };
 
             let color = player.color.to_egui_color();
-            let rect = ui.max_rect();
-            let pos = pos2(
-                rect.min.x + point.x * rect.size().x,
-                rect.min.y + point.y * rect.size().y,
-            );
+            let ui_rect = ui.max_rect();
             let size = LocationConstants::SPAWN_LOCATION_SIZE;
 
+            // マージンを計算（四方同じサイズ分）
+            let margin = size;
+
+            // 中心座標を計算してクランプ
+            let center = Self::calculate_clamped_position(&point, ui_rect, margin, margin, margin);
+
             // 描画領域を確保してResponseを取得
-            let rect = Rect::from_center_size(pos, Vec2::new(size, size));
+            let rect = Rect::from_center_size(center, Vec2::new(size, size));
             let response = ui.allocate_rect(rect, Sense::click_and_drag());
 
             // イベント処理
@@ -113,12 +115,25 @@ impl LocationView {
             };
 
             let ui_rect = ui.max_rect();
-            let center = pos2(
-                // 変数名を center に統一
-                ui_rect.min.x + point.x * ui_rect.size().x,
-                ui_rect.min.y + point.y * ui_rect.size().y,
-            );
             let size = LocationConstants::END_LOCATION_SIZE;
+            let radius = size / 2.0;
+
+            // マージンを計算（上：ラベル分、左右：サイズの倍、下：サイズ分）
+            let margin_top = radius
+                + LocationConstants::END_LOCATION_LABEL_Y_OFFSET
+                + LocationConstants::END_LOCATION_LABEL_FONT_SIZE
+                + AppConstants::COM_BG_LABEL_PADDING_Y * 2.0;
+            let margin_horizontal = size * 2.0;
+            let margin_bottom = size;
+
+            // 中心座標を計算してクランプ
+            let center = Self::calculate_clamped_position(
+                &point,
+                ui_rect,
+                margin_top,
+                margin_horizontal,
+                margin_bottom,
+            );
 
             // 描画領域を確保してResponseを取得
             let rect = Rect::from_center_size(center, Vec2::new(size, size));
@@ -209,10 +224,39 @@ impl LocationView {
         );
     }
 
+    /// 正規化座標から画面上の中心座標を計算し、マージンを考慮してクランプする
+    fn calculate_clamped_position(
+        point: &crate::models::point::Point,
+        ui_rect: Rect,
+        margin_top: f32,
+        margin_horizontal: f32,
+        margin_bottom: f32,
+    ) -> Pos2 {
+        // 生の中心座標を計算
+        let raw_pos = pos2(
+            ui_rect.min.x + point.x * ui_rect.size().x,
+            ui_rect.min.y + point.y * ui_rect.size().y,
+        );
+
+        // マージンを適用してクランプ
+        let clamped_x = raw_pos.x.clamp(
+            ui_rect.min.x + margin_horizontal,
+            ui_rect.max.x - margin_horizontal,
+        );
+        let clamped_y = raw_pos
+            .y
+            .clamp(ui_rect.min.y + margin_top, ui_rect.max.y - margin_bottom);
+        pos2(clamped_x, clamped_y)
+    }
+
     fn render_label(ui: &mut Ui, player: &player::Player, center: Pos2, radius: f32) {
         let font_size = LocationConstants::END_LOCATION_LABEL_FONT_SIZE;
+
+        // 名前を最大5文字に制限
+        let display_name: String = player.name.chars().take(5).collect();
+
         let galley = ui.painter().layout_no_wrap(
-            player.name.to_owned(),
+            display_name.clone(),
             FontId::proportional(font_size),
             Color32::WHITE,
         );
@@ -228,8 +272,9 @@ impl LocationView {
             center.y - radius - LocationConstants::END_LOCATION_LABEL_Y_OFFSET,
         );
         let rect = Rect::from_center_size(label_pos, size);
+
         ui.scope_builder(UiBuilder::new().max_rect(rect), |ui| {
-            background_label_with_font_size(ui, &player.name, font_size);
+            background_label_with_font_size(ui, &display_name, font_size);
         });
     }
 }
