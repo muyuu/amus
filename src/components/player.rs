@@ -2,6 +2,7 @@ use egui::*;
 
 use crate::models::Player;
 
+#[allow(dead_code)]
 pub struct PlayerRectResult {
     pub clicked: bool,
     pub drag_started: bool,

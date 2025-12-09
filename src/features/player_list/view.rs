@@ -46,6 +46,17 @@ impl PlayerListView {
     }
 
     fn render_players(state: &AppState, ui: &mut Ui, players: &[Player], gap: f32) {
+        // グローバルなポインター解放を検知してドラッグ終了を判定
+        // 注: player_rectの返り値のdrag_stoppedは、その要素の上でマウスを離した時のみ発火する。
+        // ドラッグ&ドロップでは要素外（マップ上など）でドロップすることが前提のため、
+        // グローバルなポインター解放を検知する必要がある。
+        let pointer_released = ui.input(|i| i.pointer.any_released());
+
+        // ドラッグ終了時にクリア（選択状態は保持）
+        if pointer_released && state.dragging_player_id().is_some() {
+            state.set_dragging_player_id(None);
+        }
+
         for (i, player) in players.iter().enumerate() {
             // プレイヤー間のスペース
             if i > 0 {
@@ -64,11 +75,6 @@ impl PlayerListView {
                 if result.drag_started {
                     state.set_dragging_player_id(Some(player.id));
                 }
-            }
-
-            // ドラッグ終了時にクリア（選択状態は保持）
-            if result.drag_stopped {
-                state.set_dragging_player_id(None);
             }
         }
     }
