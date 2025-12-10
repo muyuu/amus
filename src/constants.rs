@@ -33,3 +33,9 @@ impl GridIds {
     pub const TURN: &str = "turn_grid";
     pub const DEBUG_TABLE: &str = "debug_table_grid";
 }
+
+pub struct SelectIds;
+impl SelectIds {
+    pub const SETUP_AREA: &str = "setup_area_select";
+    pub const SETUP_PLAYER_COLOR: &str = "setup_player_color_select";
+}
