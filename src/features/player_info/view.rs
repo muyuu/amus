@@ -1,6 +1,6 @@
 use crate::{
-    components::background_label,
-    constants::AppConstants,
+    components::{background_label, tile, TileConf},
+    features::player_info::constants::PlayerInfoConstants,
     i18n::keys::{PLAYER_INFO_BUTTON_DONE, PLAYER_INFO_BUTTON_NOT_DONE},
     models::{player::PlayerId, Player},
     state::AppState,
@@ -86,13 +86,16 @@ impl PlayerInfoView {
 
     // プレイヤー色の矩形を描画
     fn render_player_color_box(ui: &mut Ui, player: &Player) {
-        let rect_size = Vec2::new(
-            AppConstants::PLAYER_INFO_COLOR_BOX_SIZE,
-            AppConstants::PLAYER_INFO_COLOR_BOX_SIZE,
+        tile(
+            ui,
+            &TileConf {
+                color: player.color.to_egui_color(),
+                label: None,
+                size: Some(Vec2::splat(PlayerInfoConstants::COLOR_BOX_SIZE)),
+                is_selected: false,
+                is_dragging: false,
+            },
         );
-        let (rect, _) = ui.allocate_exact_size(rect_size, Sense::hover());
-        let painter = ui.painter();
-        painter.rect_filled(rect, 0.0, player.color.to_egui_color());
     }
 
     /// プレイヤー名を描画または編集

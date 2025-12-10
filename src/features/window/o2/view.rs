@@ -1,7 +1,7 @@
 use egui::*;
 
 use crate::{
-    components::{grid, player_rect, window},
+    components::{grid, tile, window},
     constants::GridIds,
     i18n::keys::*,
     models::Player,
@@ -48,26 +48,17 @@ impl O2View {
         let mut result = O2ViewResult { click_player: None };
 
         for (index, player) in players.iter().enumerate() {
-            let res = player_rect(ui, player, false, false);
-
-            // resolve_o2がtrueの場合、中抜きの丸を表示
-            if player.resolved_o2 {
-                let center = res.rect.center();
-                let radius = res.rect.width().min(res.rect.height()) * 0.3;
-
-                // プレイヤーの色が赤の場合は白、それ以外は赤
-                let circle_color = if player.color == crate::models::color::Color::Red {
-                    Color32::WHITE
-                } else {
-                    Color32::RED
-                };
-
-                ui.painter().circle_stroke(
-                    center,
-                    radius,
-                    Stroke::new(O2Constants::RESOLVED_MARK_SIZE, circle_color),
-                );
-            }
+            let res = tile::with_mark(
+                ui,
+                &tile::WithMarkConf {
+                    color: player.color.to_egui_color(),
+                    label: Some(player.name.clone()),
+                    size: None,
+                    is_selected: false,
+                    is_dragging: false,
+                    marked: player.resolved_o2,
+                },
+            );
 
             if res.clicked {
                 result.click_player = Some(player.clone());

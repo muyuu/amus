@@ -1,4 +1,8 @@
-use crate::{components::player_rect, models::Player, state::AppState};
+use crate::{
+    components::{tile, TileConf},
+    models::Player,
+    state::AppState,
+};
 use egui::*;
 
 pub struct PlayerListView;
@@ -66,7 +70,16 @@ impl PlayerListView {
             let is_selected = state.selected_player_id() == Some(player.id);
             let is_dragging = state.dragging_player_id() == Some(player.id);
 
-            let result = player_rect(ui, player, is_selected, is_dragging);
+            let result = tile(
+                ui,
+                &TileConf {
+                    color: player.color.to_egui_color(),
+                    label: Some(player.name.clone()),
+                    size: None,
+                    is_selected,
+                    is_dragging,
+                },
+            );
 
             // クリックまたはドラッグ開始時にユーザーを選択
             if result.clicked || result.drag_started {
