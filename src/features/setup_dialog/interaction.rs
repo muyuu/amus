@@ -18,7 +18,7 @@ impl SetupInteraction {
     }
 
     pub fn update_player_color(state: &mut AppState, id: PlayerId, color: Color) {
-        state.update_player_color(id, color);
+        state.force_update_player_color(id, color);
     }
 
     pub fn start_game(state: &mut AppState) {
