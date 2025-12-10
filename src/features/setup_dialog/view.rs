@@ -47,82 +47,20 @@ impl SetupView {
                     ui.add_space(12.0);
 
                     ui.horizontal(|ui| {
-                        ui.label(&texts.player_count);
-                        let mut new_count = state.setup_state().player_count;
-                        if ui.add(Slider::new(&mut new_count, 4..=18)).changed() {
-                            result.player_count = Some(new_count);
+                        let r = Self::render_player_amount(ui, state, &texts);
+                        if r.player_count.is_some() {
+                            result.player_count = r.player_count;
                         }
                     });
 
                     ui.add_space(12.0);
 
                     // プレイヤー一覧の編集
-                    let available_colors = Color::all();
-                    let player_count = state.setup_state().player_count;
-
-                    for i in 0..player_count {
-                        ui.horizontal(|ui| {
-                            ui.label(&texts.player_name);
-                            ui.add_space(4.0);
-
-                            let player = &state.setup_state().players[i].clone();
-                            let mut name = player.name.clone();
-                            if ui.text_edit_singleline(&mut name).changed() {
-                                result.update_player =
-                                    Some((player.id, name, player.color.clone()));
-                            }
-
-                            ui.add_space(8.0);
-
-                            let selected_color = player.color.clone();
-
-                            // 色プレビューのサイズと位置を調整
-                            let (rect, _response) =
-                                ui.allocate_exact_size(Vec2::new(20.0, 20.0), Sense::hover());
-                            ui.painter()
-                                .rect_filled(rect, 2.0, selected_color.to_egui_color());
-
-                            ui.add_space(4.0);
-
-                            let id = format!(
-                                "{}_{}",
-                                SelectIds::SETUP_PLAYER_COLOR,
-                                player.id
-                            );
-                            let selected_text = selected_color.name();
-                            select_with_contents(ui, id, selected_text, |ui| {
-                                for color in &available_colors {
-                                    ui.horizontal(|ui| {
-                                        // 色のプレビューを表示
-                                        let color_rect = Rect::from_min_size(
-                                            ui.next_widget_position(),
-                                            Vec2::new(12.0, 12.0),
-                                        );
-                                        ui.allocate_rect(color_rect, Sense::hover());
-                                        ui.painter().rect_filled(
-                                            color_rect,
-                                            2.0,
-                                            color.to_egui_color(),
-                                        );
-
-                                        if ui
-                                            .selectable_label(
-                                                selected_color == *color,
-                                                color.name(),
-                                            )
-                                            .clicked()
-                                        {
-                                            result.update_player = Some((
-                                                player.id,
-                                                player.name.clone(),
-                                                color.clone(),
-                                            ));
-                                        }
-                                    });
-                                }
-                            });
-                        });
-                        ui.add_space(4.0);
+                    for i in 0..state.setup_state().player_count {
+                        let r = Self::render_player(ui, state, &texts, i, &Color::all());
+                        if r.update_player.is_some() {
+                            result.update_player = r.update_player;
+                        }
                     }
 
                     ui.add_space(12.0);
@@ -154,6 +92,74 @@ impl SetupView {
             .map(|area| (area.clone(), area.name()))
             .collect();
         select_with_options(ui, id, selected, options)
+    }
+
+    fn render_player_amount(ui: &mut Ui, state: &AppState, texts: &SetupTexts) -> SetupViewResult {
+        let mut result = SetupViewResult::default();
+        ui.label(&texts.player_count);
+        let mut new_count = state.setup_state().player_count;
+        if ui.add(Slider::new(&mut new_count, 4..=18)).changed() {
+            result.player_count = Some(new_count);
+        }
+        result
+    }
+
+    fn render_player(
+        ui: &mut Ui,
+        state: &AppState,
+        texts: &SetupTexts,
+        i: usize,
+        available_colors: &[Color],
+    ) -> SetupViewResult {
+        let mut result = SetupViewResult::default();
+
+        ui.horizontal(|ui| {
+            ui.label(&texts.player_name);
+            ui.add_space(4.0);
+
+            let player = &state.setup_state().players[i].clone();
+            let mut name = player.name.clone();
+            if ui.text_edit_singleline(&mut name).changed() {
+                result.update_player = Some((player.id, name, player.color.clone()));
+            }
+
+            ui.add_space(8.0);
+
+            let selected_color = player.color.clone();
+
+            // 色プレビューのサイズと位置を調整
+            let (rect, _response) = ui.allocate_exact_size(Vec2::new(20.0, 20.0), Sense::hover());
+            ui.painter()
+                .rect_filled(rect, 2.0, selected_color.to_egui_color());
+
+            ui.add_space(4.0);
+
+            let id = format!("{}_{}", SelectIds::SETUP_PLAYER_COLOR, player.id);
+            let selected_text = selected_color.name();
+            select_with_contents(ui, id, selected_text, |ui| {
+                for color in available_colors {
+                    ui.horizontal(|ui| {
+                        // 色のプレビューを表示
+                        let color_rect =
+                            Rect::from_min_size(ui.next_widget_position(), Vec2::new(12.0, 12.0));
+                        ui.allocate_rect(color_rect, Sense::hover());
+                        ui.painter()
+                            .rect_filled(color_rect, 2.0, color.to_egui_color());
+
+                        if ui
+                            .selectable_label(selected_color == *color, color.name())
+                            .clicked()
+                        {
+                            result.update_player =
+                                Some((player.id, player.name.clone(), color.clone()));
+                        }
+                    });
+                }
+            });
+        });
+        ui.add_space(4.0);
+
+        result
     }
 }
 
