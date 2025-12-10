@@ -150,7 +150,19 @@ impl AppState {
             ];
 
             for i in old_count..new_count {
-                let color = available_colors.get(i).cloned().unwrap_or(Color::Red);
+                // 現在のプレイヤーが使ってない色を選択
+                let used_colors = data
+                    .setup_state
+                    .players
+                    .iter()
+                    .map(|p| p.color.clone())
+                    .collect::<Vec<Color>>();
+                let color = available_colors
+                    .iter()
+                    .find(|c| !used_colors.contains(c))
+                    .cloned()
+                    .unwrap_or(Color::Red);
+
                 data.setup_state.players.push(Player::new(
                     Role::Crew,
                     color,
@@ -158,6 +170,9 @@ impl AppState {
                 ));
             }
         }
+
+        // 余計なプレイヤーを削除
+        data.setup_state.players.truncate(new_count);
     }
 
     pub fn players(&self) -> Option<Vec<Player>> {
@@ -221,7 +236,22 @@ impl AppState {
         }
     }
 
-    pub fn update_player_color(&self, id: PlayerId, color: Color) {
+    /// 色の変更を試みる（重複している場合は変更を拒否）
+    pub fn try_update_player_color(&self, id: PlayerId, color: Color) -> Result<(), String> {
+        // setup_state での重複チェック
+        let is_duplicate = self
+            .data
+            .borrow()
+            .setup_state
+            .players
+            .iter()
+            .any(|p| p.id != id && p.color == color);
+
+        if is_duplicate {
+            return Err(format!("色 {} は既に使用されています", color.name()));
+        }
+
+        // 重複がない場合は更新
         self.data
             .borrow_mut()
             .setup_state
@@ -233,15 +263,73 @@ impl AppState {
                 }
             });
 
+        // game が存在する場合も更新
         if let Some(mut game) = self.game() {
-            let mut players = game.players;
-            players.iter_mut().for_each(|p| {
+            game.players.iter_mut().for_each(|p| {
                 if p.id == id {
                     p.color = color.clone();
                 }
             });
-            game.players = players;
-            self.data.borrow_mut().game = Some(game)
+            self.data.borrow_mut().game = Some(game);
+        }
+
+        Ok(())
+    }
+
+    /// 色を強制的に変更する（重複している場合は他のプレイヤーと色をスワップ）
+    pub fn force_update_player_color(&self, id: PlayerId, color: Color) {
+        let (other_player_id, current_color) = {
+            let data = self.data.borrow();
+
+            // 対象の色を使っている他のプレイヤーを探す
+            let other_id = data
+                .setup_state
+                .players
+                .iter()
+                .find(|p| p.id != id && p.color == color)
+                .map(|p| p.id);
+
+            // 対象プレイヤーの現在の色を取得
+            let current = data
+                .setup_state
+                .players
+                .iter()
+                .find(|p| p.id == id)
+                .map(|p| p.color.clone());
+
+            (other_id, current)
+        };
+
+        // setup_state を更新
+        self.data
+            .borrow_mut()
+            .setup_state
+            .players
+            .iter_mut()
+            .for_each(|p| {
+                if p.id == id {
+                    // 対象プレイヤーの色を変更
+                    p.color = color.clone();
+                } else if Some(p.id) == other_player_id {
+                    // 重複していたプレイヤーの色を対象プレイヤーの元の色に変更
+                    if let Some(ref swap_color) = current_color {
+                        p.color = swap_color.clone();
+                    }
+                }
+            });
+
+        // game が存在する場合も更新
+        if let Some(mut game) = self.game() {
+            game.players.iter_mut().for_each(|p| {
+                if p.id == id {
+                    p.color = color.clone();
+                } else if Some(p.id) == other_player_id {
+                    if let Some(ref swap_color) = current_color {
+                        p.color = swap_color.clone();
+                    }
+                }
+            });
+            self.data.borrow_mut().game = Some(game);
         }
     }
 
