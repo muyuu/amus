@@ -1,3 +1,4 @@
+use super::PlayerInfoConstants as Constants;
 use crate::{
     components::{tile, TileConf},
     models::Player,
@@ -27,8 +28,8 @@ impl PlayerListView {
             None => return,
         };
 
-        let player_width = 50.0; // 各プレイヤーの幅
-        let player_gap = 6.0; // 各プレイヤー間のギャップ
+        let player_width = Constants::TILE_SIZE;
+        let player_gap = Constants::TILE_GAP;
         let total_content_width =
             players.len() as f32 * player_width + (players.len() as f32 - 1.0) * player_gap;
         let available_width = available_rect.width();
@@ -75,7 +76,7 @@ impl PlayerListView {
                 &TileConf {
                     color: player.color.to_egui_color(),
                     label: Some(player.name.clone()),
-                    size: None,
+                    size: Some(Vec2::new(Constants::TILE_SIZE, Constants::TILE_SIZE)),
                     is_selected,
                     is_dragging,
                 },
