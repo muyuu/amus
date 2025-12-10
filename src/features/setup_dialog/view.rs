@@ -1,6 +1,6 @@
 use egui::*;
 
-use crate::common::CommonTexts;
+use crate::common::{CommonTexts, choose_text_color};
 use crate::components::{select_with_contents, select_with_options};
 use crate::constants::SelectIds;
 use crate::i18n::keys::*;
@@ -138,22 +138,16 @@ impl SetupView {
             let selected_text = selected_color.name();
             select_with_contents(ui, id, selected_text, |ui| {
                 for color in available_colors {
-                    ui.horizontal(|ui| {
-                        // 色のプレビューを表示
-                        let color_rect =
-                            Rect::from_min_size(ui.next_widget_position(), Vec2::new(12.0, 12.0));
-                        ui.allocate_rect(color_rect, Sense::hover());
-                        ui.painter()
-                            .rect_filled(color_rect, 2.0, color.to_egui_color());
-
-                        if ui
-                            .selectable_label(selected_color == *color, color.name())
-                            .clicked()
-                        {
-                            result.update_player =
-                                Some((player.id, player.name.clone(), color.clone()));
-                        }
-                    });
+                    let text = RichText::new(color.name())
+                        .background_color(color.to_egui_color())
+                        .color(choose_text_color(color.to_egui_color()));
+                    if ui
+                        .selectable_label(selected_color == *color, text)
+                        .clicked()
+                    {
+                        result.update_player =
+                            Some((player.id, player.name.clone(), color.clone()));
+                    }
                 }
             });
         });
