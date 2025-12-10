@@ -1,10 +1,12 @@
 use egui::*;
 
 use crate::common::CommonTexts;
+use crate::components::{select_with_contents, select_with_options};
+use crate::constants::SelectIds;
 use crate::i18n::keys::*;
 use crate::models::player::PlayerId;
 use crate::models::{Area, Color};
-use crate::state::{AppState, SetupState};
+use crate::state::AppState;
 
 #[derive(Default)]
 pub struct SetupViewResult {
@@ -34,7 +36,7 @@ impl SetupView {
                     ui.horizontal(|ui| {
                         let area = Self::render_area_combo_box(
                             ui,
-                            &state.setup_state(),
+                            &mut state.setup_state_mut().selected_area,
                             &texts.area_selection,
                         );
                         if area.is_some() {
@@ -72,7 +74,6 @@ impl SetupView {
 
                             ui.add_space(8.0);
 
-                            // 現在の色のプレビューをComboBoxの前に表示
                             let selected_color = player.color.clone();
 
                             // 色プレビューのサイズと位置を調整
@@ -83,40 +84,43 @@ impl SetupView {
 
                             ui.add_space(4.0);
 
-                            // 色選択のためのComboBox
-                            ComboBox::from_id_salt(format!("color_combo_{}", i))
-                                .selected_text(selected_color.name())
-                                .show_ui(ui, |ui| {
-                                    for color in &available_colors {
-                                        ui.horizontal(|ui| {
-                                            // 色のプレビューを表示
-                                            let color_rect = Rect::from_min_size(
-                                                ui.next_widget_position(),
-                                                Vec2::new(12.0, 12.0),
-                                            );
-                                            ui.allocate_rect(color_rect, Sense::hover());
-                                            ui.painter().rect_filled(
-                                                color_rect,
-                                                2.0,
-                                                color.to_egui_color(),
-                                            );
+                            let id = format!(
+                                "{}_{}",
+                                SelectIds::SETUP_PLAYER_COLOR,
+                                player.id
+                            );
+                            let selected_text = selected_color.name();
+                            select_with_contents(ui, id, selected_text, |ui| {
+                                for color in &available_colors {
+                                    ui.horizontal(|ui| {
+                                        // 色のプレビューを表示
+                                        let color_rect = Rect::from_min_size(
+                                            ui.next_widget_position(),
+                                            Vec2::new(12.0, 12.0),
+                                        );
+                                        ui.allocate_rect(color_rect, Sense::hover());
+                                        ui.painter().rect_filled(
+                                            color_rect,
+                                            2.0,
+                                            color.to_egui_color(),
+                                        );
 
-                                            if ui
-                                                .selectable_label(
-                                                    selected_color == *color,
-                                                    color.name(),
-                                                )
-                                                .clicked()
-                                            {
-                                                result.update_player = Some((
-                                                    player.id,
-                                                    player.name.clone(),
-                                                    color.clone(),
-                                                ));
-                                            }
-                                        });
-                                    }
-                                });
+                                        if ui
+                                            .selectable_label(
+                                                selected_color == *color,
+                                                color.name(),
+                                            )
+                                            .clicked()
+                                        {
+                                            result.update_player = Some((
+                                                player.id,
+                                                player.name.clone(),
+                                                color.clone(),
+                                            ));
+                                        }
+                                    });
+                                }
+                            });
                         });
                         ui.add_space(4.0);
                     }
@@ -140,25 +144,16 @@ impl SetupView {
         result
     }
 
-    fn render_area_combo_box(ui: &mut Ui, setup_state: &SetupState, text: &str) -> Option<Area> {
-        let mut result = None;
-
+    fn render_area_combo_box(ui: &mut Ui, selected: &mut Area, text: &str) -> Option<Area> {
         ui.label(text);
         ui.add_space(8.0);
 
-        ComboBox::from_label("")
-            .selected_text(setup_state.selected_area.name())
-            .show_ui(ui, |ui| {
-                for area in Area::all() {
-                    if ui
-                        .selectable_label(setup_state.selected_area == area, &*area.name())
-                        .clicked()
-                    {
-                        result = Some(area.clone());
-                    }
-                }
-            });
-        result
+        let id = SelectIds::SETUP_AREA;
+        let options = Area::all()
+            .into_iter()
+            .map(|area| (area.clone(), area.name()))
+            .collect();
+        select_with_options(ui, id, selected, options)
     }
 }
 

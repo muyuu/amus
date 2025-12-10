@@ -332,6 +332,10 @@ impl AppState {
         Ref::map(self.data.borrow(), |data| &data.setup_state)
     }
 
+    pub fn setup_state_mut(&self) -> RefMut<'_, SetupState> {
+        RefMut::map(self.data.borrow_mut(), |data| &mut data.setup_state)
+    }
+
     pub fn set_selected_area(&self, area: Area) {
         self.data.borrow_mut().setup_state.selected_area = area;
     }
