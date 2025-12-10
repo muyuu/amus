@@ -1,6 +1,6 @@
 use egui::*;
 
-use crate::common::{CommonTexts, choose_text_color};
+use crate::common::{choose_text_color, CommonTexts};
 use crate::components::{select_with_contents, select_with_options};
 use crate::constants::SelectIds;
 use crate::i18n::keys::*;
