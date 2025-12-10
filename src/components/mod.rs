@@ -1,5 +1,9 @@
-pub mod player;
+pub mod grid;
 pub mod text;
+pub mod tile;
+pub mod window;
 
-pub use player::*;
+pub use grid::*;
 pub use text::*;
+pub use tile::*;
+pub use window::*;
