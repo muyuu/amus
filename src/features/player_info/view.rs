@@ -1,5 +1,5 @@
 use crate::{
-    components::text::background_label,
+    components::background_label,
     constants::AppConstants,
     i18n::keys::{PLAYER_INFO_BUTTON_DONE, PLAYER_INFO_BUTTON_NOT_DONE},
     models::{player::PlayerId, Player},

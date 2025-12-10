@@ -1,7 +1,11 @@
 use egui::*;
 
 use super::TurnConstants;
-use crate::{components::window, state::AppState};
+use crate::{
+    components::{grid, window},
+    constants::GridIds,
+    state::AppState,
+};
 
 pub struct TurnViewResult {
     pub selected_wave_index: Option<usize>,
@@ -23,38 +27,30 @@ impl TurnView {
         let ctx = ui.ctx();
 
         window(ctx, "ターン", None, Some(pos), |ui: &mut Ui| {
-            Grid::new("turn_grid")
-                // 現時点ではこの指定は列を強制するわけではないが内部的にあった方がいいかもだから入れてる
-                .num_columns(TurnConstants::TURN_GRID_ROWS)
-                .spacing([
-                    TurnConstants::TURN_GRID_SPACE,
-                    TurnConstants::TURN_GRID_SPACE,
-                ])
-                .show(ui, |ui| {
-                    for turn_index in 0..total_waves {
-                        let turn_number = turn_index + 1;
-                        let is_current = state.current_wave_index() == turn_index;
+            grid(ui, GridIds::TURN, |ui| {
+                for turn_index in 0..total_waves {
+                    let turn_number = turn_index + 1;
+                    let is_current = state.current_wave_index() == turn_index;
 
-                        let button =
-                            TurnView::create_button(ui, &turn_number.to_string(), is_current);
+                    let button = TurnView::create_button(ui, &turn_number.to_string(), is_current);
 
-                        // 4列で改行
-                        if (turn_index + 1) % TurnConstants::TURN_GRID_ROWS == 0 {
-                            ui.end_row();
-                        }
-
-                        let clicked = button.clicked();
-                        if clicked {
-                            let selected_wave_index = Some(turn_index);
-                            result.selected_wave_index = selected_wave_index;
-                        }
-
-                        // ホバー時にカーソルをポインターに変更
-                        if button.hovered() {
-                            ui.output_mut(|o| o.cursor_icon = CursorIcon::PointingHand);
-                        }
+                    // 4列で改行
+                    if (turn_index + 1) % TurnConstants::TURN_GRID_ROWS == 0 {
+                        ui.end_row();
                     }
-                });
+
+                    let clicked = button.clicked();
+                    if clicked {
+                        let selected_wave_index = Some(turn_index);
+                        result.selected_wave_index = selected_wave_index;
+                    }
+
+                    // ホバー時にカーソルをポインターに変更
+                    if button.hovered() {
+                        ui.output_mut(|o| o.cursor_icon = CursorIcon::PointingHand);
+                    }
+                }
+            });
         });
 
         result

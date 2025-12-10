@@ -1,7 +1,7 @@
 use egui::*;
 
 use crate::{
-    components::{player_rect, window},
+    components::{grid, player_rect, window},
     constants::GridIds,
     i18n::keys::*,
     models::Player,
@@ -29,21 +29,17 @@ impl ReactorView {
         let ctx = ui.ctx();
 
         window(ctx, &text.title, None, Some(pos), |ui: &mut Ui| {
-            Grid::new(GridIds::REACTOR)
-                // 現時点ではこの指定は列を強制するわけではないが内部的にあった方がいいかもだから入れてる
-                .num_columns(ReactorConstants::GRID_ROWS)
-                .spacing([ReactorConstants::GRID_SPACE, ReactorConstants::GRID_SPACE])
-                .show(ui, |ui| {
-                    let players = match state.players() {
-                        Some(p) => p,
-                        None => return,
-                    };
+            grid(ui, GridIds::REACTOR, |ui| {
+                let players = match state.players() {
+                    Some(p) => p,
+                    None => return,
+                };
 
-                    let r = Self::render_players(ui, &players);
-                    if let Some(player) = r.click_player {
-                        result.click_player = Some(player);
-                    }
-                });
+                let r = Self::render_players(ui, &players);
+                if let Some(player) = r.click_player {
+                    result.click_player = Some(player);
+                }
+            });
         });
 
         result

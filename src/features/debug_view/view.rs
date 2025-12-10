@@ -1,6 +1,6 @@
 use egui::*;
 
-use crate::state::AppState;
+use crate::{components::grid, constants::GridIds, state::AppState};
 
 pub struct DebugView;
 
@@ -38,40 +38,37 @@ impl DebugView {
 
     fn render_debug_table(state: &AppState, ui: &mut Ui, ctx: &Context) {
         // 2列のテーブル形式で表示
-        Grid::new("debug_grid")
-            .num_columns(2)
-            .spacing([10.0, 5.0])
-            .show(ui, |ui| {
-                // 選択中ユーザー
-                ui.label("選択中ユーザー:");
-                if let Some(player_id) = state.selected_player_id() {
-                    if let Some(player) = state.player(player_id) {
-                        ui.label(format!("{} (player_id={:?})", player.name, player_id));
-                    } else {
-                        ui.label(format!("player_id={:?} (存在しない)", player_id));
-                    }
+        grid(ui, GridIds::DEBUG_TABLE, |ui| {
+            // 選択中ユーザー
+            ui.label("選択中ユーザー:");
+            if let Some(player_id) = state.selected_player_id() {
+                if let Some(player) = state.player(player_id) {
+                    ui.label(format!("{} (player_id={:?})", player.name, player_id));
                 } else {
-                    ui.label("なし");
+                    ui.label(format!("player_id={:?} (存在しない)", player_id));
                 }
-                ui.end_row();
+            } else {
+                ui.label("なし");
+            }
+            ui.end_row();
 
-                // ドラッグ中ユーザー
-                ui.label("ドラッグ中ユーザー:");
-                if let Some(player_id) = state.dragging_player_id() {
-                    ui.label(format!("player_id={:?}", player_id));
-                } else {
-                    ui.label("なし");
-                }
-                ui.end_row();
+            // ドラッグ中ユーザー
+            ui.label("ドラッグ中ユーザー:");
+            if let Some(player_id) = state.dragging_player_id() {
+                ui.label(format!("player_id={:?}", player_id));
+            } else {
+                ui.label("なし");
+            }
+            ui.end_row();
 
-                // ドラッグ中ポイント
-                ui.label("ドラッグ中ポイント:");
-                if let Some(pointer_pos) = ctx.pointer_latest_pos() {
-                    ui.label(format!("x={:.1}, y={:.1}", pointer_pos.x, pointer_pos.y));
-                } else {
-                    ui.label("なし");
-                }
-                ui.end_row();
-            });
+            // ドラッグ中ポイント
+            ui.label("ドラッグ中ポイント:");
+            if let Some(pointer_pos) = ctx.pointer_latest_pos() {
+                ui.label(format!("x={:.1}, y={:.1}", pointer_pos.x, pointer_pos.y));
+            } else {
+                ui.label("なし");
+            }
+            ui.end_row();
+        });
     }
 }
