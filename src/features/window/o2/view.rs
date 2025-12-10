@@ -1,7 +1,11 @@
 use egui::*;
 
 use crate::{
-    components::player_rect, constants::GridIds, i18n::keys::*, models::Player, state::AppState,
+    components::{player_rect, window},
+    constants::GridIds,
+    i18n::keys::*,
+    models::Player,
+    state::AppState,
 };
 
 use super::O2Constants;
@@ -13,33 +17,33 @@ pub struct O2ViewResult {
 pub struct O2View;
 
 impl O2View {
-    pub fn render(state: &AppState, ui: &mut egui::Ui) -> O2ViewResult {
+    pub fn render(state: &AppState, ui: &mut Ui) -> O2ViewResult {
         let text = O2Text::get(state);
         let mut result = O2ViewResult { click_player: None };
 
-        let default_pos = Pos2 {
+        let pos = Pos2 {
             x: O2Constants::PANEL_DEFAULT_POS_OFFSET_X,
             y: O2Constants::PANEL_DEFAULT_POS_OFFSET_Y,
         };
-        Window::new(text.title)
-            .default_pos(default_pos)
-            .show(ui.ctx(), |ui| {
-                Grid::new(GridIds::O2)
-                    // 現時点ではこの指定は列を強制するわけではないが内部的にあった方がいいかもだから入れてる
-                    .num_columns(O2Constants::GRID_ROWS)
-                    .spacing([O2Constants::GRID_SPACE, O2Constants::GRID_SPACE])
-                    .show(ui, |ui| {
-                        let players = match state.players() {
-                            Some(p) => p,
-                            None => return,
-                        };
+        let ctx = ui.ctx();
 
-                        let r = Self::render_players(ui, &players);
-                        if let Some(player) = r.click_player {
-                            result.click_player = Some(player);
-                        }
-                    });
-            });
+        window(ctx, &text.title, None, Some(pos), |ui: &mut Ui| {
+            Grid::new(GridIds::O2)
+                // 現時点ではこの指定は列を強制するわけではないが内部的にあった方がいいかもだから入れてる
+                .num_columns(O2Constants::GRID_ROWS)
+                .spacing([O2Constants::GRID_SPACE, O2Constants::GRID_SPACE])
+                .show(ui, |ui| {
+                    let players = match state.players() {
+                        Some(p) => p,
+                        None => return,
+                    };
+
+                    let r = Self::render_players(ui, &players);
+                    if let Some(player) = r.click_player {
+                        result.click_player = Some(player);
+                    }
+                });
+        });
 
         result
     }
