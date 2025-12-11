@@ -2,13 +2,11 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 
 use crate::assets::AssetManager;
-use crate::models::player::PlayerId;
+use crate::models::*;
+use crate::log_debug;
 use crate::state::app_data::AppData;
-use crate::state::location::DraggingLocation;
 use crate::state::AppStorage;
-use crate::state::SetupState;
 use crate::state::StorageKeys;
-use crate::{log_debug, models::*};
 
 /// アプリケーション状態へのアクセスを提供する構造体
 pub struct AppState {

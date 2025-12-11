@@ -2,8 +2,6 @@ use crate::assets::AssetManager;
 use crate::i18n::{Language, Translator};
 use crate::models::player::PlayerId;
 use crate::models::*;
-use crate::state::location::DraggingLocation;
-use crate::state::setup_state::SetupState;
 
 /// 実際のアプリケーション状態を保持する構造体
 pub struct AppData {
