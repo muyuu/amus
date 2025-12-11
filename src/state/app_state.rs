@@ -33,7 +33,7 @@ impl AppState {
     ///
     /// このメソッドは `state` 自体を借用しないため、
     /// `state.current_wave()` など他のメソッドと同時に使えます。
-    pub fn data_mut(&self) -> RefMut<'_, AppData> {
+    fn data_mut(&self) -> RefMut<'_, AppData> {
         self.data.borrow_mut()
     }
 
@@ -189,7 +189,7 @@ impl AppState {
         players.into_iter().find(|p| p.id == player_id)
     }
 
-    pub fn player_mut(&self, player_id: PlayerId) -> Option<RefMut<'_, Player>> {
+    fn player_mut(&self, player_id: PlayerId) -> Option<RefMut<'_, Player>> {
         let mut data = self.data_mut();
         let game = data.game.as_mut()?;
         let index = game.players.iter().position(|p| p.id == player_id)?;
@@ -427,6 +427,16 @@ impl AppState {
     pub fn set_selected_area(&self, area: Area) {
         self.data.borrow_mut().setup_state.selected_area = area;
     }
+
+    pub fn toggle_setup_dialog(&self) {
+        let mut data = self.data_mut();
+        data.show_setup_dialog = !data.show_setup_dialog;
+    }
+
+    pub fn toggle_debug_view(&self) {
+        let mut data = self.data_mut();
+        data.show_debug_view = !data.show_debug_view;
+    }
 }
 
 // ドラッグ&ドロップ関連
@@ -500,7 +510,7 @@ impl AppState {
     }
 
     /// 現在の wave への可変参照を取得
-    pub fn current_wave_mut(&self) -> Result<RefMut<'_, Wave>, String> {
+    fn current_wave_mut(&self) -> Result<RefMut<'_, Wave>, String> {
         let data = self.data.borrow_mut();
         let wave_index = data.current_wave_index;
         if data.game.is_none() {

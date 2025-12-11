@@ -96,23 +96,23 @@ impl AmusApp {
             .frame(Self::get_frame())
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
-                    Self::build_debug_button(&mut self.state, ui);
+                    Self::build_debug_button(&self.state, ui);
                 });
             });
     }
 
-    fn build_debug_button(state: &mut AppState, ui: &mut Ui) {
+    fn build_debug_button(state: &AppState, ui: &mut Ui) {
         // 中央：デバッグボタン
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             // リセットボタン
             if ui.button("🔄 リセット").clicked() {
-                state.data_mut().show_setup_dialog = true;
+                state.toggle_setup_dialog();
             }
 
             // デバッグボタン
             #[cfg(debug_assertions)]
             if ui.button("🐛 デバッグ").clicked() {
-                state.data_mut().show_debug_view = !state.show_debug_view();
+                state.toggle_debug_view();
             }
         });
     }
