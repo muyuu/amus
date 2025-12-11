@@ -38,7 +38,7 @@ AppState (アプリケーション全体の状態)
         └─ Interaction (インタラクション処理、オプション)
 ```
 
-**重要**: 
+**重要**:
 - **画面に描画されているものは全てfeatureとして扱う**
 - `app.rs`は`AppState`と各featureだけを使用する
 - Stateは`AppState`（`RefCell<AppData>`を内包）で一元管理
@@ -68,6 +68,8 @@ AppState (アプリケーション全体の状態)
 
 ### 2. State (状態管理)
 
+> **詳細**: `AppData`と`AppState`の関係性、設計意図、実装パターンについては [状態管理パターン](./STATE_MANAGEMENT.md) を参照してください。
+
 #### AppState (`src/state/app_state.rs`)
 
 **役割**: アプリケーション全体の状態管理
@@ -75,6 +77,7 @@ AppState (アプリケーション全体の状態)
 - `RefCell<AppData>`を内包し、内部可変性を提供
 - 各種データへのアクセスメソッドを提供
 - ストレージへの保存・読み込みを担当
+- **重要**: データの所有権を管理し、`mut`アクセスを限定的にする
 
 **主な機能**:
 - ゲーム管理（`start_new_game`, `create_game_from_setup`, `reset_game`）
@@ -86,7 +89,11 @@ AppState (アプリケーション全体の状態)
 
 #### AppData (`src/state/app_data.rs`)
 
-**役割**: 実際のアプリケーションデータを保持
+**役割**: 実際のアプリケーションデータを保持（純粋なデータコンテナ）
+
+- ビジネスロジックを持たない（データ構造のみ）
+- `AppState`経由でのみアクセスされる
+- **重要**: 実装側は直接`AppData`を触らず、必ず`AppState`経由でアクセスする
 
 ```rust
 pub struct AppData {
