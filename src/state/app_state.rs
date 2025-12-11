@@ -93,13 +93,6 @@ impl AppState {
         self.data_mut().current_wave_index = index;
     }
 
-    pub fn add_wave(&self) {
-        let mut data = self.data_mut();
-        if let Some(game) = &mut data.game {
-            game.waves.push(Wave::default());
-        }
-    }
-
     pub fn game(&self) -> Option<Game> {
         let data = self.data.borrow();
         data.game.clone()
@@ -410,10 +403,6 @@ impl AppState {
 
     pub fn setup_state(&self) -> Ref<'_, SetupState> {
         Ref::map(self.data.borrow(), |data| &data.setup_state)
-    }
-
-    pub fn setup_state_mut(&self) -> RefMut<'_, SetupState> {
-        RefMut::map(self.data_mut(), |data| &mut data.setup_state)
     }
 
     pub fn set_selected_area(&self, area: Area) {
