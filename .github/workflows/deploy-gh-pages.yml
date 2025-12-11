@@ -14,7 +14,15 @@ jobs:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
-              # miseセットアップ
+            - name: Node.js リリースチームのGPG鍵をインポート
+              run: |
+                # release-keys リポジトリから鍵一覧を取得
+                curl -s https://raw.githubusercontent.com/nodejs/release-keys/main/keys.txt -o nodejs-release-keys.txt
+
+                # 取得した鍵をインポート
+                gpg --import nodejs-release-keys.txt
+
+            # miseセットアップ
             - name: Setup mise
               uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # v3.5.1
 
