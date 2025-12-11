@@ -236,6 +236,7 @@ impl AppState {
         }
     }
 
+    #[allow(dead_code)]
     /// 色の変更を試みる（重複している場合は変更を拒否）
     pub fn try_update_player_color(&self, id: PlayerId, color: Color) -> Result<(), String> {
         // setup_state での重複チェック
@@ -395,7 +396,6 @@ impl AppState {
         self.data.borrow().show_debug_view
     }
 
-    #[allow(dead_code)]
     pub fn show_setup_dialog(&self) -> bool {
         self.data.borrow().show_setup_dialog
     }
@@ -493,7 +493,6 @@ impl AppState {
 // ウェーブとルート管理関連
 impl AppState {
     /// 現在の wave への不変参照を取得
-    #[allow(dead_code)]
     pub fn current_wave(&self) -> Result<Ref<'_, Wave>, String> {
         let data = self.data.borrow();
         let wave_index = data.current_wave_index;

@@ -3,7 +3,6 @@ use egui::*;
 use super::base::{base, TileBaseConf, TileResult};
 use super::constants::TileConstants;
 
-#[allow(dead_code)]
 pub struct TileConf {
     pub color: Color32,
     pub label: Option<String>,

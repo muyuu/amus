@@ -29,7 +29,6 @@ impl Game {
         self.waves.get(index)
     }
 
-    #[allow(dead_code)]
     pub fn get_wave_mut(&mut self, index: usize) -> Option<&mut Wave> {
         self.waves.get_mut(index)
     }

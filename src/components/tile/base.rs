@@ -2,7 +2,6 @@ use egui::*;
 
 use crate::common::choose_text_color;
 
-#[allow(dead_code)]
 pub struct TileBaseConf {
     pub color: Color32,
     pub label: Option<String>,
