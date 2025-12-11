@@ -1,27 +1,31 @@
 # WASMビルドタスク
 ["build-wasm"]
 description = "WASMをビルドする（infoログ）"
-run = '''
-  wasm-pack build --release --target web --out-dir ./web/pkg
-  echo "WASMビルドが完了しました: ./web/pkg/"
-'''
+run = 'mise run build-wasm-base'
+depends_post = ["rm-gitignore-wasm-pkg"]
 
 ["build-wasm-debug"]
 description = "WASMをビルドする（debugログ）"
 env = { RUST_LOG = "debug" }
-run = '''
-  wasm-pack build --release --target web --out-dir ./web/pkg
-  echo "WASMビルドが完了しました: ./web/pkg/"
-'''
+run = 'mise run build-wasm-base'
+depends_post = ["rm-gitignore-wasm-pkg"]
 
 ["build-wasm-release"]
 description = "WASMをビルドする（releaseログなし）"
 env = { RUST_LOG = "error" }
-run = '''
-  wasm-pack build --release --target web --out-dir ./web/pkg
-  echo "WASMビルドが完了しました: ./web/pkg/"
-'''
+run = 'mise run build-wasm-base'
+depends_post = ["rm-gitignore-wasm-pkg"]
 
 [serve]
 description = "ローカルサーバーを起動する（web/ をルート）"
 run = "miniserve web --port 8080"
+
+["build-wasm-base"]
+hide = true
+description = "WASMをビルドする（基本設定）"
+run = "wasm-pack build --release --target web --out-dir ./web/pkg"
+
+[rm-gitignore-wasm-pkg]
+hide = true
+description = "WASM出力ディレクトリの.gitignoreを削除する"
+run = "node scripts/wasm-post-build.js"
