@@ -149,7 +149,7 @@ impl AppState {
                 Color::Coral,
             ];
 
-            for i in old_count..new_count {
+            for _i in old_count..new_count {
                 // 現在のプレイヤーが使ってない色を選択
                 let used_colors = data
                     .setup_state
@@ -166,13 +166,10 @@ impl AppState {
                 data.setup_state.players.push(Player::new(
                     Role::Crew,
                     color,
-                    format!("Player {}", i + 1),
+                    "".to_string(),
                 ));
             }
         }
-
-        // 余計なプレイヤーを削除
-        data.setup_state.players.truncate(new_count);
     }
 
     pub fn players(&self) -> Option<Vec<Player>> {
