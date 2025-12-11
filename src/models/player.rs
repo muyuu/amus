@@ -21,16 +21,6 @@ pub enum PlayerState {
     Ejected,
 }
 
-impl PlayerState {
-    pub fn next(&self) -> Self {
-        match self {
-            PlayerState::Alive => PlayerState::Killed,
-            PlayerState::Killed => PlayerState::Ejected,
-            PlayerState::Ejected => PlayerState::Alive,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Player {
     pub id: PlayerId,
