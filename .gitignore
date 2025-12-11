@@ -2,3 +2,6 @@
 **/*.rs.bk
 *.pdb
 node_modules/
+
+# wasm
+web/pkg/
