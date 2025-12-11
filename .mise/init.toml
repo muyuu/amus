@@ -1,0 +1,7 @@
+[init]
+description = "開発環境の初期設定を行う"
+run = "node scripts/init.js"
+
+["init-ci"]
+description = "CIの初期設定を行う"
+run = "node scripts/init.js ci"
