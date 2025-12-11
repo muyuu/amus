@@ -19,24 +19,7 @@ pub struct Draw {
 }
 
 impl Route {
-    pub fn add_point(&mut self, point: Point) {
-        let lines = self.lines_mut();
-        let last_line = match lines.last_mut() {
-            Some(line) => line,
-            None => return,
-        };
-
-        // 直前のポイントと同じ場合は追加しない
-        let last_point = last_line.last();
-        if let Some(lp) = last_point {
-            if lp.x == point.x && lp.y == point.y {
-                return;
-            }
-        }
-        last_line.push(point);
-    }
-
-    fn lines_mut(&mut self) -> &mut Vec<Vec<Point>> {
+    pub(crate) fn lines_mut(&mut self) -> &mut Vec<Vec<Point>> {
         match self {
             Route::Draw(draw) => &mut draw.lines,
             Route::Erase(erase) => &mut erase.lines,

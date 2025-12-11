@@ -2,13 +2,11 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 
 use crate::assets::AssetManager;
-use crate::models::player::PlayerId;
+use crate::log_debug;
+use crate::models::*;
 use crate::state::app_data::AppData;
-use crate::state::location::DraggingLocation;
 use crate::state::AppStorage;
-use crate::state::SetupState;
 use crate::state::StorageKeys;
-use crate::{log_debug, models::*};
 
 /// アプリケーション状態へのアクセスを提供する構造体
 pub struct AppState {
@@ -33,7 +31,7 @@ impl AppState {
     ///
     /// このメソッドは `state` 自体を借用しないため、
     /// `state.current_wave()` など他のメソッドと同時に使えます。
-    pub fn data_mut(&self) -> RefMut<'_, AppData> {
+    fn data_mut(&self) -> RefMut<'_, AppData> {
         self.data.borrow_mut()
     }
 
@@ -47,7 +45,7 @@ impl AppState {
     }
 
     pub fn set_asset_manager(&self, asset_manager: AssetManager) {
-        self.data.borrow_mut().asset_manager = Some(asset_manager);
+        self.data_mut().asset_manager = Some(asset_manager);
     }
 }
 
@@ -69,12 +67,13 @@ impl AppState {
             .cloned()
             .collect();
 
-        let mut game = Game::new(area, players);
+        // data.game = Some(Game::new(area, players));
+        let mut new_game = Game::new(area, players);
         // とりあえず20ウェーブ作成
         for _ in 0..20 {
-            game.add_wave();
+            new_game.waves.push(Wave::default());
         }
-        data.game = Some(game);
+        data.game = Some(new_game);
         data.current_wave_index = 0;
         data.show_setup_dialog = false;
     }
@@ -86,8 +85,8 @@ impl AppState {
     pub fn reset_game(&self) {
         // setup_state は変えなくて良いケースが多いはずなので保持
         let setup_state = self.data.borrow().setup_state.clone();
-        *self.data.borrow_mut() = AppData::default();
-        self.data.borrow_mut().setup_state = setup_state;
+        *self.data_mut() = AppData::default();
+        self.data_mut().setup_state = setup_state;
     }
 
     pub fn select_wave(&self, index: usize) {
@@ -112,10 +111,15 @@ impl AppState {
 // プレイヤー操作関連
 impl AppState {
     pub fn toggle_player_state(&self, player_id: PlayerId) {
-        if let Some(game) = self.data.borrow_mut().game.as_mut() {
+        if let Some(game) = self.data_mut().game.as_mut() {
             game.players.iter_mut().for_each(|p| {
                 if p.id == player_id {
-                    p.state = p.state.next();
+                    let next = match p.state {
+                        PlayerState::Alive => PlayerState::Killed,
+                        PlayerState::Killed => PlayerState::Ejected,
+                        PlayerState::Ejected => PlayerState::Alive,
+                    };
+                    p.state = next;
                 }
             });
         }
@@ -149,7 +153,7 @@ impl AppState {
                 Color::Coral,
             ];
 
-            for i in old_count..new_count {
+            for _i in old_count..new_count {
                 // 現在のプレイヤーが使ってない色を選択
                 let used_colors = data
                     .setup_state
@@ -163,16 +167,11 @@ impl AppState {
                     .cloned()
                     .unwrap_or(Color::Red);
 
-                data.setup_state.players.push(Player::new(
-                    Role::Crew,
-                    color,
-                    format!("Player {}", i + 1),
-                ));
+                data.setup_state
+                    .players
+                    .push(Player::new(Role::Crew, color, "".to_string()));
             }
         }
-
-        // 余計なプレイヤーを削除
-        data.setup_state.players.truncate(new_count);
     }
 
     pub fn players(&self) -> Option<Vec<Player>> {
@@ -189,7 +188,7 @@ impl AppState {
         players.into_iter().find(|p| p.id == player_id)
     }
 
-    pub fn player_mut(&self, player_id: PlayerId) -> Option<RefMut<'_, Player>> {
+    fn player_mut(&self, player_id: PlayerId) -> Option<RefMut<'_, Player>> {
         let mut data = self.data_mut();
         let game = data.game.as_mut()?;
         let index = game.players.iter().position(|p| p.id == player_id)?;
@@ -213,29 +212,26 @@ impl AppState {
     }
 
     pub fn update_player_name(&self, id: PlayerId, name: String) {
-        self.data
-            .borrow_mut()
-            .setup_state
-            .players
-            .iter_mut()
-            .for_each(|p| {
-                if p.id == id {
-                    p.name = name.clone();
-                }
-            });
+        let mut data = self.data_mut();
 
-        if let Some(mut game) = self.game() {
-            let mut players = game.players;
-            players.iter_mut().for_each(|p| {
+        // setup_stateを更新
+        data.setup_state.players.iter_mut().for_each(|p| {
+            if p.id == id {
+                p.name = name.clone();
+            }
+        });
+
+        // gameを更新
+        if let Some(game) = &mut data.game {
+            game.players.iter_mut().for_each(|p| {
                 if p.id == id {
                     p.name = name.clone();
                 }
             });
-            game.players = players;
-            self.data.borrow_mut().game = Some(game)
         }
     }
 
+    #[allow(dead_code)]
     /// 色の変更を試みる（重複している場合は変更を拒否）
     pub fn try_update_player_color(&self, id: PlayerId, color: Color) -> Result<(), String> {
         // setup_state での重複チェック
@@ -251,26 +247,22 @@ impl AppState {
             return Err(format!("色 {} は既に使用されています", color.name()));
         }
 
+        let mut data = self.data_mut();
+
         // 重複がない場合は更新
-        self.data
-            .borrow_mut()
-            .setup_state
-            .players
-            .iter_mut()
-            .for_each(|p| {
-                if p.id == id {
-                    p.color = color.clone();
-                }
-            });
+        data.setup_state.players.iter_mut().for_each(|p| {
+            if p.id == id {
+                p.color = color.clone();
+            }
+        });
 
         // game が存在する場合も更新
-        if let Some(mut game) = self.game() {
+        if let Some(game) = &mut data.game {
             game.players.iter_mut().for_each(|p| {
                 if p.id == id {
                     p.color = color.clone();
                 }
             });
-            self.data.borrow_mut().game = Some(game);
         }
 
         Ok(())
@@ -300,26 +292,23 @@ impl AppState {
             (other_id, current)
         };
 
-        // setup_state を更新
-        self.data
-            .borrow_mut()
-            .setup_state
-            .players
-            .iter_mut()
-            .for_each(|p| {
-                if p.id == id {
-                    // 対象プレイヤーの色を変更
-                    p.color = color.clone();
-                } else if Some(p.id) == other_player_id {
-                    // 重複していたプレイヤーの色を対象プレイヤーの元の色に変更
-                    if let Some(ref swap_color) = current_color {
-                        p.color = swap_color.clone();
-                    }
+        // setup_state と game を更新
+        let mut data = self.data_mut();
+
+        data.setup_state.players.iter_mut().for_each(|p| {
+            if p.id == id {
+                // 対象プレイヤーの色を変更
+                p.color = color.clone();
+            } else if Some(p.id) == other_player_id {
+                // 重複していたプレイヤーの色を対象プレイヤーの元の色に変更
+                if let Some(ref swap_color) = current_color {
+                    p.color = swap_color.clone();
                 }
-            });
+            }
+        });
 
         // game が存在する場合も更新
-        if let Some(mut game) = self.game() {
+        if let Some(game) = &mut data.game {
             game.players.iter_mut().for_each(|p| {
                 if p.id == id {
                     p.color = color.clone();
@@ -329,21 +318,18 @@ impl AppState {
                     }
                 }
             });
-            self.data.borrow_mut().game = Some(game);
         }
     }
 
     pub fn update_player_button(&self, id: PlayerId, done: bool) {
         // これはリセット時に初期化したいので setup_state は更新しない
-        if let Some(mut game) = self.game() {
-            let mut players = game.players;
-            players.iter_mut().for_each(|p| {
+        let mut data = self.data_mut();
+        if let Some(game) = &mut data.game {
+            game.players.iter_mut().for_each(|p| {
                 if p.id == id {
                     p.done_button = done;
                 }
             });
-            game.players = players;
-            self.data.borrow_mut().game = Some(game);
         }
     }
 
@@ -395,7 +381,6 @@ impl AppState {
         self.data.borrow().show_debug_view
     }
 
-    #[allow(dead_code)]
     pub fn show_setup_dialog(&self) -> bool {
         self.data.borrow().show_setup_dialog
     }
@@ -405,7 +390,7 @@ impl AppState {
     }
 
     pub fn set_erase_mode(&self, mode: bool) {
-        self.data.borrow_mut().erase_mode = mode;
+        self.data_mut().erase_mode = mode;
     }
 
     pub fn selected_player_id(&self) -> Option<PlayerId> {
@@ -413,19 +398,25 @@ impl AppState {
     }
 
     pub fn set_selected_player_id(&self, player_id: Option<PlayerId>) {
-        self.data.borrow_mut().selected_player_id = player_id;
+        self.data_mut().selected_player_id = player_id;
     }
 
     pub fn setup_state(&self) -> Ref<'_, SetupState> {
         Ref::map(self.data.borrow(), |data| &data.setup_state)
     }
 
-    pub fn setup_state_mut(&self) -> RefMut<'_, SetupState> {
-        RefMut::map(self.data.borrow_mut(), |data| &mut data.setup_state)
+    pub fn set_selected_area(&self, area: Area) {
+        self.data_mut().setup_state.selected_area = area;
     }
 
-    pub fn set_selected_area(&self, area: Area) {
-        self.data.borrow_mut().setup_state.selected_area = area;
+    pub fn toggle_setup_dialog(&self) {
+        let mut data = self.data_mut();
+        data.show_setup_dialog = !data.show_setup_dialog;
+    }
+
+    pub fn toggle_debug_view(&self) {
+        let mut data = self.data_mut();
+        data.show_debug_view = !data.show_debug_view;
     }
 }
 
@@ -436,7 +427,7 @@ impl AppState {
     }
 
     pub fn set_dragging_player_id(&self, player_id: Option<PlayerId>) {
-        self.data.borrow_mut().dragging_player_id = player_id;
+        self.data_mut().dragging_player_id = player_id;
     }
 
     pub fn dragging_location(&self) -> Option<DraggingLocation> {
@@ -444,7 +435,7 @@ impl AppState {
     }
 
     pub fn set_dragging_location(&self, location: Option<DraggingLocation>) {
-        self.data.borrow_mut().dragging_location = location;
+        self.data_mut().dragging_location = location;
     }
 
     pub fn spawn_locations(&self) -> Option<HashMap<PlayerId, Point>> {
@@ -483,7 +474,6 @@ impl AppState {
 // ウェーブとルート管理関連
 impl AppState {
     /// 現在の wave への不変参照を取得
-    #[allow(dead_code)]
     pub fn current_wave(&self) -> Result<Ref<'_, Wave>, String> {
         let data = self.data.borrow();
         let wave_index = data.current_wave_index;
@@ -500,8 +490,8 @@ impl AppState {
     }
 
     /// 現在の wave への可変参照を取得
-    pub fn current_wave_mut(&self) -> Result<RefMut<'_, Wave>, String> {
-        let data = self.data.borrow_mut();
+    fn current_wave_mut(&self) -> Result<RefMut<'_, Wave>, String> {
+        let data = self.data_mut();
         let wave_index = data.current_wave_index;
         if data.game.is_none() {
             return Err("Game not found".to_string());
@@ -522,14 +512,14 @@ impl AppState {
         }
     }
 
-    pub fn routes_mut(&self) -> Option<RefMut<'_, Vec<Route>>> {
+    fn routes_mut(&self) -> Option<RefMut<'_, Vec<Route>>> {
         match self.current_wave_mut() {
             Ok(wave) => Some(std::cell::RefMut::map(wave, |w| &mut w.routes)),
             _ => None,
         }
     }
 
-    pub fn last_route_mut(&self) -> Option<RefMut<'_, Route>> {
+    fn last_route_mut(&self) -> Option<RefMut<'_, Route>> {
         match self.routes_mut() {
             Some(routes) => {
                 let len = routes.len();
@@ -550,6 +540,28 @@ impl AppState {
 
         wave.routes.push(route);
     }
+
+    pub fn add_point_to_last_route(&self, point: Point) {
+        let mut last_route = match self.last_route_mut() {
+            Some(r) => r,
+            None => return,
+        };
+
+        let lines = last_route.lines_mut();
+        let last_line = match lines.last_mut() {
+            Some(line) => line,
+            None => return,
+        };
+
+        // 直前のポイントと同じ場合は追加しない
+        let last_point = last_line.last();
+        if let Some(lp) = last_point {
+            if lp.x == point.x && lp.y == point.y {
+                return;
+            }
+        }
+        last_line.push(point);
+    }
 }
 
 // ストレージ関連
@@ -561,13 +573,13 @@ impl AppState {
             AppStorage::get::<SetupState>(storage, StorageKeys::SETUP_STATE)
         {
             log_debug!("AppState", "SetupState をストレージから復元");
-            self.data.borrow_mut().setup_state = setup_state;
+            self.data_mut().setup_state = setup_state;
         }
 
         // ゲーム状態を復元
         if let Ok(Some(game)) = AppStorage::get::<Game>(storage, StorageKeys::GAME) {
             log_debug!("AppState", "Game をストレージから復元");
-            self.data.borrow_mut().game = Some(game);
+            self.data_mut().game = Some(game);
         }
 
         // 現在のウェーブインデックスを復元
@@ -575,17 +587,17 @@ impl AppState {
             AppStorage::get::<usize>(storage, StorageKeys::CURRENT_WAVE_INDEX)
         {
             log_debug!("AppState", "現在のターンをストレージから復元");
-            self.data.borrow_mut().current_wave_index = wave_index;
+            self.data_mut().current_wave_index = wave_index;
         }
 
         // UI状態を復元
         if let Ok(Some(show_debug)) = AppStorage::get::<bool>(storage, StorageKeys::SHOW_DEBUG_VIEW)
         {
-            self.data.borrow_mut().show_debug_view = show_debug;
+            self.data_mut().show_debug_view = show_debug;
         }
 
         if let Ok(Some(erase_mode)) = AppStorage::get::<bool>(storage, StorageKeys::ERASE_MODE) {
-            self.data.borrow_mut().erase_mode = erase_mode;
+            self.data_mut().erase_mode = erase_mode;
         }
 
         Ok(())
@@ -665,7 +677,7 @@ impl AppState {
         })?;
 
         // メモリ上のデータもクリア
-        let mut data = self.data.borrow_mut();
+        let mut data = self.data_mut();
         data.game = None;
         data.current_wave_index = 0;
 

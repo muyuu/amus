@@ -47,11 +47,6 @@ impl RouteDrawingInteraction {
             _ => return,
         };
 
-        let mut l = match state.last_route_mut() {
-            Some(route) => route,
-            None => return,
-        };
-
-        l.add_point(point);
+        state.add_point_to_last_route(point);
     }
 }

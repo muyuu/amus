@@ -5,7 +5,6 @@ use serde::Serialize;
 
 use crate::log::LogLevel;
 
-#[allow(dead_code)]
 pub struct LogEntry {
     pub tag: String,
     pub message: String,
@@ -28,8 +27,8 @@ impl LogEntry {
     }
 }
 
-#[allow(dead_code)]
 impl LogEntry {
+    #[allow(dead_code)]
     pub fn with_data<T: Serialize>(mut self, data: T) -> Self {
         match serde_json::to_value(data) {
             Ok(value) => {

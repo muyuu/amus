@@ -1,19 +1,23 @@
 pub mod area;
 pub mod color;
 pub mod game;
+pub mod location;
 pub mod player;
 pub mod point;
 pub mod role;
 pub mod route;
+pub mod setup_state;
 pub mod theme;
 pub mod wave;
 
 pub use area::Area;
 pub use color::Color;
 pub use game::Game;
-pub use player::Player;
+pub use location::*;
+pub use player::*;
 pub use point::Point;
 pub use role::Role;
 pub use route::Route;
+pub use setup_state::*;
 pub use theme::Theme;
 pub use wave::Wave;

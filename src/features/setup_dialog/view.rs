@@ -33,10 +33,11 @@ impl SetupView {
             .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
             .show(ctx, |ui| {
                 ScrollArea::vertical().show(ui, |ui| {
+                    let mut selected_area = state.setup_state().selected_area.clone();
                     ui.horizontal(|ui| {
                         let area = Self::render_area_combo_box(
                             ui,
-                            &mut state.setup_state_mut().selected_area,
+                            &mut selected_area,
                             &texts.area_selection,
                         );
                         if area.is_some() {

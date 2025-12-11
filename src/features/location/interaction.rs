@@ -1,8 +1,7 @@
 use crate::common::current_point_with_ui;
 use crate::features::location::view::LocationViewResult;
-use crate::models::player::PlayerId;
-use crate::models::Point;
-use crate::state::{AppState, DraggingLocation, LocationType};
+use crate::models::*;
+use crate::state::AppState;
 use egui::*;
 
 pub struct LocationInteraction;

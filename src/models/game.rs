@@ -20,27 +20,11 @@ impl Game {
         }
     }
 
-    pub fn add_wave(&mut self) {
-        self.waves.push(Wave::default());
-        self.current_wave_index += 1;
-    }
-
     pub fn get_wave(&self, index: usize) -> Option<&Wave> {
         self.waves.get(index)
     }
 
-    #[allow(dead_code)]
     pub fn get_wave_mut(&mut self, index: usize) -> Option<&mut Wave> {
         self.waves.get_mut(index)
-    }
-
-    #[allow(dead_code)]
-    pub fn get_players(&self) -> &Vec<Player> {
-        &self.players
-    }
-
-    #[allow(dead_code)]
-    pub fn get_playrs_mut(&mut self) -> &mut Vec<Player> {
-        &mut self.players
     }
 }
