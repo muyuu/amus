@@ -1,0 +1,15 @@
+{
+  "name": "amus",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "amus_wasm_bg.wasm",
+    "amus_wasm.js",
+    "amus_wasm.d.ts"
+  ],
+  "main": "amus_wasm.js",
+  "types": "amus_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
