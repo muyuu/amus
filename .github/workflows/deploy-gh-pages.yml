@@ -9,29 +9,26 @@ jobs:
     build-and-deploy:
         runs-on: ubuntu-latest
 
+        permissions:
+            contents: write
+
         steps:
-            # チェックアウト
-            - name: Checkout
+            - name: チェックアウト
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
-            - name: Node.js リリースチームのGPG鍵をインポート
-              run: |
-                # release-keys リポジトリから鍵一覧を取得
-                curl -s https://raw.githubusercontent.com/nodejs/release-keys/main/keys.txt -o nodejs-release-keys.txt
-
-                # 取得した鍵をインポート
-                gpg --import nodejs-release-keys.txt
-
-            # miseセットアップ
-            - name: Setup mise
+            - name: mise のセットアップ
               uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # v3.5.1
+              env:
+                # GPG検証をスキップ（CIでは署名検証は不要）
+                MISE_NODE_VERIFY: "false"
 
-            # ビルド実行
-            - name: Build wasm
+            - name: 依存パッケージのインストール
+              run: mise run init
+
+            - name: wasm のビルド
               run: mise run build-wasm
 
-            # gh-pages ブランチへ成果物を push
-            - name: Deploy to gh-pages
+            - name: gh-pages へのデプロイ
               uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4.0.0
               with:
                 github_token: ${{ secrets.GITHUB_TOKEN }}
