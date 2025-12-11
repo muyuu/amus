@@ -1,6 +1,10 @@
 [tools]
 rust = "stable"
 
+# ./scripts/ にある各種スクリプト用
+# Windows環境でも動作するように Node.js でスクリプト記述
+node = "24"
+
 [env]
 RUST_BACKTRACE = "1"
 

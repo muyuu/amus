@@ -13,4 +13,4 @@ run = "node scripts/analyzer-target.js wasm"
 
 [init]
 description = "開発環境の初期設定を行う"
-run = "bash scripts/init.sh"
+run = "node scripts/init.js"
