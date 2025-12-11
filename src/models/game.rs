@@ -20,11 +20,6 @@ impl Game {
         }
     }
 
-    pub fn add_wave(&mut self) {
-        self.waves.push(Wave::default());
-        self.current_wave_index += 1;
-    }
-
     pub fn get_wave(&self, index: usize) -> Option<&Wave> {
         self.waves.get(index)
     }

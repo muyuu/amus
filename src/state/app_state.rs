@@ -70,7 +70,7 @@ impl AppState {
         let mut game = Game::new(area, players);
         // とりあえず20ウェーブ作成
         for _ in 0..20 {
-            game.add_wave();
+            self.add_wave(&mut game);
         }
         data.game = Some(game);
         data.current_wave_index = 0;
@@ -90,6 +90,11 @@ impl AppState {
 
     pub fn select_wave(&self, index: usize) {
         self.data_mut().current_wave_index = index;
+    }
+
+    pub fn add_wave(&self, game: &mut Game) {
+        let wave = Wave::default();
+        game.waves.push(wave);
     }
 
     pub fn game(&self) -> Option<Game> {
