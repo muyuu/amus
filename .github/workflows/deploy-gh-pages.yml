@@ -1,0 +1,32 @@
+name: gh-pagesブランチにpush
+
+on:
+    push:
+        tags:
+            - "*"
+
+jobs:
+    build-and-deploy:
+        runs-on: ubuntu-latest
+
+        steps:
+            # チェックアウト
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+              # miseセットアップ
+            - name: Setup mise
+              uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # v3.5.1
+
+            # ビルド実行
+            - name: Build wasm
+              run: mise run build-wasm
+
+            # gh-pages ブランチへ成果物を push
+            - name: Deploy to gh-pages
+              uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4.0.0
+              with:
+                github_token: ${{ secrets.GITHUB_TOKEN }}
+                publish_dir: ./web
+                publish_branch: gh-pages
+                force_orphan: true
