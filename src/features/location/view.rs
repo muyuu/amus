@@ -1,5 +1,6 @@
 use crate::components::{
     background_label_with_font_size,
+    change_color::{change_color, ChangeColorConf},
     grid::grid,
     tile::{tile, TileConf},
 };
@@ -289,74 +290,23 @@ impl LocationView {
         color_change: &mut Option<(player::PlayerId, Color)>,
     ) {
         response.context_menu(|ui| {
-            // 削除ボタン
-            if ui.button("削除").clicked() {
-                *delete_player_id = Some(player_id);
-                ui.close();
-            }
-
-            ui.separator();
-
-            ui.label("色を変更");
-            ui.separator();
-
-            // 使われていない色を取得
-            let all_colors = crate::models::color::Color::all();
-            let used_colors: Vec<_> = state
-                .players()
-                .unwrap_or_default()
-                .iter()
-                .filter(|p| p.id != player_id) // 自分以外の色を除外対象に
-                .map(|p| p.color.clone())
-                .collect();
-            let available_colors: Vec<_> = all_colors
-                .into_iter()
-                .filter(|c| !used_colors.contains(c))
-                .collect();
-
-            // 1行4列でタイルを描画
-            let tile_size = 30.0;
-
-            // Gridコンポーネントを使用（4列固定）
-            grid(
+            let result = change_color(
                 ui,
-                format!("color_grid_{}_{:?}", location_type, player_id),
-                |ui| {
-                    for (index, available_color) in available_colors.iter().enumerate() {
-                        let tile_result = tile(
-                            ui,
-                            &TileConf {
-                                color: available_color.to_egui_color(),
-                                label: None,
-                                size: Some(Vec2::new(tile_size, tile_size)),
-                                is_selected: false,
-                                is_dragging: false,
-                            },
-                        );
-
-                        // ホバーエフェクト
-                        if tile_result.response.hovered() {
-                            ui.painter().rect_stroke(
-                                tile_result.rect,
-                                2.0,
-                                (3.0, Color32::YELLOW),
-                                StrokeKind::Outside,
-                            );
-                        }
-
-                        // クリックで色を変更
-                        if tile_result.clicked {
-                            *color_change = Some((player_id, available_color.clone()));
-                            ui.close();
-                        }
-
-                        // 4列ごとに改行
-                        if (index + 1) % 4 == 0 {
-                            ui.end_row();
-                        }
-                    }
+                state,
+                &ChangeColorConf {
+                    player_id,
+                    show_delete: true,
+                    grid_id_suffix: format!("{}_{:?}", location_type, player_id),
                 },
             );
+
+            if result.delete {
+                *delete_player_id = Some(player_id);
+            }
+
+            if let Some(color) = result.color_change {
+                *color_change = Some((player_id, color));
+            }
         });
     }
 

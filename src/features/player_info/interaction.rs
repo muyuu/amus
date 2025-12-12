@@ -19,6 +19,12 @@ impl PlayerInfoInteraction {
         if res.any_done_button_clicked {
             Self::player_done_button_clicked(state, res);
         }
+
+        if let Some((player_id, color)) = res.color_change.clone() {
+            if let Err(e) = state.try_update_player_color(player_id, color) {
+                eprintln!("色の変更に失敗: {}", e);
+            }
+        }
     }
 
     pub fn player_double_clicked(state: &mut AppState, res: &PlayerInfoResult) {
