@@ -1,7 +1,14 @@
-use crate::{
-    components::background_label_with_font_size, constants::AppConstants,
-    features::location::constants::LocationConstants, models::player, state::AppState,
+use crate::components::{
+    background_label_with_font_size,
+    change_color::{change_color, ChangeColorConf},
+    grid::grid,
+    tile::{tile, TileConf},
 };
+use crate::constants::AppConstants;
+use crate::features::location::constants::LocationConstants;
+use crate::models::color::Color;
+use crate::models::player;
+use crate::state::AppState;
 use egui::*;
 
 #[derive(Default)]
@@ -10,6 +17,8 @@ pub struct SpawnResult {
     pub dragging_player_id: Option<player::PlayerId>,
     pub drag_stop_player_id: Option<player::PlayerId>,
     pub click_player_id: Option<player::PlayerId>,
+    pub color_change: Option<(player::PlayerId, Color)>,
+    pub delete_player_id: Option<player::PlayerId>,
 }
 
 #[derive(Default)]
@@ -18,6 +27,8 @@ pub struct EndResult {
     pub dragging_player_id: Option<player::PlayerId>,
     pub drag_stop_player_id: Option<player::PlayerId>,
     pub click_player_id: Option<player::PlayerId>,
+    pub color_change: Option<(player::PlayerId, Color)>,
+    pub delete_player_id: Option<player::PlayerId>,
 }
 
 #[derive(Default)]
@@ -94,6 +105,16 @@ impl LocationView {
                 (stroke_width, Color32::WHITE),
                 StrokeKind::Inside,
             );
+
+            // コンテキストメニュー表示（右クリックで即座に表示）
+            Self::render_location_context_menu(
+                &response,
+                state,
+                player_id,
+                "spawn",
+                &mut result.delete_player_id,
+                &mut result.color_change,
+            );
         }
 
         result
@@ -158,6 +179,16 @@ impl LocationView {
             Self::render_dead_mark(&player, painter, center);
             Self::render_ejected_mark(&player, painter, center);
             Self::render_label(ui, &player, center, size / 2.0);
+
+            // コンテキストメニュー表示（右クリックで即座に表示）
+            Self::render_location_context_menu(
+                &response,
+                state,
+                player_id,
+                "end",
+                &mut result.delete_player_id,
+                &mut result.color_change,
+            );
         }
 
         result
@@ -247,6 +278,36 @@ impl LocationView {
             .y
             .clamp(ui_rect.min.y + margin_top, ui_rect.max.y - margin_bottom);
         pos2(clamped_x, clamped_y)
+    }
+
+    /// 位置のコンテキストメニューを描画（spawn/end共通）
+    fn render_location_context_menu(
+        response: &Response,
+        state: &AppState,
+        player_id: player::PlayerId,
+        location_type: &str,
+        delete_player_id: &mut Option<player::PlayerId>,
+        color_change: &mut Option<(player::PlayerId, Color)>,
+    ) {
+        response.context_menu(|ui| {
+            let result = change_color(
+                ui,
+                state,
+                &ChangeColorConf {
+                    player_id,
+                    show_delete: true,
+                    grid_id_suffix: format!("{}_{:?}", location_type, player_id),
+                },
+            );
+
+            if result.delete {
+                *delete_player_id = Some(player_id);
+            }
+
+            if let Some(color) = result.color_change {
+                *color_change = Some((player_id, color));
+            }
+        });
     }
 
     fn render_label(ui: &mut Ui, player: &player::Player, center: Pos2, radius: f32) {
