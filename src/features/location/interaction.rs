@@ -51,6 +51,19 @@ impl LocationInteraction {
             // TOOD: 削除とかしたい
         }
 
+        // 出現位置の色変更
+        if let Some((player_id, color)) = result.spawn.color_change.clone() {
+            if let Err(e) = state.try_update_player_color(player_id, color) {
+                // エラーハンドリング（必要に応じてログ出力など）
+                eprintln!("色の変更に失敗: {}", e);
+            }
+        }
+
+        // 出現位置の削除
+        if let Some(player_id) = result.spawn.delete_player_id {
+            state.remove_spawn_location(player_id);
+        }
+
         // 終了時位置ドラッグ開始
         if let Some(player_id) = result.end.drag_start_player_id {
             state.set_dragging_location(Some(DraggingLocation {
@@ -72,6 +85,19 @@ impl LocationInteraction {
         // 終了時位置クリック
         if let Some(player_id) = result.end.click_player_id {
             state.toggle_player_state(player_id);
+        }
+
+        // 終了時位置の色変更
+        if let Some((player_id, color)) = result.end.color_change.clone() {
+            if let Err(e) = state.try_update_player_color(player_id, color) {
+                // エラーハンドリング（必要に応じてログ出力など）
+                eprintln!("色の変更に失敗: {}", e);
+            }
+        }
+
+        // 終了時位置の削除
+        if let Some(player_id) = result.end.delete_player_id {
+            state.remove_end_location(player_id);
         }
     }
 

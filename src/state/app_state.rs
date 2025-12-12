@@ -236,10 +236,8 @@ impl AppState {
     pub fn try_update_player_color(&self, id: PlayerId, color: Color) -> Result<(), String> {
         // setup_state での重複チェック
         let is_duplicate = self
-            .data
-            .borrow()
-            .setup_state
-            .players
+            .players()
+            .unwrap_or_default()
             .iter()
             .any(|p| p.id != id && p.color == color);
 
@@ -454,6 +452,15 @@ impl AppState {
         wave.spawn_locations.insert(player_id, point);
     }
 
+    pub fn remove_spawn_location(&self, player_id: PlayerId) {
+        let mut wave = match self.current_wave_mut() {
+            Ok(wave) => wave,
+            _ => return,
+        };
+
+        wave.spawn_locations.remove(&player_id);
+    }
+
     pub fn end_locations(&self) -> Option<HashMap<PlayerId, Point>> {
         match self.current_wave() {
             Ok(wave) => Some(wave.end_locations.clone()),
@@ -468,6 +475,15 @@ impl AppState {
         };
 
         wave.end_locations.insert(player_id, point);
+    }
+
+    pub fn remove_end_location(&self, player_id: PlayerId) {
+        let mut wave = match self.current_wave_mut() {
+            Ok(wave) => wave,
+            _ => return,
+        };
+
+        wave.end_locations.remove(&player_id);
     }
 }
 

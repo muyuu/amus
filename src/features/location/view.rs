@@ -1,7 +1,13 @@
-use crate::{
-    components::background_label_with_font_size, constants::AppConstants,
-    features::location::constants::LocationConstants, models::player, state::AppState,
+use crate::components::{
+    background_label_with_font_size,
+    grid::grid,
+    tile::{tile, TileConf},
 };
+use crate::constants::AppConstants;
+use crate::features::location::constants::LocationConstants;
+use crate::models::color::Color;
+use crate::models::player;
+use crate::state::AppState;
 use egui::*;
 
 #[derive(Default)]
@@ -10,6 +16,8 @@ pub struct SpawnResult {
     pub dragging_player_id: Option<player::PlayerId>,
     pub drag_stop_player_id: Option<player::PlayerId>,
     pub click_player_id: Option<player::PlayerId>,
+    pub color_change: Option<(player::PlayerId, Color)>,
+    pub delete_player_id: Option<player::PlayerId>,
 }
 
 #[derive(Default)]
@@ -18,6 +26,8 @@ pub struct EndResult {
     pub dragging_player_id: Option<player::PlayerId>,
     pub drag_stop_player_id: Option<player::PlayerId>,
     pub click_player_id: Option<player::PlayerId>,
+    pub color_change: Option<(player::PlayerId, Color)>,
+    pub delete_player_id: Option<player::PlayerId>,
 }
 
 #[derive(Default)]
@@ -94,6 +104,16 @@ impl LocationView {
                 (stroke_width, Color32::WHITE),
                 StrokeKind::Inside,
             );
+
+            // コンテキストメニュー表示（右クリックで即座に表示）
+            Self::render_location_context_menu(
+                &response,
+                state,
+                player_id,
+                "spawn",
+                &mut result.delete_player_id,
+                &mut result.color_change,
+            );
         }
 
         result
@@ -158,6 +178,16 @@ impl LocationView {
             Self::render_dead_mark(&player, painter, center);
             Self::render_ejected_mark(&player, painter, center);
             Self::render_label(ui, &player, center, size / 2.0);
+
+            // コンテキストメニュー表示（右クリックで即座に表示）
+            Self::render_location_context_menu(
+                &response,
+                state,
+                player_id,
+                "end",
+                &mut result.delete_player_id,
+                &mut result.color_change,
+            );
         }
 
         result
@@ -247,6 +277,87 @@ impl LocationView {
             .y
             .clamp(ui_rect.min.y + margin_top, ui_rect.max.y - margin_bottom);
         pos2(clamped_x, clamped_y)
+    }
+
+    /// 位置のコンテキストメニューを描画（spawn/end共通）
+    fn render_location_context_menu(
+        response: &Response,
+        state: &AppState,
+        player_id: player::PlayerId,
+        location_type: &str,
+        delete_player_id: &mut Option<player::PlayerId>,
+        color_change: &mut Option<(player::PlayerId, Color)>,
+    ) {
+        response.context_menu(|ui| {
+            // 削除ボタン
+            if ui.button("削除").clicked() {
+                *delete_player_id = Some(player_id);
+                ui.close();
+            }
+
+            ui.separator();
+
+            ui.label("色を変更");
+            ui.separator();
+
+            // 使われていない色を取得
+            let all_colors = crate::models::color::Color::all();
+            let used_colors: Vec<_> = state
+                .players()
+                .unwrap_or_default()
+                .iter()
+                .filter(|p| p.id != player_id) // 自分以外の色を除外対象に
+                .map(|p| p.color.clone())
+                .collect();
+            let available_colors: Vec<_> = all_colors
+                .into_iter()
+                .filter(|c| !used_colors.contains(c))
+                .collect();
+
+            // 1行4列でタイルを描画
+            let tile_size = 30.0;
+
+            // Gridコンポーネントを使用（4列固定）
+            grid(
+                ui,
+                format!("color_grid_{}_{:?}", location_type, player_id),
+                |ui| {
+                    for (index, available_color) in available_colors.iter().enumerate() {
+                        let tile_result = tile(
+                            ui,
+                            &TileConf {
+                                color: available_color.to_egui_color(),
+                                label: None,
+                                size: Some(Vec2::new(tile_size, tile_size)),
+                                is_selected: false,
+                                is_dragging: false,
+                            },
+                        );
+
+                        // ホバーエフェクト
+                        if tile_result.response.hovered() {
+                            ui.painter().rect_stroke(
+                                tile_result.rect,
+                                2.0,
+                                (3.0, Color32::YELLOW),
+                                StrokeKind::Outside,
+                            );
+                        }
+
+                        // クリックで色を変更
+                        if tile_result.clicked {
+                            *color_change = Some((player_id, available_color.clone()));
+                            ui.close();
+                        }
+
+                        // 4列ごとに改行
+                        if (index + 1) % 4 == 0 {
+                            ui.end_row();
+                        }
+                    }
+                },
+            );
+        });
     }
 
     fn render_label(ui: &mut Ui, player: &player::Player, center: Pos2, radius: f32) {
