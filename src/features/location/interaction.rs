@@ -61,7 +61,7 @@ impl LocationInteraction {
 
         // 出現位置の削除
         if let Some(player_id) = result.spawn.delete_player_id {
-            state.remove_spawn_location(player_id);
+            state.remove_location(LocationType::Spawn, player_id);
         }
 
         // 終了時位置ドラッグ開始
@@ -97,7 +97,7 @@ impl LocationInteraction {
 
         // 終了時位置の削除
         if let Some(player_id) = result.end.delete_player_id {
-            state.remove_end_location(player_id);
+            state.remove_location(LocationType::End, player_id);
         }
     }
 
@@ -106,7 +106,7 @@ impl LocationInteraction {
             Some(p) => p,
             None => return,
         };
-        state.add_end_location(player_id, point);
+        state.add_location(LocationType::End, player_id, point);
     }
 
     fn handle_area_click(state: &mut AppState, ui: &mut Ui) {
@@ -141,14 +141,7 @@ impl LocationInteraction {
     }
 
     fn add_location(state: &mut AppState, location_type: LocationType, id: PlayerId, point: Point) {
-        match location_type {
-            LocationType::Spawn => {
-                state.add_spawn_location(id, point);
-            }
-            LocationType::End => {
-                state.add_end_location(id, point);
-            }
-        }
+        state.add_location(location_type, id, point);
     }
 
     fn remove_location(state: &mut AppState, player_id: PlayerId, location_type: LocationType) {
