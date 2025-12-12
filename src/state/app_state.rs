@@ -436,54 +436,35 @@ impl AppState {
         self.data_mut().dragging_location = location;
     }
 
-    pub fn spawn_locations(&self) -> Option<HashMap<PlayerId, Point>> {
-        match self.current_wave() {
-            Ok(wave) => Some(wave.spawn_locations.clone()),
-            _ => None,
-        }
+    pub fn locations(&self, location_type: LocationType) -> Option<HashMap<PlayerId, Point>> {
+        self.current_wave().ok().map(|w| match location_type {
+            LocationType::Spawn => w.spawn_locations.clone(),
+            LocationType::End => w.end_locations.clone(),
+        })
     }
 
-    pub fn add_spawn_location(&self, player_id: PlayerId, point: Point) {
+    pub fn add_location(&self, location_type: LocationType, player_id: PlayerId, point: Point) {
         let mut wave = match self.current_wave_mut() {
             Ok(wave) => wave,
             _ => return,
         };
 
-        wave.spawn_locations.insert(player_id, point);
+        match location_type {
+            LocationType::Spawn => wave.spawn_locations.insert(player_id, point),
+            LocationType::End => wave.end_locations.insert(player_id, point),
+        };
     }
 
-    pub fn remove_spawn_location(&self, player_id: PlayerId) {
+    pub fn remove_location(&self, location_type: LocationType, player_id: PlayerId) {
         let mut wave = match self.current_wave_mut() {
             Ok(wave) => wave,
             _ => return,
         };
 
-        wave.spawn_locations.remove(&player_id);
-    }
-
-    pub fn end_locations(&self) -> Option<HashMap<PlayerId, Point>> {
-        match self.current_wave() {
-            Ok(wave) => Some(wave.end_locations.clone()),
-            _ => None,
-        }
-    }
-
-    pub fn add_end_location(&self, player_id: PlayerId, point: Point) {
-        let mut wave = match self.current_wave_mut() {
-            Ok(wave) => wave,
-            _ => return,
+        match location_type {
+            LocationType::Spawn => wave.spawn_locations.remove(&player_id),
+            LocationType::End => wave.end_locations.remove(&player_id),
         };
-
-        wave.end_locations.insert(player_id, point);
-    }
-
-    pub fn remove_end_location(&self, player_id: PlayerId) {
-        let mut wave = match self.current_wave_mut() {
-            Ok(wave) => wave,
-            _ => return,
-        };
-
-        wave.end_locations.remove(&player_id);
     }
 }
 

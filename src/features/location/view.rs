@@ -7,6 +7,7 @@ use crate::components::{
 use crate::constants::AppConstants;
 use crate::features::location::constants::LocationConstants;
 use crate::models::color::Color;
+use crate::models::location::LocationType;
 use crate::models::player;
 use crate::state::AppState;
 use egui::*;
@@ -56,7 +57,7 @@ impl LocationView {
         let mut result = SpawnResult::default();
 
         // 出現場所を描画（四角）
-        let spawn_locations = match state.spawn_locations() {
+        let spawn_locations = match state.locations(LocationType::Spawn) {
             Some(spawn_locations) => spawn_locations,
             None => return result,
         };
@@ -123,7 +124,7 @@ impl LocationView {
     fn render_end_locations(state: &AppState, ui: &mut Ui) -> EndResult {
         let mut result = EndResult::default();
 
-        let end_locations = match state.end_locations() {
+        let end_locations = match state.locations(LocationType::End) {
             Some(end_locations) => end_locations,
             None => return result,
         };
