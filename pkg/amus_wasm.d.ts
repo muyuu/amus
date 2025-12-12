@@ -1,28 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
 
-/**
- * Chroma subsampling format
- */
-export enum ChromaSampling {
-  /**
-   * Both vertically and horizontally subsampled.
-   */
-  Cs420 = 0,
-  /**
-   * Horizontally subsampled.
-   */
-  Cs422 = 1,
-  /**
-   * Not subsampled.
-   */
-  Cs444 = 2,
-  /**
-   * Monochrome.
-   */
-  Cs400 = 3,
-}
-
 export function start(canvas_id: string): Promise<void>;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -30,12 +8,12 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly start: (a: number, b: number) => any;
-  readonly wasm_bindgen__convert__closures_____invoke__h46270b83fc620a8e: (a: number, b: number, c: any) => void;
-  readonly wasm_bindgen__closure__destroy__h0a5f55aa8f8efd00: (a: number, b: number) => void;
-  readonly wasm_bindgen__convert__closures_____invoke__h214fb0a77cfe3d33: (a: number, b: number, c: any) => void;
-  readonly wasm_bindgen__closure__destroy__h3abc60b0db95e66e: (a: number, b: number) => void;
-  readonly wasm_bindgen__convert__closures_____invoke__hab9ac198a32ef8fe: (a: number, b: number) => [number, number];
-  readonly wasm_bindgen__convert__closures_____invoke__h100d4766a83d11e8: (a: number, b: number, c: any, d: any) => void;
+  readonly wasm_bindgen__convert__closures_____invoke__h69b4ae1c271f493e: (a: number, b: number) => [number, number];
+  readonly wasm_bindgen__closure__destroy__h41cace94ec47ef29: (a: number, b: number) => void;
+  readonly wasm_bindgen__convert__closures_____invoke__h922fa99309bd5748: (a: number, b: number, c: any) => void;
+  readonly wasm_bindgen__closure__destroy__h324d25f5aad5fc21: (a: number, b: number) => void;
+  readonly wasm_bindgen__convert__closures_____invoke__h2eb42b45953aeaf8: (a: number, b: number, c: any) => void;
+  readonly wasm_bindgen__convert__closures_____invoke__h42793af677de5552: (a: number, b: number, c: any, d: any) => void;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
   readonly __externref_table_alloc: () => number;
