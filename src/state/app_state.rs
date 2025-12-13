@@ -402,6 +402,7 @@ impl AppState {
         data.show_setup_dialog = !data.show_setup_dialog;
     }
 
+    #[cfg(debug_assertions)]
     pub fn toggle_debug_view(&self) {
         let mut data = self.data_mut();
         data.show_debug_view = !data.show_debug_view;
