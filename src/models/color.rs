@@ -97,4 +97,8 @@ impl Color {
             Color::Coral => "Coral",
         }
     }
+
+    pub fn name_lowercase(&self) -> String {
+        self.name().to_lowercase()
+    }
 }

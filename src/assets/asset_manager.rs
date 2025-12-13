@@ -47,6 +47,7 @@ static ASSETS_DIR: Dir = include_dir!("assets");
 #[derive(Clone)]
 pub struct AssetManager {
     area_images: HashMap<String, TextureHandle>,
+    player_images: HashMap<String, TextureHandle>,
 }
 
 impl AssetManager {
@@ -80,10 +81,13 @@ impl AssetManager {
     fn new(ctx: &Context) -> Self {
         let mut manager = Self {
             area_images: HashMap::new(),
+            player_images: HashMap::new(),
         };
 
         // エリア画像を読み込み
         manager.load_area_images(ctx);
+        // プレイヤー画像を読み込み
+        manager.load_player_images(ctx);
         manager
     }
 
@@ -153,6 +157,32 @@ impl AssetManager {
 
     pub fn get_area_texture(&self, area: &Area) -> Option<&TextureHandle> {
         self.area_images.get(&area.id())
+    }
+
+    fn load_player_images(&mut self, ctx: &Context) {
+        use crate::models::Color;
+
+        for color in Color::all() {
+            let color_name = color.name_lowercase();
+
+            // live画像
+            let live_path = format!(assets_path!("images/char/{}-live.png"), color_name);
+            if let Ok(texture) = Self::load_texture_from_path(ctx, &live_path) {
+                self.player_images.insert(format!("{}-live", color_name), texture);
+            }
+
+            // dead画像
+            let dead_path = format!(assets_path!("images/char/{}-dead.png"), color_name);
+            if let Ok(texture) = Self::load_texture_from_path(ctx, &dead_path) {
+                self.player_images.insert(format!("{}-dead", color_name), texture);
+            }
+        }
+    }
+
+    pub fn get_player_texture(&self, color: &crate::models::Color, is_dead: bool) -> Option<&TextureHandle> {
+        let color_name = color.name_lowercase();
+        let state = if is_dead { "dead" } else { "live" };
+        self.player_images.get(&format!("{}-{}", color_name, state))
     }
 
     /// アイコンを静的に読み込み（main.rs等で使用）
