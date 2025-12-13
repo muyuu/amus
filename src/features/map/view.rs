@@ -1,3 +1,4 @@
+use crate::assets::AssetManager;
 use crate::state::AppState;
 use egui::*;
 
@@ -10,35 +11,34 @@ impl MapView {
         let rect = response.rect;
 
         // エリア画像を背景として描画
-        if let Some(asset_manager) = state.asset_manager() {
-            let area = match state.area() {
-                Some(area) => area,
-                None => return Self::render_default_area(&painter, rect),
-            };
+        let asset_manager = AssetManager::get(ui.ctx());
+        let area = match state.area() {
+            Some(area) => area,
+            None => return Self::render_default_area(&painter, rect),
+        };
 
-            let texture = match asset_manager.get_area_texture(&area) {
-                Some(texture) => texture,
-                None => return Self::render_default_area(&painter, rect),
-            };
+        let texture = match asset_manager.get_area_texture(&area) {
+            Some(texture) => texture,
+            None => return Self::render_default_area(&painter, rect),
+        };
 
-            // 画像の縦横比を維持してセンタリング
-            let image_rect = Self::calculate_centered_rect(rect, texture.size_vec2());
+        // 画像の縦横比を維持してセンタリング
+        let image_rect = Self::calculate_centered_rect(rect, texture.size_vec2());
 
-            // 背景色を先に描画（透過部分の背景色として機能）
-            let background_color = Color32::BLACK; // カスタム背景色
-            painter.rect_filled(image_rect, 0.0, background_color);
+        // 背景色を先に描画（透過部分の背景色として機能）
+        let background_color = Color32::BLACK; // カスタム背景色
+        painter.rect_filled(image_rect, 0.0, background_color);
 
-            painter.image(
-                texture.id(),
-                image_rect,
-                Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
-                Color32::WHITE,
-            );
+        painter.image(
+            texture.id(),
+            image_rect,
+            Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+            Color32::WHITE,
+        );
 
-            // 画像の外側を黒で塗りつぶし
-            if image_rect != rect {
-                Self::fill_outside_area(&painter, rect, image_rect);
-            }
+        // 画像の外側を黒で塗りつぶし
+        if image_rect != rect {
+            Self::fill_outside_area(&painter, rect, image_rect);
         }
     }
 

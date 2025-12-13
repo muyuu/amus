@@ -1,13 +1,9 @@
-use crate::assets::AssetManager;
 use crate::i18n::{Language, Translator};
 use crate::models::player::PlayerId;
 use crate::models::*;
 
 /// 実際のアプリケーション状態を保持する構造体
 pub struct AppData {
-    // 画像リソース管理
-    pub asset_manager: Option<AssetManager>,
-
     pub current_wave_index: usize,
 
     // ドラッグ中の位置（出現位置 or 終了時位置）
@@ -40,7 +36,6 @@ pub struct AppData {
 impl Default for AppData {
     fn default() -> Self {
         Self {
-            asset_manager: None, // 後で初期化
             current_wave_index: 0,
             dragging_location: None,      // ドラッグ中の位置はNone
             dragging_player_id: None,     // ドラッグ中はNone

@@ -1,6 +1,5 @@
 use egui::*;
 
-use crate::assets::AssetManager;
 use crate::constants::{AppConstants, PanelIds};
 use crate::features::main::MainView;
 use crate::features::player_info::PlayerInfoFeature;
@@ -42,12 +41,6 @@ impl eframe::App for AmusApp {
 
     fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
         ctx.set_pixels_per_point(1.5);
-
-        // アセットマネージャーの初期化（一度だけ実行）
-        if self.state.asset_manager().is_none() {
-            let asset_manager = AssetManager::new(ctx);
-            self.state.set_asset_manager(asset_manager);
-        }
 
         // セットアップダイアログの表示
         if self.state.show_setup_dialog() {

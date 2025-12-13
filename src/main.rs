@@ -24,10 +24,19 @@ fn main() -> eframe::Result<()> {
     let state = state::AppState::new();
     let app_title = state.t(APP_TITLE);
 
+    // アイコンを事前に読み込み（Context不要なため先に実行）
+    let icon = assets::AssetManager::load_icon_static();
+
+    let mut viewport = ViewportBuilder::default()
+        .with_inner_size([1200.0, 840.0])
+        .with_title(&app_title);
+
+    if let Some(icon_data) = icon {
+        viewport = viewport.with_icon(icon_data);
+    }
+
     let options = eframe::NativeOptions {
-        viewport: ViewportBuilder::default()
-            .with_inner_size([1200.0, 840.0])
-            .with_title(&app_title),
+        viewport,
         ..Default::default()
     };
 
@@ -38,6 +47,10 @@ fn main() -> eframe::Result<()> {
             // 日本語フォントの設定
             setup_custom_fonts(&cc.egui_ctx);
             setup_panel_bg(&cc.egui_ctx);
+
+            // アセットマネージャーの初期化（一度だけ実行）
+            assets::AssetManager::initialize(&cc.egui_ctx);
+
             Ok(Box::new(AmusApp::new(cc, state)))
         }),
     )

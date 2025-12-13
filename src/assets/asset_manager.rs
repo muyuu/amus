@@ -2,21 +2,82 @@ use egui::*;
 #[cfg(not(debug_assertions))]
 use include_dir::{include_dir, Dir};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::models::Area;
 use crate::models::Theme;
 
+// アセットディレクトリのパスを一元管理
+macro_rules! assets_dir {
+    () => {
+        "assets"
+    };
+}
+
+macro_rules! assets_path {
+    ($path:expr) => {
+        concat!("assets/", $path)
+    };
+}
+
 // include_dir! はビルド時に実行されるため、プロジェクトルートからの相対パスを指定
+// 注: include_dir!はネストしたマクロをサポートしないため、直接文字列リテラルを指定
 #[cfg(not(debug_assertions))]
 static ASSETS_DIR: Dir = include_dir!("assets");
 
+/// アセット（画像等）のリソース管理
+///
+/// ## Context経由で保存する理由
+///
+/// 1. **TextureHandleの依存関係**
+///    - `TextureHandle`はeGuiの`Context`に依存しており、Contextが所有するテクスチャへの参照
+///    - Contextから独立して存在できないため、Context経由での管理が自然
+///
+/// 2. **どこからでもアクセス可能**
+///    - UIの描画処理（`ui.ctx()`）からどこからでも`AssetManager::get(ctx)`でアクセス可能
+///    - グローバル変数やstatic変数を使わずにシングルトンのような挙動を実現
+///
+/// 3. **ライフタイム管理が簡単**
+///    - Contextと同じライフタイムで自動管理される
+///    - 明示的な破棄処理が不要
+///
+/// 4. **eGuiの標準パターン**
+///    - `ctx.data()`/`ctx.data_mut()`でカスタムデータを保存するのがeGuiの推奨パターン
+///    - 即時モードGUIにおいて、フレーム間で状態を保持する標準的な方法
 #[derive(Clone)]
 pub struct AssetManager {
     area_images: HashMap<String, TextureHandle>,
 }
 
 impl AssetManager {
-    pub fn new(ctx: &Context) -> Self {
+    /// Context経由でAssetManagerのシングルトンインスタンスを取得または初期化
+    pub fn get(ctx: &Context) -> Self {
+        ctx.data(|data| {
+            data.get_temp::<AssetManager>(Id::new("asset_manager"))
+                .unwrap_or_else(|| {
+                    let manager = Self::new(ctx);
+                    manager
+                })
+        })
+    }
+
+    /// Context経由でAssetManagerを初期化（一度だけ呼ぶ）
+    pub fn initialize(ctx: &Context) {
+        // data_mutのクロージャ外でAssetManagerを作成（デッドロック回避）
+        let should_initialize = ctx.data(|data| {
+            data.get_temp::<AssetManager>(Id::new("asset_manager"))
+                .is_none()
+        });
+
+        if should_initialize {
+            let manager = Self::new(ctx);
+            ctx.data_mut(|data| {
+                data.insert_temp(Id::new("asset_manager"), manager);
+            });
+        }
+    }
+
+    fn new(ctx: &Context) -> Self {
         let mut manager = Self {
             area_images: HashMap::new(),
         };
@@ -26,33 +87,15 @@ impl AssetManager {
         manager
     }
 
-    fn normalize_path(path: &str) -> String {
-        #[cfg(debug_assertions)]
-        {
-            // デバッグビルド: 外部ファイルから読み込むため元のパスをそのまま使用
-            path.to_string()
-        }
-
-        #[cfg(not(debug_assertions))]
-        {
-            // リリースビルド: assets/ プレフィックスを除去
-            // include_dir! は assets/ をルートとして保存するため
-            path.strip_prefix("assets/")
-                .map(|p| p.to_string())
-                .unwrap_or_else(|| path.to_string())
-        }
-    }
-
     fn load_area_images(&mut self, ctx: &Context) {
         for area in Area::all() {
             let path = format!(
-                "assets/images/map/{}_{}.png",
+                assets_path!("images/map/{}_{}.png"),
                 area.id(),
                 Theme::Dark.as_str()
             );
-            let normalized_path = Self::normalize_path(&path);
 
-            if let Ok(texture) = Self::load_texture_from_path(ctx, &normalized_path) {
+            if let Ok(texture) = Self::load_texture_from_path(ctx, &path) {
                 self.area_images.insert(area.id().to_string(), texture);
             } else {
                 // 画像が見つからない場合はプレースホルダーを作成
@@ -62,11 +105,11 @@ impl AssetManager {
         }
     }
 
-    fn create_texture_from_bytes(
+    fn load_texture_from_path(
         ctx: &Context,
         path: &str,
-        image_bytes: Vec<u8>,
     ) -> Result<TextureHandle, Box<dyn std::error::Error>> {
+        let image_bytes = Self::load_file_bytes(path)?;
         let image = image::load_from_memory(&image_bytes)?;
         let rgba_image = image.to_rgba8();
         let size = [image.width() as usize, image.height() as usize];
@@ -75,37 +118,6 @@ impl AssetManager {
         let color_image = ColorImage::from_rgba_unmultiplied(size, pixels.as_slice());
 
         Ok(ctx.load_texture(format!("area_{}", path), color_image, Default::default()))
-    }
-
-    // デバッグビルド用のメソッド: 外部ファイルから読み込む
-    #[cfg(debug_assertions)]
-    fn load_texture_from_path(
-        ctx: &Context,
-        path: &str,
-    ) -> Result<TextureHandle, Box<dyn std::error::Error>> {
-        let image_bytes = std::fs::read(path)?;
-        Self::create_texture_from_bytes(ctx, path, image_bytes)
-    }
-
-    // リリースビルド用のメソッド: バイナリに埋め込まれた画像を使用
-    #[cfg(not(debug_assertions))]
-    fn load_texture_from_path(
-        ctx: &Context,
-        path: &str,
-    ) -> Result<TextureHandle, Box<dyn std::error::Error>> {
-        {
-            ASSETS_DIR.files().for_each(|file| {
-                eprintln!("  - {}", file.path().display());
-            });
-        }
-
-        let image_bytes = ASSETS_DIR
-            .get_file(path)
-            .ok_or_else(|| format!("File not found: {}", path))?
-            .contents()
-            .to_vec();
-
-        Self::create_texture_from_bytes(ctx, path, image_bytes)
     }
 
     fn create_placeholder_texture(ctx: &Context, area_name: &str) -> TextureHandle {
@@ -143,12 +155,54 @@ impl AssetManager {
         self.area_images.get(&area.id())
     }
 
+    /// アイコンを静的に読み込み（main.rs等で使用）
+    pub fn load_icon_static() -> Option<Arc<egui::IconData>> {
+        Self::load_icon()
+    }
+
+    /// アイコンファイルを読み込み
+    fn load_icon() -> Option<Arc<egui::IconData>> {
+        let icon_path = assets_path!("icons/icon.ico");
+        let icon_bytes = Self::load_file_bytes(&icon_path).ok()?;
+
+        // ICO形式を読み込んでIconDataに変換
+        let image = image::load_from_memory(&icon_bytes).ok()?;
+        let rgba = image.to_rgba8();
+        let (width, height) = rgba.dimensions();
+
+        Some(Arc::new(egui::IconData {
+            rgba: rgba.into_raw(),
+            width: width as u32,
+            height: height as u32,
+        }))
+    }
+
+    /// ファイルをバイト列として読み込み
+    /// デバッグ/リリースビルドで切り替え
+    fn load_file_bytes(path: &str) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        #[cfg(debug_assertions)]
+        {
+            // デバッグビルド: ファイルシステムから読み込む
+            Ok(std::fs::read(path)?)
+        }
+
+        #[cfg(not(debug_assertions))]
+        {
+            // リリースビルド: 埋め込みアセットから読み込む
+            let relative_path = path.strip_prefix(concat!(assets_dir!(), "/")).unwrap_or(path);
+            ASSETS_DIR
+                .get_file(relative_path)
+                .ok_or_else(|| format!("File not found: {}", path).into())
+                .map(|file| file.contents().to_vec())
+        }
+    }
+
     #[cfg(target_arch = "wasm32")]
     pub fn load_font_from_assets(path: &str) -> Option<Vec<u8>> {
         #[cfg(debug_assertions)]
         {
             // デバッグビルド: ファイルシステムから読み込む
-            std::fs::read(format!("assets/{}", path)).ok()
+            std::fs::read(format!(concat!(assets_dir!(), "/{}"), path)).ok()
         }
 
         #[cfg(not(debug_assertions))]
