@@ -38,6 +38,10 @@ fn main() -> eframe::Result<()> {
             // 日本語フォントの設定
             setup_custom_fonts(&cc.egui_ctx);
             setup_panel_bg(&cc.egui_ctx);
+
+            // アセットマネージャーの初期化（一度だけ実行）
+            assets::AssetManager::initialize(&cc.egui_ctx);
+
             Ok(Box::new(AmusApp::new(cc, state)))
         }),
     )

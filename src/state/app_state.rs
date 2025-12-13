@@ -1,7 +1,6 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 
-use crate::assets::AssetManager;
 use crate::log_debug;
 use crate::models::*;
 use crate::state::app_data::AppData;
@@ -37,15 +36,6 @@ impl AppState {
 
     pub fn t(&self, key: &str) -> String {
         self.data.borrow().translator.t(key).to_string()
-    }
-
-    pub fn asset_manager(&self) -> Option<AssetManager> {
-        let data = self.data.borrow();
-        data.asset_manager.clone()
-    }
-
-    pub fn set_asset_manager(&self, asset_manager: AssetManager) {
-        self.data_mut().asset_manager = Some(asset_manager);
     }
 }
 

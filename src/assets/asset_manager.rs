@@ -10,13 +10,59 @@ use crate::models::Theme;
 #[cfg(not(debug_assertions))]
 static ASSETS_DIR: Dir = include_dir!("assets");
 
+/// アセット（画像等）のリソース管理
+///
+/// ## Context経由で保存する理由
+///
+/// 1. **TextureHandleの依存関係**
+///    - `TextureHandle`はeGuiの`Context`に依存しており、Contextが所有するテクスチャへの参照
+///    - Contextから独立して存在できないため、Context経由での管理が自然
+///
+/// 2. **どこからでもアクセス可能**
+///    - UIの描画処理（`ui.ctx()`）からどこからでも`AssetManager::get(ctx)`でアクセス可能
+///    - グローバル変数やstatic変数を使わずにシングルトンのような挙動を実現
+///
+/// 3. **ライフタイム管理が簡単**
+///    - Contextと同じライフタイムで自動管理される
+///    - 明示的な破棄処理が不要
+///
+/// 4. **eGuiの標準パターン**
+///    - `ctx.data()`/`ctx.data_mut()`でカスタムデータを保存するのがeGuiの推奨パターン
+///    - 即時モードGUIにおいて、フレーム間で状態を保持する標準的な方法
 #[derive(Clone)]
 pub struct AssetManager {
     area_images: HashMap<String, TextureHandle>,
 }
 
 impl AssetManager {
-    pub fn new(ctx: &Context) -> Self {
+    /// Context経由でAssetManagerのシングルトンインスタンスを取得または初期化
+    pub fn get(ctx: &Context) -> Self {
+        ctx.data(|data| {
+            data.get_temp::<AssetManager>(Id::new("asset_manager"))
+                .unwrap_or_else(|| {
+                    let manager = Self::new(ctx);
+                    manager
+                })
+        })
+    }
+
+    /// Context経由でAssetManagerを初期化（一度だけ呼ぶ）
+    pub fn initialize(ctx: &Context) {
+        // data_mutのクロージャ外でAssetManagerを作成（デッドロック回避）
+        let should_initialize = ctx.data(|data| {
+            data.get_temp::<AssetManager>(Id::new("asset_manager"))
+                .is_none()
+        });
+
+        if should_initialize {
+            let manager = Self::new(ctx);
+            ctx.data_mut(|data| {
+                data.insert_temp(Id::new("asset_manager"), manager);
+            });
+        }
+    }
+
+    fn new(ctx: &Context) -> Self {
         let mut manager = Self {
             area_images: HashMap::new(),
         };
