@@ -1,3 +1,4 @@
+use crate::assets::AssetManager;
 use crate::components::{background_label_with_font_size, change_color, ChangeColorConf};
 use crate::constants::AppConstants;
 use crate::features::location::constants::LocationConstants;
@@ -171,9 +172,9 @@ impl LocationView {
             }
 
             let painter = ui.painter();
-            Self::render_mark(&player, painter, center, size / 2.0);
+            let asset_manager = AssetManager::get(ui.ctx());
+            Self::render_player(&player, painter, center, size / 2.0, &asset_manager);
             Self::render_dead_mark(&player, painter, center);
-            Self::render_ejected_mark(&player, painter, center);
             Self::render_label(ui, &player, center, size / 2.0);
 
             // コンテキストメニュー表示（右クリックで即座に表示）
@@ -190,23 +191,42 @@ impl LocationView {
         result
     }
 
-    fn render_mark(player: &player::Player, painter: &Painter, pos: Pos2, radius: f32) {
-        let mut color = player.color.to_egui_color();
+    fn render_player(player: &player::Player, painter: &Painter, pos: Pos2, radius: f32, asset_manager: &AssetManager) {
+        let is_dead = player.is_dead();
 
-        // 追放されたら不透明度を半分にする
-        if player.is_ejected() {
-            color = Color32::from_rgba_premultiplied(color.r(), color.g(), color.b(), 128);
+        if let Some(texture) = asset_manager.get_player_texture(&player.color, is_dead) {
+            // 画像を描画
+            let size = radius * 4.0;
+            let rect = Rect::from_center_size(pos, Vec2::new(size, size));
+
+            let tint = Color32::WHITE;
+            // 追放されたら不透明度を半分にする
+            if player.is_ejected() {
+                // TODO: 半透明にしたら白と黄色が見えずらいから検討の余地あり
+                // tint = Color32::from_rgba_premultiplied(255, 255, 255, 128);
+            }
+
+            painter.image(
+                texture.id(),
+                rect,
+                Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+                tint,
+            );
+        } else {
+            // フォールバック: 元の円描画
+            let mut color = player.color.to_egui_color();
+            if player.is_ejected() {
+                color = Color32::from_rgba_premultiplied(color.r(), color.g(), color.b(), 128);
+            }
+            let stroke_width = LocationConstants::END_LOCATION_STROKE_WIDTH;
+            painter.circle_filled(pos, radius, color);
+            painter.circle_stroke(pos, radius, (stroke_width, Color32::WHITE));
         }
-
-        let stroke_width = LocationConstants::END_LOCATION_STROKE_WIDTH;
-
-        painter.circle_filled(pos, radius, color);
-        painter.circle_stroke(pos, radius, (stroke_width, Color32::WHITE));
     }
 
     // 死亡している場合はバツ印を描画
     fn render_dead_mark(player: &player::Player, painter: &Painter, pos: Pos2) {
-        if !player.is_dead() {
+        if !player.is_ejected() {
             return;
         }
 
@@ -229,25 +249,6 @@ impl LocationView {
                 pos2(pos.x - cross_size, pos.y + cross_size),
             ],
             (cross_width, Color32::DARK_RED),
-        );
-    }
-
-    // 追放されたら中央に横線を描画
-    fn render_ejected_mark(player: &player::Player, painter: &Painter, pos: Pos2) {
-        if !player.is_ejected() {
-            return;
-        }
-
-        let cross_size = LocationConstants::END_LOCATION_DEAD_MARK_SIZE;
-        let cross_width = LocationConstants::END_LOCATION_DEAD_MARK_STROKE_WIDTH;
-
-        // 中央左から右への線
-        painter.line_segment(
-            [
-                pos2(pos.x - cross_size, pos.y),
-                pos2(pos.x + cross_size, pos.y),
-            ],
-            (cross_width, Color32::BLACK),
         );
     }
 
@@ -307,6 +308,10 @@ impl LocationView {
     }
 
     fn render_label(ui: &mut Ui, player: &player::Player, center: Pos2, radius: f32) {
+        if player.name.is_empty() {
+            return;
+        }
+
         let font_size = LocationConstants::END_LOCATION_LABEL_FONT_SIZE;
 
         // 名前を最大5文字に制限
