@@ -1,6 +1,6 @@
 import { execSync } from 'child_process';
 
-const arg = process.argv[2] || "user";
+const isCI = (process.env.CI ?? 'false') === 'true';
 
 function exec(cmd, desc) {
   console.log(`📦 ${desc}...`);
@@ -14,8 +14,8 @@ function exec(cmd, desc) {
 
 console.log('🚀 セットアップ開始');
 
-console.log(`ℹ️ ${arg === 'ci' ? 'CI' : 'ユーザー'}環境向けセットアップを実行しています`);
-if (arg !== 'ci') {
+console.log(`ℹ️ ${isCI ? 'CI' : 'ユーザー'}環境向けセットアップを実行しています`);
+if (!isCI) {
   exec('cargo install cargo-watch', 'cargo-watch');
   exec('cargo install miniserve', 'miniserve');
 }

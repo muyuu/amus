@@ -4,4 +4,5 @@ run = "node scripts/init.js"
 
 ["init-ci"]
 description = "CIの初期設定を行う"
-run = "node scripts/init.js ci"
+env = { CI = "true" }
+run = "node scripts/init.js"
