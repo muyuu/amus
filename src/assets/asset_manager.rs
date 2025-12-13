@@ -53,13 +53,21 @@ pub struct AssetManager {
 impl AssetManager {
     /// Context経由でAssetManagerのシングルトンインスタンスを取得または初期化
     pub fn get(ctx: &Context) -> Self {
-        ctx.data(|data| {
+        // まず既存のインスタンスを確認
+        let existing = ctx.data(|data| {
             data.get_temp::<AssetManager>(Id::new("asset_manager"))
-                .unwrap_or_else(|| {
-                    let manager = Self::new(ctx);
-                    manager
-                })
-        })
+        });
+
+        if let Some(manager) = existing {
+            return manager;
+        }
+
+        // 存在しない場合は初期化
+        let manager = Self::new(ctx);
+        ctx.data_mut(|data| {
+            data.insert_temp(Id::new("asset_manager"), manager.clone());
+        });
+        manager
     }
 
     /// Context経由でAssetManagerを初期化（一度だけ呼ぶ）
