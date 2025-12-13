@@ -24,7 +24,8 @@
             "rustup",
             "Skeld",
             "watchexec",
-            "wgpu"
+            "wgpu",
+            "winres"
         ]
     }
 }
