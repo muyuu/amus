@@ -23,7 +23,7 @@ jobs:
                 MISE_NODE_VERIFY: "false"
 
             - name: 依存パッケージのインストール
-              run: mise run init
+              run: mise run init-ci
 
             - name: wasm のビルド
               run: mise run build-wasm
