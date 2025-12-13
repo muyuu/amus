@@ -11,6 +11,7 @@ mod log;
 mod models;
 mod state;
 
+use crate::i18n::keys::*;
 use amus_wasm::log::Log;
 use app::AmusApp;
 use eframe::egui;
@@ -20,21 +21,24 @@ use egui::*;
 fn main() -> eframe::Result<()> {
     Log::init();
 
+    let state = state::AppState::new();
+    let app_title = state.t(APP_TITLE);
+
     let options = eframe::NativeOptions {
         viewport: ViewportBuilder::default()
             .with_inner_size([1200.0, 840.0])
-            .with_title("Among Us 補助ツール"),
+            .with_title(&app_title),
         ..Default::default()
     };
 
     eframe::run_native(
-        "Among Us 補助ツール",
+        &app_title,
         options,
         Box::new(|cc| {
             // 日本語フォントの設定
             setup_custom_fonts(&cc.egui_ctx);
             setup_panel_bg(&cc.egui_ctx);
-            Ok(Box::new(AmusApp::new(cc)))
+            Ok(Box::new(AmusApp::new(cc, state)))
         }),
     )
 }

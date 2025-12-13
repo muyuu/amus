@@ -3,6 +3,9 @@ pub struct JapaneseWords;
 
 #[allow(dead_code)]
 impl JapaneseWords {
+    // アプリ全体
+    pub const APP_TITLE: &'static str = "メモングアス";
+
     // 基本動詞
     pub const START: &'static str = "開始";
     pub const CANCEL: &'static str = "キャンセル";

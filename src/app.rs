@@ -21,8 +21,8 @@ impl Default for AmusApp {
 }
 
 impl AmusApp {
-    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
-        let app = Self::default();
+    pub fn new(_cc: &eframe::CreationContext<'_>, state: AppState) -> Self {
+        let app = Self { state: state };
 
         if let Some(storage) = _cc.storage {
             app.state

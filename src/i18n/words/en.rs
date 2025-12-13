@@ -3,6 +3,9 @@ pub struct EnglishWords;
 
 #[allow(dead_code)]
 impl EnglishWords {
+    // アプリ全体
+    pub const APP_TITLE: &'static str = "Memong us";
+
     // 基本動詞
     pub const START: &'static str = "Start";
     pub const CANCEL: &'static str = "Cancel";

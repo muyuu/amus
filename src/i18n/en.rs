@@ -6,7 +6,7 @@ pub fn get_translations() -> HashMap<&'static str, String> {
     let mut translations = HashMap::new();
 
     // アプリケーション
-    translations.insert(APP_TITLE, "Among Us Assistant Tool".to_string());
+    translations.insert(APP_TITLE, format!("{}", W::APP_TITLE));
 
     // メニュー (using word dictionary)
     translations.insert(MENU_FILE, W::FILE.to_string());
@@ -88,10 +88,7 @@ pub fn get_translations() -> HashMap<&'static str, String> {
     translations.insert(MAIN_SELECT_PROMPT, "Please select".to_string());
     translations.insert(MAIN_STATUS_ALIVE, W::ALIVE.to_string());
     translations.insert(MAIN_STATUS_DEAD, W::DEAD.to_string());
-    translations.insert(
-        MAIN_WELCOME_TITLE,
-        "Welcome to Among Us Assistant Tool".to_string(),
-    );
+    translations.insert(MAIN_WELCOME_TITLE, format!("{}", W::APP_TITLE));
     translations.insert(
         MAIN_WELCOME_MESSAGE,
         format!(
