@@ -1,9 +1,5 @@
 use crate::{
-    components::{
-        background_label,
-        change_color::{change_color, ChangeColorConf},
-        tile, TileConf,
-    },
+    components::{background_label, change_color, tile, ChangeColorConf, TileConf},
     features::player_info::constants::PlayerInfoConstants,
     i18n::keys::{PLAYER_INFO_BUTTON_DONE, PLAYER_INFO_BUTTON_NOT_DONE},
     models::{color::Color, player::PlayerId, Player},

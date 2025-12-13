@@ -1,9 +1,4 @@
-use crate::components::{
-    background_label_with_font_size,
-    change_color::{change_color, ChangeColorConf},
-    grid::grid,
-    tile::{tile, TileConf},
-};
+use crate::components::{background_label_with_font_size, change_color, ChangeColorConf};
 use crate::constants::AppConstants;
 use crate::features::location::constants::LocationConstants;
 use crate::models::color::Color;
