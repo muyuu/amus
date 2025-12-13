@@ -1,7 +1,5 @@
+![icon](../assets/images/app-icon.png)
 ![logo](../assets/images/logo.png)
-
-# メモングアス
-
 
 
 ## 概要
