@@ -12,6 +12,7 @@ RUST_BACKTRACE = "1"
 includes = [
   ".mise/dev.toml",
   ".mise/build.toml",
+  ".mise/dependencies.toml",
   ".mise/init.toml",
   ".mise/quality.toml",
   ".mise/release.toml",

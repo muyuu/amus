@@ -22,10 +22,65 @@ jobs:
                 # GPG検証をスキップ（CIでは署名検証は不要）
                 MISE_NODE_VERIFY: "false"
 
-            - name: 依存パッケージのインストール
-              run: mise run init-ci
+            - name: Rust依存パッケージのキャッシュ
+              id: cache-cargo
+              uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+              with:
+                path: |
+                  ~/.cargo/registry
+                  ~/.cargo/git
+                  target
+                key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-            - name: wasm のビルド
+            - name: Rust依存パッケージのインストール
+              if: steps.cache-cargo.outputs.cache-hit != 'true'
+              run: mise run install-cargo-packages
+
+            - name: Rustツールチェイン・ターゲットのキャッシュ
+              id: cache-rustup
+              uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+              with:
+                path: ~/.rustup
+                key: ${{ runner.os }}-rustup-${{ hashFiles('.tool-versions', '.mise.toml') }}
+
+            - name: Rustツールチェイン・ターゲットのインストール
+              if: steps.cache-rustup.outputs.cache-hit != 'true'
+              run: mise run install-rust-toolchain
+
+            # Rustビルドツール（cargo install系）
+            - name: cargo bin キャッシュ
+              id: cache-cargobin
+              uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+              with:
+                path: ~/.cargo/bin
+                key: ${{ runner.os }}-cargobin-${{ hashFiles('.tool-versions', '.mise.toml', '.mise/dependencies.toml') }}
+
+            - name: Rustビルドツールのインストール
+              if: steps.cache-cargobin.outputs.cache-hit != 'true'
+              run: mise run install-rust-build-tools
+
+            # npmパッケージ
+            - name: npm キャッシュ
+              id: cache-npm
+              uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+              with:
+                path: node_modules
+                key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json', 'npm-shrinkwrap.json') }}
+
+            - name: npmパッケージのインストール
+              if: steps.cache-npm.outputs.cache-hit != 'true'
+              run: mise run install-npm-packages
+
+            # web成果物のキャッシュ（ビルド前にrestore、ビルド後にsave）
+            - name: web成果物のキャッシュ
+              id: cache-web
+              uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+              with:
+                path: web
+                key: ${{ runner.os }}-web-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('src/**/*.rs') }}
+
+            - name: ビルド
+              if: steps.cache-web.outputs.cache-hit != 'true'
               run: mise run build-wasm
 
             - name: gh-pages へのデプロイ
