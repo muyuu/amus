@@ -40,21 +40,14 @@ impl MainView {
             let response = ui.allocate_response(ui.available_size(), Sense::click_and_drag());
 
             MapView::render(state, &response, ui);
+            PlayerListView::render(state, ui);
             RouteDrawingFeature::render(state, &response, ui);
             DebugView::render(state, state.show_debug_view(), ui.ctx());
             LocationFeature::render(state, &response, ui);
-
-            Self::render_eraser_tool(state, ui);
-            Self::render_player_pallet(state, ui);
+            EraserFeature::render(state, ui);
         });
 
         Self::render_windows(state, ui);
-    }
-
-    fn render_player_pallet(state: &mut AppState, ui: &mut Ui) {
-        ui.vertical(|ui| {
-            PlayerListView::render(state, ui);
-        });
     }
 
     // 各種機能ウィンドウの描画
@@ -64,25 +57,5 @@ impl MainView {
         LightsFeature::render(state, ui);
         O2Feature::render(state, ui);
         ReactorFeature::render(state, ui);
-    }
-
-    fn render_eraser_tool(state: &mut AppState, ui: &mut Ui) {
-        // 消しゴムツールの描画位置を計算
-        let main_rect = ui.available_rect_before_wrap();
-        let tool_size = Vec2::new(60.0, 60.0);
-        let margin_x = 10.0;
-        let margin_y = 100.0;
-
-        // 左下から10px離れた位置に配置
-        let tool_pos = Pos2::new(
-            main_rect.min.x + margin_x,
-            main_rect.max.y - tool_size.y - margin_y,
-        );
-
-        let tool_rect = Rect::from_min_size(tool_pos, tool_size);
-
-        ui.scope_builder(UiBuilder::new().max_rect(tool_rect), |ui| {
-            EraserFeature::render(state, ui);
-        });
     }
 }

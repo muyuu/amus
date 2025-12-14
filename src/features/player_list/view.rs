@@ -10,12 +10,25 @@ pub struct PlayerListView;
 
 impl PlayerListView {
     pub fn render(state: &mut AppState, ui: &mut Ui) {
-        // 横スクロール可能なエリアで中央に配置
-        ScrollArea::horizontal()
-            .scroll_bar_visibility(scroll_area::ScrollBarVisibility::AlwaysHidden)
-            .show(ui, |ui| {
-                Self::render_content(state, ui);
-            });
+        // 横幅一杯、高さはプレイヤーのタイルサイズ＋マージン分
+        // 配置位置は親要素の一番下からタイルの余白分上にオフセット
+        let max_rect = Rect::from_min_size(
+            pos2(
+                ui.min_rect().min.x,
+                ui.max_rect().max.y - (Constants::TILE_SIZE + Constants::TILE_GAP * 2.0),
+            ),
+            vec2(ui.max_rect().width(), Constants::TILE_SIZE + Constants::TILE_GAP * 2.0),
+        );
+
+        ui.scope_builder(UiBuilder::new().max_rect(max_rect), |ui| {
+            // 横スクロール可能なエリアで中央に配置
+            ScrollArea::horizontal()
+                .scroll_bar_visibility(scroll_area::ScrollBarVisibility::AlwaysHidden)
+                .show(ui, |ui| {
+                    Self::render_content(state, ui);
+                });
+        });
+
     }
 
     fn render_content(state: &AppState, ui: &mut Ui) {
