@@ -45,19 +45,51 @@ pub fn base(ui: &mut Ui, conf: &TileBaseConf) -> TileResult {
     // 矩形を描画
     ui.painter().rect_filled(rect, 4.0, color);
 
-    // ユーザー名の最初の3文字を抽出
-
+    // ユーザー名の最初の4文字を抽出して、2文字以降は改行
+    // 文字は上下左右中央に配置
     if let Some(label) = &conf.label {
-        let initials: String = label.chars().take(3).collect();
+        let initials: Vec<char> = label.chars().take(4).collect();
+        let font_id = FontId::proportional(12.0);
+        let text_color = choose_text_color(color);
 
-        // 矩形の中央に文字を描画
-        ui.painter().text(
-            rect.center(),
-            Align2::CENTER_CENTER,
-            initials,
-            FontId::proportional(12.0),
-            choose_text_color(color), // 背景色に合わせて文字色を調整
-        );
+        if initials.len() > 2 {
+            // 2文字ずつに分割して各行を個別に描画
+            let first: String = initials.iter().take(2).collect();
+            let rest: String = initials.iter().skip(2).collect();
+
+            // 行の高さを計算
+            let line_height = font_id.size * 1.2;
+            let total_height = line_height * 2.0;
+            let center = rect.center();
+
+            // 1行目
+            ui.painter().text(
+                pos2(center.x, center.y - total_height / 4.0),
+                Align2::CENTER_CENTER,
+                first,
+                font_id.clone(),
+                text_color,
+            );
+
+            // 2行目
+            ui.painter().text(
+                pos2(center.x, center.y + total_height / 4.0),
+                Align2::CENTER_CENTER,
+                rest,
+                font_id,
+                text_color,
+            );
+        } else {
+            // 2文字以下の場合は1行で中央に描画
+            let text: String = initials.iter().collect();
+            ui.painter().text(
+                rect.center(),
+                Align2::CENTER_CENTER,
+                text,
+                font_id,
+                text_color,
+            );
+        }
     }
 
     TileResult {
