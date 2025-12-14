@@ -55,7 +55,10 @@ impl PlayerListView {
         };
 
         ui.horizontal(|ui| {
-            // 左側にパディングを追加
+            // 手動でギャップを追加るから自動余白は無効化
+            ui.spacing_mut().item_spacing = Vec2 { x: 0.0, y: 0.0 };
+
+            // 中央ぞろえ用に左側にパディングを追加
             if padding > 0.0 {
                 ui.add_space(padding);
             }
@@ -75,12 +78,11 @@ impl PlayerListView {
             state.set_dragging_player_id(None);
         }
 
-        for (i, player) in players.iter().enumerate() {
-            // プレイヤー間のスペース
-            if i > 0 {
-                ui.add_space(gap);
-            }
+        // 親要素の長さが足りなくてスクロールが必要になった際に余白がなくなるのを防ぐために
+        // 必ず最初と最後にギャップを追加
+        ui.add_space(gap);
 
+        for (_, player) in players.iter().enumerate() {
             let is_selected = state.selected_player_id() == Some(player.id);
             let is_dragging = state.dragging_player_id() == Some(player.id);
 
@@ -94,6 +96,8 @@ impl PlayerListView {
                     is_dragging,
                 },
             );
+
+            ui.add_space(gap);
 
             // クリックまたはドラッグ開始時にユーザーを選択
             if result.clicked || result.drag_started {
