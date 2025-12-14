@@ -52,7 +52,7 @@ impl JapaneseWords {
     pub const SABOTAGE_COMMS: &'static str = "通信妨害";
     pub const SABOTAGE_LIGHTS: &'static str = "停電";
     pub const SABOTAGE_O2: &'static str = "酸素妨害";
-    pub const SABOTAGE_REACTOR: &'static str = "原子炉耐震故障";
+    pub const SABOTAGE_REACTOR: &'static str = "原子炉故障";
     pub const SABOTAGE_DOORS: &'static str = "ドア封鎖";
 
     pub const VENT: &'static str = "ベント";

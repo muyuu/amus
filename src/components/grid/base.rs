@@ -19,6 +19,8 @@ pub fn base<R>(ui: &mut Ui, conf: GridConf, add_contents: impl FnOnce(&mut Ui) -
     Grid::new(conf.id)
         .spacing(spacing)
         .num_columns(conf.num_columns.unwrap_or(0)) // 0なら制限なし
+        .min_col_width(0.0) // セルの最小幅を0に設定
+        .min_row_height(0.0) // セルの最小高さを0に設定
         .show(ui, add_contents)
         .inner
 }
