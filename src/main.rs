@@ -48,7 +48,7 @@ fn main() -> eframe::Result<()> {
             setup_custom_fonts(&cc.egui_ctx);
             setup_panel_bg(&cc.egui_ctx);
 
-            // アセットマネージャーの初期化（一度だけ実行）
+            // アセットマネージャーの初期化
             assets::AssetManager::initialize(&cc.egui_ctx);
 
             Ok(Box::new(AmusApp::new(cc, state)))

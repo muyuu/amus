@@ -13,6 +13,8 @@ async function run() {
     canvas.width = 1200;
     canvas.height = 840;
 
+    const loadingView = document.getElementById('loading');
+
     // rootにcanvasを追加
     const root = document.getElementById('root');
     if (root) {
@@ -29,6 +31,9 @@ async function run() {
             console.log('Starting WASM app...');
             await start('canvas');
             console.log('WASM app started successfully');
+            if (loadingView) {
+                loadingView.style.display = 'none';
+            }
         } catch (error) {
             console.error('Failed to start WASM app:', error);
             console.error('Error details:', error.toString());

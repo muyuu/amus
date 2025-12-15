@@ -191,7 +191,13 @@ impl LocationView {
         result
     }
 
-    fn render_player(player: &player::Player, painter: &Painter, pos: Pos2, radius: f32, asset_manager: &AssetManager) {
+    fn render_player(
+        player: &player::Player,
+        painter: &Painter,
+        pos: Pos2,
+        radius: f32,
+        asset_manager: &AssetManager,
+    ) {
         let is_dead = player.is_dead();
 
         if let Some(texture) = asset_manager.get_player_texture(&player.color, is_dead) {

@@ -53,37 +53,25 @@ pub struct AssetManager {
 impl AssetManager {
     /// Context経由でAssetManagerのシングルトンインスタンスを取得または初期化
     pub fn get(ctx: &Context) -> Self {
-        // まず既存のインスタンスを確認
-        let existing = ctx.data(|data| {
-            data.get_temp::<AssetManager>(Id::new("asset_manager"))
-        });
+        use crate::constants::ContextIds;
 
-        if let Some(manager) = existing {
+        // 既存のインスタンスがあればそれを返す
+        if let Some(manager) =
+            ctx.data(|data| data.get_temp::<AssetManager>(Id::new(ContextIds::ASSET_MANAGER)))
+        {
             return manager;
         }
 
-        // 存在しない場合は初期化
+        // 存在しない場合は初期化して保存
         let manager = Self::new(ctx);
         ctx.data_mut(|data| {
-            data.insert_temp(Id::new("asset_manager"), manager.clone());
+            data.insert_temp(Id::new(ContextIds::ASSET_MANAGER), manager.clone());
         });
         manager
     }
 
-    /// Context経由でAssetManagerを初期化（一度だけ呼ぶ）
     pub fn initialize(ctx: &Context) {
-        // data_mutのクロージャ外でAssetManagerを作成（デッドロック回避）
-        let should_initialize = ctx.data(|data| {
-            data.get_temp::<AssetManager>(Id::new("asset_manager"))
-                .is_none()
-        });
-
-        if should_initialize {
-            let manager = Self::new(ctx);
-            ctx.data_mut(|data| {
-                data.insert_temp(Id::new("asset_manager"), manager);
-            });
-        }
+        Self::get(ctx);
     }
 
     fn new(ctx: &Context) -> Self {
@@ -176,18 +164,24 @@ impl AssetManager {
             // live画像
             let live_path = format!(assets_path!("images/char/{}-live.png"), color_name);
             if let Ok(texture) = Self::load_texture_from_path(ctx, &live_path) {
-                self.player_images.insert(format!("{}-live", color_name), texture);
+                self.player_images
+                    .insert(format!("{}-live", color_name), texture);
             }
 
             // dead画像
             let dead_path = format!(assets_path!("images/char/{}-dead.png"), color_name);
             if let Ok(texture) = Self::load_texture_from_path(ctx, &dead_path) {
-                self.player_images.insert(format!("{}-dead", color_name), texture);
+                self.player_images
+                    .insert(format!("{}-dead", color_name), texture);
             }
         }
     }
 
-    pub fn get_player_texture(&self, color: &crate::models::Color, is_dead: bool) -> Option<&TextureHandle> {
+    pub fn get_player_texture(
+        &self,
+        color: &crate::models::Color,
+        is_dead: bool,
+    ) -> Option<&TextureHandle> {
         let color_name = color.name_lowercase();
         let state = if is_dead { "dead" } else { "live" };
         self.player_images.get(&format!("{}-{}", color_name, state))
@@ -227,7 +221,9 @@ impl AssetManager {
         #[cfg(not(debug_assertions))]
         {
             // リリースビルド: 埋め込みアセットから読み込む
-            let relative_path = path.strip_prefix(concat!(assets_dir!(), "/")).unwrap_or(path);
+            let relative_path = path
+                .strip_prefix(concat!(assets_dir!(), "/"))
+                .unwrap_or(path);
             ASSETS_DIR
                 .get_file(relative_path)
                 .ok_or_else(|| format!("File not found: {}", path).into())
