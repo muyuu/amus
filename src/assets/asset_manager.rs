@@ -162,18 +162,24 @@ impl AssetManager {
             // live画像
             let live_path = format!(assets_path!("images/char/{}-live.png"), color_name);
             if let Ok(texture) = Self::load_texture_from_path(ctx, &live_path) {
-                self.player_images.insert(format!("{}-live", color_name), texture);
+                self.player_images
+                    .insert(format!("{}-live", color_name), texture);
             }
 
             // dead画像
             let dead_path = format!(assets_path!("images/char/{}-dead.png"), color_name);
             if let Ok(texture) = Self::load_texture_from_path(ctx, &dead_path) {
-                self.player_images.insert(format!("{}-dead", color_name), texture);
+                self.player_images
+                    .insert(format!("{}-dead", color_name), texture);
             }
         }
     }
 
-    pub fn get_player_texture(&self, color: &crate::models::Color, is_dead: bool) -> Option<&TextureHandle> {
+    pub fn get_player_texture(
+        &self,
+        color: &crate::models::Color,
+        is_dead: bool,
+    ) -> Option<&TextureHandle> {
         let color_name = color.name_lowercase();
         let state = if is_dead { "dead" } else { "live" };
         self.player_images.get(&format!("{}-{}", color_name, state))
@@ -213,7 +219,9 @@ impl AssetManager {
         #[cfg(not(debug_assertions))]
         {
             // リリースビルド: 埋め込みアセットから読み込む
-            let relative_path = path.strip_prefix(concat!(assets_dir!(), "/")).unwrap_or(path);
+            let relative_path = path
+                .strip_prefix(concat!(assets_dir!(), "/"))
+                .unwrap_or(path);
             ASSETS_DIR
                 .get_file(relative_path)
                 .ok_or_else(|| format!("File not found: {}", path).into())

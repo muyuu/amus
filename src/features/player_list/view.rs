@@ -17,7 +17,10 @@ impl PlayerListView {
                 ui.min_rect().min.x,
                 ui.max_rect().max.y - (Constants::TILE_SIZE + Constants::TILE_GAP * 2.0),
             ),
-            vec2(ui.max_rect().width(), Constants::TILE_SIZE + Constants::TILE_GAP * 2.0),
+            vec2(
+                ui.max_rect().width(),
+                Constants::TILE_SIZE + Constants::TILE_GAP * 2.0,
+            ),
         );
 
         ui.scope_builder(UiBuilder::new().max_rect(max_rect), |ui| {
@@ -28,7 +31,6 @@ impl PlayerListView {
                     Self::render_content(state, ui);
                 });
         });
-
     }
 
     fn render_content(state: &AppState, ui: &mut Ui) {
