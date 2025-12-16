@@ -10,7 +10,3 @@ run = "node scripts/analyzer-target.js release"
 ["analyzer-wasm"]
 description = "Rust Analyzerのターゲットをwasmに設定"
 run = "node scripts/analyzer-target.js wasm"
-
-[init]
-description = "開発環境の初期設定を行う"
-run = "node scripts/init.js"

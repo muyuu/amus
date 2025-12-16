@@ -1,0 +1,53 @@
+["install-all"]
+description = "全ての依存パッケージをインストール"
+depends = [
+    "install-cargo-packages",
+    "install-rust-build-tools",
+    "install-npm-packages",
+    "install-dev-tools",
+]
+
+["install-cargo-packages"]
+description = "Rust依存パッケージをインストール"
+run = "cargo fetch"
+hide = true
+
+["install-rust-build-tools"]
+description = "Rustビルドツール関連をインストール"
+depends = ["install-wasm-pack"]
+hide = true
+
+["install-rust-toolchain"]
+description = "CI用: Rustツールチェイン関連をインストール"
+depends = ["install-target-wasm32"]
+hide = true
+
+["install-npm-packages"]
+description = "npmパッケージをインストール"
+run = "npm install"
+hide = true
+
+["install-dev-tools"]
+description = "開発用ツールをインストール"
+depends = ["install-cargo-watch", "install-miniserve"]
+hide = true
+
+["install-target-wasm32"]
+description = "wasm32-unknown-unknownターゲットをインストール"
+run = "rustup target add wasm32-unknown-unknown"
+hide = true
+
+["install-wasm-pack"]
+description = "wasm-packをインストール"
+run = "cargo install wasm-pack"
+hide = true
+
+["install-cargo-watch"]
+description = "cargo-watchをインストール"
+run = "cargo install cargo-watch"
+hide = true
+
+["install-miniserve"]
+description = "miniserveをインストール"
+run = "cargo install miniserve"
+hide = true
