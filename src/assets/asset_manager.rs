@@ -84,6 +84,7 @@ impl AssetManager {
         manager.load_area_images(ctx);
         // プレイヤー画像を読み込み
         manager.load_player_images(ctx);
+        manager.load_eraser_images(ctx);
         manager
     }
 
@@ -185,6 +186,18 @@ impl AssetManager {
         let color_name = color.name_lowercase();
         let state = if is_dead { "dead" } else { "live" };
         self.player_images.get(&format!("{}-{}", color_name, state))
+    }
+
+    fn load_eraser_images(&mut self, ctx: &Context) {
+        // 将来的に消しゴム画像を追加する場合はここに実装
+        let path = assets_path!("images/tool/eraser.png");
+        if let Ok(t) = Self::load_texture_from_path(ctx, &path) {
+            self.player_images.insert("eraser".to_string(), t);
+        }
+    }
+
+    pub fn get_eraser_texture(&self) -> Option<&TextureHandle> {
+        self.player_images.get("eraser")
     }
 
     /// アイコンを静的に読み込み（main.rs等で使用）

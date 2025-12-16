@@ -1,6 +1,7 @@
 use egui::*;
+use crate::models::Color;
 
-use crate::{i18n::keys::ERASER_BUTTON, state::AppState};
+use crate::state::AppState;
 
 pub struct EraserView;
 
@@ -12,7 +13,7 @@ impl EraserView {
         let main_rect = ui.available_rect_before_wrap();
         let tool_size = Vec2::new(60.0, 60.0);
         let margin_x = 10.0;
-        let margin_y = 100.0;
+        let margin_y = 60.0;
 
         // 左下から10px離れた位置に配置
         let tool_pos = Pos2::new(
@@ -32,13 +33,18 @@ impl EraserView {
         let (rect, response) =
             ui.allocate_exact_size(Vec2::new(40.0, 40.0), Sense::click_and_drag());
 
-        ui.painter().rect_filled(rect, 4.0, Color32::PLACEHOLDER);
+        let color = Color::Yellow.to_egui_color();
+        let border = Color::White.to_egui_color();
+        ui.painter().rect_filled(rect, 4.0, color);
+        if let Some(t) = crate::assets::AssetManager::get(ui.ctx()).get_eraser_texture() {
+            ui.painter()
+                .image(t.id(), rect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), color);
+        }
 
         if state.erase_mode() {
             ui.painter()
-                .rect_stroke(rect, 4.0, (2.0, Color32::WHITE), StrokeKind::Inside);
+                .rect_stroke(rect, 4.0, (2.0, border), StrokeKind::Inside);
         }
-        ui.label(RichText::new(state.t(ERASER_BUTTON)).color(Color32::WHITE));
         response.clicked()
     }
 }
