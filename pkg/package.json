@@ -1,7 +1,7 @@
 {
   "name": "amus",
   "type": "module",
-  "version": "0.1.0",
+  "version": "1.2.1",
   "files": [
     "amus_wasm_bg.wasm",
     "amus_wasm.js",
