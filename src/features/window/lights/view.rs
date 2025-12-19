@@ -8,7 +8,7 @@ use crate::{
     state::AppState,
 };
 
-use super::LightsConstants;
+use super::constants::LightsConstants;
 
 pub struct LightsViewResult {
     pub click_player: Option<Player>,

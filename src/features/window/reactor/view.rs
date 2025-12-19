@@ -8,7 +8,7 @@ use crate::{
     state::AppState,
 };
 
-use super::ReactorConstants;
+use super::constants::ReactorConstants;
 
 pub struct ReactorViewResult {
     pub click_player: Option<Player>,

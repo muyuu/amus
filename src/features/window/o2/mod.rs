@@ -1,19 +1,19 @@
-pub mod constants;
-pub mod interaction;
-pub mod view;
+mod constants;
+mod view;
 
-pub use constants::O2Constants;
+use crate::state::{Actions, AppState, WindowAction};
 use egui::Ui;
-pub use interaction::O2Interaction;
-pub use view::O2View;
-
-use crate::state::AppState;
+use view::O2View;
 
 pub struct O2Feature;
 
 impl O2Feature {
-    pub fn render(state: &mut AppState, ui: &mut Ui) {
+    pub fn render(state: &AppState, ui: &mut Ui) {
         let res = O2View::render(state, ui);
-        O2Interaction::handle(state, &res);
+
+        if let Some(player) = res.click_player {
+            let actions = Actions::new(state);
+            actions.handle_window(WindowAction::ToggleO2(player.id));
+        }
     }
 }

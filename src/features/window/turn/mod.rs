@@ -1,24 +1,24 @@
-pub mod constants;
-pub mod interaction;
-pub mod view;
+mod constants;
+mod view;
 
-pub use constants::TurnConstants;
+use crate::state::{Actions, AppState, WindowAction};
 use egui::Ui;
-pub use interaction::TurnInteraction;
-pub use view::TurnView;
-
-use crate::state::AppState;
+use view::TurnView;
 
 pub struct TurnFeature;
 
 impl TurnFeature {
-    pub fn render(state: &mut AppState, ui: &mut Ui) {
+    pub fn render(state: &AppState, ui: &mut Ui) {
         let game = match state.game() {
             Some(game) => game,
             None => return,
         };
 
         let res = TurnView::render(state, ui, game.waves.len());
-        TurnInteraction::handle(state, &res);
+
+        if let Some(index) = res.selected_wave_index {
+            let actions = Actions::new(state);
+            actions.handle_window(WindowAction::SelectWave(index));
+        }
     }
 }

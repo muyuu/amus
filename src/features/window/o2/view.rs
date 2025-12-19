@@ -8,7 +8,7 @@ use crate::{
     state::AppState,
 };
 
-use super::O2Constants;
+use super::constants::O2Constants;
 
 pub struct O2ViewResult {
     pub click_player: Option<Player>,

@@ -1,19 +1,19 @@
-pub mod constants;
-pub mod interaction;
-pub mod view;
+mod constants;
+mod view;
 
-pub use constants::ReactorConstants;
+use crate::state::{Actions, AppState, WindowAction};
 use egui::Ui;
-pub use interaction::ReactorInteraction;
-pub use view::ReactorView;
-
-use crate::state::AppState;
+use view::ReactorView;
 
 pub struct ReactorFeature;
 
 impl ReactorFeature {
-    pub fn render(state: &mut AppState, ui: &mut Ui) {
+    pub fn render(state: &AppState, ui: &mut Ui) {
         let res = ReactorView::render(state, ui);
-        ReactorInteraction::handle(state, &res);
+
+        if let Some(player) = res.click_player {
+            let actions = Actions::new(state);
+            actions.handle_window(WindowAction::ToggleReactor(player.id));
+        }
     }
 }

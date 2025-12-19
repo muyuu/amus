@@ -3,10 +3,10 @@ use crate::features::debug_view::DebugView;
 use crate::features::eraser::EraserFeature;
 use crate::features::location::LocationFeature;
 use crate::features::main::MainConstants;
-use crate::features::map::MapView;
-use crate::features::player_list::PlayerListView;
+use crate::features::map::MapFeature;
+use crate::features::player_list::PlayerListFeature;
 use crate::features::route_drawing::RouteDrawingFeature;
-use crate::features::welcome::WelcomeView;
+use crate::features::welcome::WelcomeFeature;
 use crate::features::window::comms::CommsFeature;
 use crate::features::window::lights::LightsFeature;
 use crate::features::window::o2::O2Feature;
@@ -22,7 +22,7 @@ impl MainView {
         // ゲームがない場合はウェルカムメッセージを表示して早期リターン
         let has_game = state.game().is_some();
         if !has_game {
-            WelcomeView::render(ui, state);
+            WelcomeFeature::render(ui, state);
             return;
         }
 
@@ -39,8 +39,8 @@ impl MainView {
             // メイン領域の描画領域レスポンスを取得
             let response = ui.allocate_response(ui.available_size(), Sense::click_and_drag());
 
-            MapView::render(state, &response, ui);
-            PlayerListView::render(state, ui);
+            MapFeature::render(state, &response, ui);
+            PlayerListFeature::render(state, ui);
             RouteDrawingFeature::render(state, &response, ui);
             DebugView::render(state, state.show_debug_view(), ui.ctx());
             LocationFeature::render(state, &response, ui);

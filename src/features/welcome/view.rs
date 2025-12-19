@@ -1,13 +1,14 @@
-use egui::*;
-
 use crate::common::CommonTexts;
 use crate::i18n::keys::*;
-use crate::state::AppState;
+use crate::state::{AppState, GameAction};
+use egui::Ui;
 
 pub struct WelcomeView;
 
 impl WelcomeView {
-    pub fn render(ui: &mut Ui, state: &mut AppState) {
+    pub fn render(ui: &mut Ui, state: &AppState) -> Vec<GameAction> {
+        let mut actions = Vec::new();
+
         let texts = WelcomeTexts::get(state);
         let common = CommonTexts::get(state);
 
@@ -15,9 +16,11 @@ impl WelcomeView {
             ui.heading(&texts.title);
             ui.label(&texts.message);
             if ui.button(&common.button_new_game).clicked() {
-                state.start_new_game();
+                actions.push(GameAction::StartNewGame);
             }
         });
+
+        actions
     }
 }
 
