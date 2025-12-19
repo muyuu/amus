@@ -2,81 +2,59 @@ use crate::{
     components::{background_label, change_color, tile, ChangeColorConf, TileConf},
     features::player_info::constants::PlayerInfoConstants,
     i18n::keys::{PLAYER_INFO_BUTTON_DONE, PLAYER_INFO_BUTTON_NOT_DONE},
-    models::{color::Color, player::PlayerId, Player},
-    state::AppState,
+    models::{color::Color, Player},
+    state::{AppState, PlayerInfoAction},
 };
 use egui::*;
-
-#[derive(Default, PartialEq)]
-pub struct PlayerInfoResult {
-    pub any_name_double_clicked: bool,
-    pub double_clicked_player_id: Option<PlayerId>,
-
-    pub any_name_changed: bool,
-    pub changed_new_name: Option<(String, PlayerId)>,
-
-    pub any_lost_focus: bool,
-    pub lost_focus_player_id: Option<PlayerId>,
-
-    pub any_done_button_clicked: bool,
-    pub done_button_clicked_player_id: Option<PlayerId>,
-    pub done_button_new_state: Option<bool>,
-
-    pub color_change: Option<(PlayerId, Color)>,
-}
 
 pub struct PlayerInfoView;
 
 impl PlayerInfoView {
-    pub fn render(state: &AppState, ui: &mut Ui) -> PlayerInfoResult {
-        let mut result = PlayerInfoResult::default();
+    pub fn render(state: &AppState, ui: &mut Ui) -> Vec<PlayerInfoAction> {
+        let mut actions = Vec::new();
 
         let players = match state.players() {
             Some(p) => p,
-            None => return result,
+            None => return actions,
         };
 
         ui.vertical(|ui| {
             for player in players.iter() {
-                let r = Self::render_player(state, ui, player);
-                if r != PlayerInfoResult::default() {
-                    result = r;
-                }
+                actions.extend(Self::render_player(state, ui, player));
             }
         });
-        result
+        actions
     }
 
-    fn render_player(state: &AppState, ui: &mut Ui, player: &Player) -> PlayerInfoResult {
-        let mut result: PlayerInfoResult = PlayerInfoResult::default();
+    fn render_player(state: &AppState, ui: &mut Ui, player: &Player) -> Vec<PlayerInfoAction> {
+        let mut actions = Vec::new();
         let texts = PlayerInfoText::get(state);
 
         ui.horizontal(|ui| {
             ui.add_space(8.0);
-            let color_change = Self::render_player_color_box(state, ui, player);
-            if let Some(color) = color_change {
-                result.color_change = Some((player.id, color));
+            if let Some(color) = Self::render_player_color_box(state, ui, player) {
+                actions.push(PlayerInfoAction::ChangeColor(player.id, color));
             }
 
-            let (clicked, next) = Self::render_button(ui, player, &texts);
-            if clicked {
-                result.any_done_button_clicked = true;
-                result.done_button_clicked_player_id = Some(player.id);
-                result.done_button_new_state = Some(next);
+            if let Some(action) = Self::render_button(ui, player, &texts) {
+                actions.push(action);
             }
 
-            let r = Self::render_player_name(state, ui, player);
-            if r != PlayerInfoResult::default() {
-                result = r;
-            }
+            actions.extend(Self::render_player_name(state, ui, player));
         });
-        result
+        actions
     }
 
-    fn render_button(ui: &mut Ui, player: &Player, texts: &PlayerInfoText) -> (bool, bool) {
+    fn render_button(
+        ui: &mut Ui,
+        player: &Player,
+        texts: &PlayerInfoText,
+    ) -> Option<PlayerInfoAction> {
         if player.done_button {
-            let res = ui.button(&texts.button_done).clicked();
-            return (res, false);
+            if ui.button(&texts.button_done).clicked() {
+                return Some(PlayerInfoAction::ToggleDoneButton(player.id));
+            }
+            return None;
         }
 
         let text = RichText::new(&texts.button_not_done)
@@ -85,8 +63,10 @@ impl PlayerInfoView {
         let button = Button::new(text)
             .fill(Color32::RED)
             .stroke(Stroke::new(2.0, Color32::BROWN));
-        let res = ui.add(button).clicked();
-        (res, true)
+        if ui.add(button).clicked() {
+            return Some(PlayerInfoAction::ToggleDoneButton(player.id));
+        }
+        None
     }
 
     // プレイヤー色の矩形を描画
@@ -123,30 +103,30 @@ impl PlayerInfoView {
     }
 
     /// プレイヤー名を描画または編集
-    fn render_player_name(state: &AppState, ui: &mut Ui, player: &Player) -> PlayerInfoResult {
-        let mut result = PlayerInfoResult::default();
+    fn render_player_name(
+        state: &AppState,
+        ui: &mut Ui,
+        player: &Player,
+    ) -> Vec<PlayerInfoAction> {
+        let mut actions = Vec::new();
 
         if !state.player_name_editing(player.id) {
-            let res = background_label(ui, &player.name).double_clicked();
-            if res {
-                result.any_name_double_clicked = true;
-                result.double_clicked_player_id = Some(player.id);
+            if background_label(ui, &player.name).double_clicked() {
+                actions.push(PlayerInfoAction::StartEditingName(player.id));
             }
-            return result;
+            return actions;
         }
 
         // 編集中
         let mut editing_text = player.name.clone();
         let res = ui.text_edit_singleline(&mut editing_text);
         if res.changed() {
-            result.any_name_changed = true;
-            result.changed_new_name = Some((editing_text.clone(), player.id));
+            actions.push(PlayerInfoAction::UpdateName(player.id, editing_text));
         }
         if res.lost_focus() {
-            result.any_lost_focus = true;
-            result.lost_focus_player_id = Some(player.id);
+            actions.push(PlayerInfoAction::StopEditingName(player.id));
         }
-        result
+        actions
     }
 }
 
