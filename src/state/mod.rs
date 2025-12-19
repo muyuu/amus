@@ -4,7 +4,7 @@ pub mod app_state;
 pub mod storage;
 pub mod storage_keys;
 
-pub use actions::{Actions, EraserAction, PlayerAction, RouteDrawingAction};
+pub use actions::{Actions, EraserAction, LocationAction, PlayerAction, RouteDrawingAction};
 pub use app_state::AppState;
 pub use storage::AppStorage;
 pub use storage_keys::StorageKeys;
