@@ -8,7 +8,7 @@ pub enum EraserAction {
 }
 
 impl Actions<'_> {
-    pub fn handle_eraser(&self, action: EraserAction) {
+    pub fn handle_eraser(&mut self, action: EraserAction) {
         match action {
             EraserAction::Toggle => {
                 let current = self.state.erase_mode();

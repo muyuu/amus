@@ -14,7 +14,7 @@ pub enum RouteDrawingAction {
 }
 
 impl Actions<'_> {
-    pub fn handle_route_drawing(&self, action: RouteDrawingAction) {
+    pub fn handle_route_drawing(&mut self, action: RouteDrawingAction) {
         match action {
             RouteDrawingAction::StartDraw => {
                 let player_id = match self.state.selected_player_id() {

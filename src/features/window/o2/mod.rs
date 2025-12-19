@@ -8,11 +8,11 @@ use view::O2View;
 pub struct O2Feature;
 
 impl O2Feature {
-    pub fn render(state: &AppState, ui: &mut Ui) {
+    pub fn render(state: &mut AppState, ui: &mut Ui) {
         let res = O2View::render(state, ui);
 
         if let Some(player) = res.click_player {
-            let actions = Actions::new(state);
+            let mut actions = Actions::new(state);
             actions.handle_window(WindowAction::ToggleO2(player.id));
         }
     }

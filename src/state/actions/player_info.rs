@@ -18,7 +18,7 @@ pub enum PlayerInfoAction {
 }
 
 impl Actions<'_> {
-    pub fn handle_player_info(&self, action: PlayerInfoAction) {
+    pub fn handle_player_info(&mut self, action: PlayerInfoAction) {
         match action {
             PlayerInfoAction::StartEditingName(player_id) => {
                 self.state.toggle_player_name_editing(player_id);

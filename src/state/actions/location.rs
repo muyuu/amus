@@ -25,7 +25,7 @@ pub enum LocationAction {
 }
 
 impl Actions<'_> {
-    pub fn handle_location(&self, action: LocationAction) {
+    pub fn handle_location(&mut self, action: LocationAction) {
         match action {
             LocationAction::SetDraggingLocation(location) => {
                 self.state.set_dragging_location(location);

@@ -14,7 +14,7 @@ pub enum PlayerAction {
 
 impl Actions<'_> {
     /// PlayerActionを処理
-    pub fn handle_player(&self, action: PlayerAction) {
+    pub fn handle_player(&mut self, action: PlayerAction) {
         match action {
             PlayerAction::Select(id) => {
                 self.state.set_selected_player_id(Some(id));

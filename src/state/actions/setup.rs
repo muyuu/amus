@@ -18,7 +18,7 @@ pub enum SetupAction {
 }
 
 impl Actions<'_> {
-    pub fn handle_setup(&self, action: SetupAction) {
+    pub fn handle_setup(&mut self, action: SetupAction) {
         match action {
             SetupAction::SelectArea(area) => {
                 self.state.set_selected_area(area);

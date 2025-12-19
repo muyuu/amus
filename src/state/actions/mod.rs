@@ -25,14 +25,14 @@ use super::AppState;
 ///
 /// 各ドメインのハンドラーは別ファイルで impl される:
 /// - player.rs: handle_player()
-/// - game.rs: handle_game() (将来)
-/// - location.rs: handle_location() (将来)
+/// - game.rs: handle_game()
+/// - location.rs: handle_location()
 pub struct Actions<'a> {
-    pub(super) state: &'a AppState,
+    pub(super) state: &'a mut AppState,
 }
 
 impl<'a> Actions<'a> {
-    pub fn new(state: &'a AppState) -> Self {
+    pub fn new(state: &'a mut AppState) -> Self {
         Self { state }
     }
 }
