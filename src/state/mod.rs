@@ -5,8 +5,8 @@ pub mod storage;
 pub mod storage_keys;
 
 pub use actions::{
-    Actions, EraserAction, GameAction, LocationAction, PlayerAction, RouteDrawingAction,
-    WindowAction,
+    Actions, EraserAction, GameAction, LocationAction, PlayerAction, PlayerInfoAction,
+    RouteDrawingAction, SetupAction, WindowAction,
 };
 pub use app_state::AppState;
 pub use storage::AppStorage;

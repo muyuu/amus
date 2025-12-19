@@ -1,5 +1,5 @@
 use crate::common::aspect_ratio_centered;
-use crate::features::debug_view::DebugView;
+use crate::features::debug_view::DebugFeature;
 use crate::features::eraser::EraserFeature;
 use crate::features::location::LocationFeature;
 use crate::features::main::MainConstants;
@@ -42,7 +42,7 @@ impl MainView {
             MapFeature::render(state, &response, ui);
             PlayerListFeature::render(state, ui);
             RouteDrawingFeature::render(state, &response, ui);
-            DebugView::render(state, state.show_debug_view(), ui.ctx());
+            DebugFeature::render(state, state.show_debug_view(), ui.ctx());
             LocationFeature::render(state, &response, ui);
             EraserFeature::render(state, ui);
         });
