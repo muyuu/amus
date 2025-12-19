@@ -12,7 +12,7 @@ use crate::features::window::lights::LightsFeature;
 use crate::features::window::o2::O2Feature;
 use crate::features::window::reactor::ReactorFeature;
 use crate::features::window::turn::TurnFeature;
-use crate::state::AppState;
+use crate::state::{Actions, AppState};
 use egui::*;
 
 pub struct MainView;
@@ -40,7 +40,14 @@ impl MainView {
             let response = ui.allocate_response(ui.available_size(), Sense::click_and_drag());
 
             MapView::render(state, &response, ui);
-            PlayerListView::render(state, ui);
+
+            // PlayerListView: 新しいパターン（View→Actions）
+            let player_actions = PlayerListView::render(state, ui);
+            let actions = Actions::new(state);
+            for action in player_actions {
+                actions.handle_player(action);
+            }
+
             RouteDrawingFeature::render(state, &response, ui);
             DebugView::render(state, state.show_debug_view(), ui.ctx());
             LocationFeature::render(state, &response, ui);
