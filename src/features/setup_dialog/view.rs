@@ -6,25 +6,16 @@ use crate::constants::SelectIds;
 use crate::i18n::keys::*;
 use crate::models::player::PlayerId;
 use crate::models::{Area, Color};
-use crate::state::AppState;
-
-#[derive(Default)]
-pub struct SetupViewResult {
-    pub select_area: Option<Area>,
-    pub player_count: Option<usize>,
-    pub update_player: Option<(PlayerId, String, Color)>,
-    pub start_game: bool,
-    pub cancel: bool,
-}
+use crate::state::{AppState, SetupAction};
 
 pub struct SetupView;
 
 impl SetupView {
-    pub fn render(state: &AppState, ctx: &Context) -> SetupViewResult {
+    pub fn render(state: &AppState, ctx: &Context) -> Vec<SetupAction> {
         let texts = SetupTexts::get(state);
         let common = CommonTexts::get(state);
 
-        let mut result = SetupViewResult::default();
+        let mut actions = Vec::new();
 
         Window::new(&texts.title)
             .collapsible(false)
@@ -35,22 +26,20 @@ impl SetupView {
                 ScrollArea::vertical().show(ui, |ui| {
                     let mut selected_area = state.setup_state().selected_area.clone();
                     ui.horizontal(|ui| {
-                        let area = Self::render_area_combo_box(
+                        if let Some(area) = Self::render_area_combo_box(
                             ui,
                             &mut selected_area,
                             &texts.area_selection,
-                        );
-                        if area.is_some() {
-                            result.select_area = area;
+                        ) {
+                            actions.push(SetupAction::SelectArea(area));
                         }
                     });
 
                     ui.add_space(12.0);
 
                     ui.horizontal(|ui| {
-                        let r = Self::render_player_amount(ui, state, &texts);
-                        if r.player_count.is_some() {
-                            result.player_count = r.player_count;
+                        if let Some(count) = Self::render_player_amount(ui, state, &texts) {
+                            actions.push(SetupAction::AdjustPlayerCount(count));
                         }
                     });
 
@@ -58,9 +47,10 @@ impl SetupView {
 
                     // プレイヤー一覧の編集
                     for i in 0..state.setup_state().player_count {
-                        let r = Self::render_player(ui, state, &texts, i, &Color::all());
-                        if r.update_player.is_some() {
-                            result.update_player = r.update_player;
+                        if let Some((id, name, color)) =
+                            Self::render_player(ui, state, &texts, i, &Color::all())
+                        {
+                            actions.push(SetupAction::UpdatePlayer(id, name, color));
                         }
                     }
 
@@ -70,17 +60,17 @@ impl SetupView {
 
                     ui.horizontal(|ui| {
                         if ui.button(&common.button_start_game).clicked() {
-                            result.start_game = true;
+                            actions.push(SetupAction::StartGame);
                         }
 
                         if ui.button(&common.button_cancel).clicked() {
-                            result.cancel = true;
+                            actions.push(SetupAction::Cancel);
                         }
                     });
                 });
             });
 
-        result
+        actions
     }
 
     fn render_area_combo_box(ui: &mut Ui, selected: &mut Area, text: &str) -> Option<Area> {
@@ -95,14 +85,14 @@ impl SetupView {
         select_with_options(ui, id, selected, options)
     }
 
-    fn render_player_amount(ui: &mut Ui, state: &AppState, texts: &SetupTexts) -> SetupViewResult {
-        let mut result = SetupViewResult::default();
+    fn render_player_amount(ui: &mut Ui, state: &AppState, texts: &SetupTexts) -> Option<usize> {
         ui.label(&texts.player_count);
         let mut new_count = state.setup_state().player_count;
         if ui.add(Slider::new(&mut new_count, 4..=18)).changed() {
-            result.player_count = Some(new_count);
+            Some(new_count)
+        } else {
+            None
         }
-        result
     }
 
     fn render_player(
@@ -111,8 +101,8 @@ impl SetupView {
         texts: &SetupTexts,
         i: usize,
         available_colors: &[Color],
-    ) -> SetupViewResult {
-        let mut result = SetupViewResult::default();
+    ) -> Option<(PlayerId, String, Color)> {
+        let mut result = None;
 
         ui.horizontal(|ui| {
             ui.label(&texts.player_name);
@@ -121,7 +111,7 @@ impl SetupView {
             let player = &state.setup_state().players[i].clone();
             let mut name = player.name.clone();
             if ui.text_edit_singleline(&mut name).changed() {
-                result.update_player = Some((player.id, name, player.color.clone()));
+                result = Some((player.id, name, player.color.clone()));
             }
 
             ui.add_space(8.0);
@@ -146,8 +136,7 @@ impl SetupView {
                         .selectable_label(selected_color == *color, text)
                         .clicked()
                     {
-                        result.update_player =
-                            Some((player.id, player.name.clone(), color.clone()));
+                        result = Some((player.id, player.name.clone(), color.clone()));
                     }
                 }
             });
