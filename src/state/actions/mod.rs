@@ -1,8 +1,10 @@
 mod eraser;
 mod player;
+mod route_drawing;
 
 pub use eraser::EraserAction;
 pub use player::PlayerAction;
+pub use route_drawing::RouteDrawingAction;
 
 use super::AppState;
 
