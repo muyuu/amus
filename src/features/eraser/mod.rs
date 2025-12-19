@@ -1,19 +1,17 @@
-pub mod interaction;
-pub mod view;
+mod view;
 
-use egui::*;
-pub use interaction::EraserInteraction;
-pub use view::EraserView;
-
-use crate::state::AppState;
+use crate::state::{Actions, AppState};
+use egui::Ui;
+use view::EraserView;
 
 pub struct EraserFeature;
-impl EraserFeature {
-    pub fn render(state: &mut AppState, ui: &mut Ui) {
-        let toggle_erase_clicked = EraserView::render(state, ui);
 
-        if toggle_erase_clicked {
-            EraserInteraction::toggle_eraser_mode(state);
+impl EraserFeature {
+    pub fn render(state: &AppState, ui: &mut Ui) {
+        let eraser_actions = EraserView::render(state, ui);
+        let actions = Actions::new(state);
+        for action in eraser_actions {
+            actions.handle_eraser(action);
         }
     }
 }

@@ -1,5 +1,7 @@
+mod eraser;
 mod player;
 
+pub use eraser::EraserAction;
 pub use player::PlayerAction;
 
 use super::AppState;
