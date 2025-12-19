@@ -3,7 +3,7 @@ use crate::features::debug_view::DebugView;
 use crate::features::eraser::EraserFeature;
 use crate::features::location::LocationFeature;
 use crate::features::main::MainConstants;
-use crate::features::map::MapView;
+use crate::features::map::MapFeature;
 use crate::features::player_list::PlayerListFeature;
 use crate::features::route_drawing::RouteDrawingFeature;
 use crate::features::welcome::WelcomeView;
@@ -39,7 +39,7 @@ impl MainView {
             // メイン領域の描画領域レスポンスを取得
             let response = ui.allocate_response(ui.available_size(), Sense::click_and_drag());
 
-            MapView::render(state, &response, ui);
+            MapFeature::render(state, &response, ui);
             PlayerListFeature::render(state, ui);
             RouteDrawingFeature::render(state, &response, ui);
             DebugView::render(state, state.show_debug_view(), ui.ctx());
