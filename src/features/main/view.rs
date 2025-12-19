@@ -4,7 +4,7 @@ use crate::features::eraser::EraserFeature;
 use crate::features::location::LocationFeature;
 use crate::features::main::MainConstants;
 use crate::features::map::MapView;
-use crate::features::player_list::PlayerListView;
+use crate::features::player_list::PlayerListFeature;
 use crate::features::route_drawing::RouteDrawingFeature;
 use crate::features::welcome::WelcomeView;
 use crate::features::window::comms::CommsFeature;
@@ -12,7 +12,7 @@ use crate::features::window::lights::LightsFeature;
 use crate::features::window::o2::O2Feature;
 use crate::features::window::reactor::ReactorFeature;
 use crate::features::window::turn::TurnFeature;
-use crate::state::{Actions, AppState};
+use crate::state::AppState;
 use egui::*;
 
 pub struct MainView;
@@ -40,14 +40,7 @@ impl MainView {
             let response = ui.allocate_response(ui.available_size(), Sense::click_and_drag());
 
             MapView::render(state, &response, ui);
-
-            // PlayerListView: 新しいパターン（View→Actions）
-            let player_actions = PlayerListView::render(state, ui);
-            let actions = Actions::new(state);
-            for action in player_actions {
-                actions.handle_player(action);
-            }
-
+            PlayerListFeature::render(state, ui);
             RouteDrawingFeature::render(state, &response, ui);
             DebugView::render(state, state.show_debug_view(), ui.ctx());
             LocationFeature::render(state, &response, ui);
