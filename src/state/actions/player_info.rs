@@ -38,7 +38,8 @@ impl Actions<'_> {
                     Some(p) => p,
                     None => return,
                 };
-                self.state.update_player_button(player_id, !player.done_button);
+                self.state
+                    .update_player_button(player_id, !player.done_button);
             }
             PlayerInfoAction::ChangeColor(player_id, color) => {
                 if let Err(e) = self.state.try_update_player_color(player_id, color) {
