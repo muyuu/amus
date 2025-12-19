@@ -8,7 +8,7 @@ use crate::{
     state::AppState,
 };
 
-use super::CommsConstants;
+use super::constants::CommsConstants;
 
 pub struct CommsViewResult {
     pub click_player: Option<Player>,

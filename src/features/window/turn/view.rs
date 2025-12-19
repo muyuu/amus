@@ -1,6 +1,6 @@
 use egui::*;
 
-use super::TurnConstants;
+use super::constants::TurnConstants;
 use crate::{
     components::{grid, window},
     constants::GridIds,

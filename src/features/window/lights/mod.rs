@@ -1,19 +1,19 @@
-pub mod constants;
-pub mod interaction;
-pub mod view;
+mod constants;
+mod view;
 
-pub use constants::LightsConstants;
+use crate::state::{Actions, AppState, WindowAction};
 use egui::Ui;
-pub use interaction::LightsInteraction;
-pub use view::LightsView;
-
-use crate::state::AppState;
+use view::LightsView;
 
 pub struct LightsFeature;
 
 impl LightsFeature {
-    pub fn render(state: &mut AppState, ui: &mut Ui) {
+    pub fn render(state: &AppState, ui: &mut Ui) {
         let res = LightsView::render(state, ui);
-        LightsInteraction::handle(state, &res);
+
+        if let Some(player) = res.click_player {
+            let actions = Actions::new(state);
+            actions.handle_window(WindowAction::ToggleLights(player.id));
+        }
     }
 }

@@ -1,20 +1,19 @@
-pub mod constants;
-pub mod interaction;
-pub mod view;
+mod constants;
+mod view;
 
+use crate::state::{Actions, AppState, WindowAction};
 use egui::Ui;
-
-pub use constants::CommsConstants;
-pub use interaction::CommsInteraction;
-pub use view::CommsView;
-
-use crate::state::AppState;
+use view::CommsView;
 
 pub struct CommsFeature;
 
 impl CommsFeature {
-    pub fn render(state: &mut AppState, ui: &mut Ui) {
+    pub fn render(state: &AppState, ui: &mut Ui) {
         let res = CommsView::render(state, ui);
-        CommsInteraction::handle(state, &res);
+
+        if let Some(player) = res.click_player {
+            let actions = Actions::new(state);
+            actions.handle_window(WindowAction::ToggleComms(player.id));
+        }
     }
 }
