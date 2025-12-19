@@ -8,11 +8,11 @@ use view::ReactorView;
 pub struct ReactorFeature;
 
 impl ReactorFeature {
-    pub fn render(state: &AppState, ui: &mut Ui) {
+    pub fn render(state: &mut AppState, ui: &mut Ui) {
         let res = ReactorView::render(state, ui);
 
         if let Some(player) = res.click_player {
-            let actions = Actions::new(state);
+            let mut actions = Actions::new(state);
             actions.handle_window(WindowAction::ToggleReactor(player.id));
         }
     }

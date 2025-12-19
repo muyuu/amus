@@ -8,7 +8,7 @@ pub enum GameAction {
 }
 
 impl Actions<'_> {
-    pub fn handle_game(&self, action: GameAction) {
+    pub fn handle_game(&mut self, action: GameAction) {
         match action {
             GameAction::StartNewGame => {
                 self.state.start_new_game();

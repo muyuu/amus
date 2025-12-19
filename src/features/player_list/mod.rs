@@ -13,9 +13,9 @@ use egui::Ui;
 pub struct PlayerListFeature;
 
 impl PlayerListFeature {
-    pub fn render(state: &AppState, ui: &mut Ui) {
+    pub fn render(state: &mut AppState, ui: &mut Ui) {
         let player_actions = PlayerListView::render(state, ui);
-        let actions = Actions::new(state);
+        let mut actions = Actions::new(state);
         for action in player_actions {
             actions.handle_player(action);
         }

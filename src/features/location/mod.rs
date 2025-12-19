@@ -10,7 +10,7 @@ use view::LocationView;
 pub struct LocationFeature;
 
 impl LocationFeature {
-    pub fn render(state: &AppState, response: &Response, ui: &mut Ui) {
+    pub fn render(state: &mut AppState, response: &Response, ui: &mut Ui) {
         let result = LocationView::render(state, ui);
 
         // ユーザー操作をActionsに変換
@@ -111,7 +111,7 @@ impl LocationFeature {
         }
 
         // Actionsで処理
-        let actions = Actions::new(state);
+        let mut actions = Actions::new(state);
         for action in location_actions {
             actions.handle_location(action);
         }

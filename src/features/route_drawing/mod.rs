@@ -8,13 +8,13 @@ use view::RouteDrawingView;
 pub struct RouteDrawingFeature;
 
 impl RouteDrawingFeature {
-    pub fn render(state: &AppState, response: &Response, ui: &mut Ui) {
+    pub fn render(state: &mut AppState, response: &Response, ui: &mut Ui) {
         // 描画
         RouteDrawingView::render(state, response, ui);
 
         // ユーザー操作を検出してActionsで処理
         let route_actions = Self::detect_actions(state, response);
-        let actions = Actions::new(state);
+        let mut actions = Actions::new(state);
         for action in route_actions {
             actions.handle_route_drawing(action);
         }

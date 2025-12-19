@@ -8,11 +8,11 @@ use view::CommsView;
 pub struct CommsFeature;
 
 impl CommsFeature {
-    pub fn render(state: &AppState, ui: &mut Ui) {
+    pub fn render(state: &mut AppState, ui: &mut Ui) {
         let res = CommsView::render(state, ui);
 
         if let Some(player) = res.click_player {
-            let actions = Actions::new(state);
+            let mut actions = Actions::new(state);
             actions.handle_window(WindowAction::ToggleComms(player.id));
         }
     }

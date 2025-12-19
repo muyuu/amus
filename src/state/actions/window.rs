@@ -17,7 +17,7 @@ pub enum WindowAction {
 }
 
 impl Actions<'_> {
-    pub fn handle_window(&self, action: WindowAction) {
+    pub fn handle_window(&mut self, action: WindowAction) {
         match action {
             WindowAction::ToggleComms(player_id) => {
                 self.state.toggle_comms(player_id);
