@@ -1,9 +1,11 @@
 mod eraser;
+mod game;
 mod location;
 mod player;
 mod route_drawing;
 
 pub use eraser::EraserAction;
+pub use game::GameAction;
 pub use location::LocationAction;
 pub use player::PlayerAction;
 pub use route_drawing::RouteDrawingAction;

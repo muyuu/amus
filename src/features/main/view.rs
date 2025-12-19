@@ -6,7 +6,7 @@ use crate::features::main::MainConstants;
 use crate::features::map::MapFeature;
 use crate::features::player_list::PlayerListFeature;
 use crate::features::route_drawing::RouteDrawingFeature;
-use crate::features::welcome::WelcomeView;
+use crate::features::welcome::WelcomeFeature;
 use crate::features::window::comms::CommsFeature;
 use crate::features::window::lights::LightsFeature;
 use crate::features::window::o2::O2Feature;
@@ -22,7 +22,7 @@ impl MainView {
         // ゲームがない場合はウェルカムメッセージを表示して早期リターン
         let has_game = state.game().is_some();
         if !has_game {
-            WelcomeView::render(ui, state);
+            WelcomeFeature::render(ui, state);
             return;
         }
 
