@@ -103,11 +103,7 @@ impl PlayerInfoView {
     }
 
     /// プレイヤー名を描画または編集
-    fn render_player_name(
-        state: &AppState,
-        ui: &mut Ui,
-        player: &Player,
-    ) -> Vec<PlayerInfoAction> {
+    fn render_player_name(state: &AppState, ui: &mut Ui, player: &Player) -> Vec<PlayerInfoAction> {
         let mut actions = Vec::new();
 
         if !state.player_name_editing(player.id) {

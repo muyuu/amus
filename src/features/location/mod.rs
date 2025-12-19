@@ -32,10 +32,12 @@ impl LocationFeature {
 
         // 出現位置ドラッグ開始
         if let Some(player_id) = result.spawn.drag_start_player_id {
-            location_actions.push(LocationAction::SetDraggingLocation(Some(DraggingLocation {
-                location_type: LocationType::Spawn,
-                player_id,
-            })));
+            location_actions.push(LocationAction::SetDraggingLocation(Some(
+                DraggingLocation {
+                    location_type: LocationType::Spawn,
+                    player_id,
+                },
+            )));
         }
 
         // 出現位置ドラッグ中
@@ -61,15 +63,20 @@ impl LocationFeature {
 
         // 出現位置の削除
         if let Some(player_id) = result.spawn.delete_player_id {
-            location_actions.push(LocationAction::DeleteLocation(LocationType::Spawn, player_id));
+            location_actions.push(LocationAction::DeleteLocation(
+                LocationType::Spawn,
+                player_id,
+            ));
         }
 
         // 終了時位置ドラッグ開始
         if let Some(player_id) = result.end.drag_start_player_id {
-            location_actions.push(LocationAction::SetDraggingLocation(Some(DraggingLocation {
-                location_type: LocationType::End,
-                player_id,
-            })));
+            location_actions.push(LocationAction::SetDraggingLocation(Some(
+                DraggingLocation {
+                    location_type: LocationType::End,
+                    player_id,
+                },
+            )));
         }
 
         // 終了時位置ドラッグ中
