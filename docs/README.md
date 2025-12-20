@@ -24,6 +24,11 @@
    - RefCellによる借用管理
    - 他の設計パターンとの比較
 
+3. **[ARCHITECTURE_ROADMAP.md](./ARCHITECTURE_ROADMAP.md)**: アーキテクチャ改善ロードマップ（TODO）
+   - UIフレームワーク分離の方針
+   - AppState分割（Actionsファイル分割）
+   - Redux/Elm的データフローへの移行計画
+
 ## 使い方
 
 ### チームのオンボーディング用
