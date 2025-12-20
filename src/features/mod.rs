@@ -7,5 +7,6 @@ pub mod player_info;
 pub mod player_list;
 pub mod route_drawing;
 pub mod setup_dialog;
+pub mod voice_memo;
 pub mod welcome;
 pub mod window;

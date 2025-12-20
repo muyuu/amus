@@ -57,6 +57,14 @@ wgpu = { version = "27", features = ["metal"] }
 [target.'cfg(not(any(windows, unix, target_os = "macos")))'.dependencies]
 eframe = { version = "0.33", features = ["glow"] }
 
+# Native only: Audio recording and transcription
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+cpal = "0.15"
+hound = "3.5"
+whisper-rs = "0.14"
+dirs-next = "2.0"
+ureq = "2.10"
+
 # wasm
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 eframe = { version = "0.33", features = ["default"] }

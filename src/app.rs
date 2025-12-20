@@ -7,21 +7,38 @@ use crate::features::setup_dialog::SetupDialogFeature;
 use crate::i18n::keys;
 use crate::state::AppState;
 
+#[cfg(not(target_arch = "wasm32"))]
+use crate::features::voice_memo::VoiceMemoFeature;
+
 pub struct AmusApp {
     state: AppState,
+    #[cfg(not(target_arch = "wasm32"))]
+    voice_memo: VoiceMemoFeature,
+    #[cfg(not(target_arch = "wasm32"))]
+    show_voice_memo: bool,
 }
 
 impl Default for AmusApp {
     fn default() -> Self {
         Self {
             state: AppState::new(),
+            #[cfg(not(target_arch = "wasm32"))]
+            voice_memo: VoiceMemoFeature::new(),
+            #[cfg(not(target_arch = "wasm32"))]
+            show_voice_memo: false,
         }
     }
 }
 
 impl AmusApp {
     pub fn new(_cc: &eframe::CreationContext<'_>, state: AppState) -> Self {
-        let mut app = Self { state };
+        let mut app = Self {
+            state,
+            #[cfg(not(target_arch = "wasm32"))]
+            voice_memo: VoiceMemoFeature::new(),
+            #[cfg(not(target_arch = "wasm32"))]
+            show_voice_memo: false,
+        };
 
         if let Some(storage) = _cc.storage {
             app.state
@@ -53,6 +70,10 @@ impl eframe::App for AmusApp {
 
         // メインUIの構築
         self.build_main_ui(ctx, frame);
+
+        // 音声メモウィンドウ（ネイティブのみ）
+        #[cfg(not(target_arch = "wasm32"))]
+        self.build_voice_memo_window(ctx);
     }
 }
 
@@ -83,31 +104,78 @@ impl AmusApp {
     }
 
     fn build_menu_ui(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+        let mut toggle_setup = false;
+        let mut toggle_debug = false;
+        #[cfg(not(target_arch = "wasm32"))]
+        let mut toggle_voice_memo = false;
+
         TopBottomPanel::top(PanelIds::MENU)
             .resizable(false)
             .default_height(50.0)
             .frame(Self::get_frame())
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
-                    Self::build_debug_button(&mut self.state, ui);
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        // リセットボタン
+                        if ui.button("🔄 リセット").clicked() {
+                            toggle_setup = true;
+                        }
+
+                        // 音声メモボタン（ネイティブのみ）
+                        #[cfg(not(target_arch = "wasm32"))]
+                        if ui.button("🎤 音声メモ").clicked() {
+                            toggle_voice_memo = true;
+                        }
+
+                        // デバッグボタン
+                        #[cfg(debug_assertions)]
+                        if ui.button("🐛 デバッグ").clicked() {
+                            toggle_debug = true;
+                        }
+                    });
                 });
+            });
+
+        if toggle_setup {
+            self.state.toggle_setup_dialog();
+        }
+        #[cfg(debug_assertions)]
+        if toggle_debug {
+            self.state.toggle_debug_view();
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        if toggle_voice_memo {
+            self.show_voice_memo = !self.show_voice_memo;
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn build_voice_memo_window(&mut self, ctx: &Context) {
+        if !self.show_voice_memo {
+            return;
+        }
+
+        // プレイヤー情報をコンテキストとして設定
+        self.update_voice_memo_context();
+
+        Window::new("音声メモ")
+            .collapsible(true)
+            .resizable(true)
+            .default_size([300.0, 400.0])
+            .show(ctx, |ui| {
+                self.voice_memo.render(ui, ctx);
             });
     }
 
-    fn build_debug_button(state: &mut AppState, ui: &mut Ui) {
-        // 中央：デバッグボタン
-        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-            // リセットボタン
-            if ui.button("🔄 リセット").clicked() {
-                state.toggle_setup_dialog();
-            }
-
-            // デバッグボタン
-            #[cfg(debug_assertions)]
-            if ui.button("🐛 デバッグ").clicked() {
-                state.toggle_debug_view();
-            }
-        });
+    #[cfg(not(target_arch = "wasm32"))]
+    fn update_voice_memo_context(&mut self) {
+        if let Some(players) = self.state.players() {
+            let player_info: Vec<(String, String)> = players
+                .iter()
+                .map(|p| (p.name.clone(), p.color.name_ja().to_string()))
+                .collect();
+            self.voice_memo.set_context(&player_info);
+        }
     }
 
     fn get_frame() -> Frame {

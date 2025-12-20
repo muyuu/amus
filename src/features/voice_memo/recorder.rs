@@ -1,0 +1,268 @@
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::{Device, SampleFormat, Stream, StreamConfig};
+use std::sync::{Arc, Mutex};
+use std::time::Instant;
+
+/// 録音データ（タイムスタンプ付き）
+#[derive(Debug, Clone)]
+pub struct RecordedSegment {
+    /// 録音開始からの秒数
+    pub start_secs: f32,
+    /// 録音終了からの秒数
+    pub end_secs: f32,
+    /// 音声データ（16kHz, mono, f32）
+    pub samples: Vec<f32>,
+}
+
+/// 音声録音を管理
+pub struct AudioRecorder {
+    device: Device,
+    config: StreamConfig,
+    sample_format: SampleFormat,
+    sample_rate: u32,
+    /// 録音中の音声データバッファ
+    buffer: Arc<Mutex<Vec<f32>>>,
+    /// 録音開始時刻
+    start_time: Arc<Mutex<Option<Instant>>>,
+    /// 録音ストリーム
+    stream: Option<Stream>,
+}
+
+impl AudioRecorder {
+    /// 新しいAudioRecorderを作成
+    pub fn new() -> Result<Self, String> {
+        let host = cpal::default_host();
+        let device = host
+            .default_input_device()
+            .ok_or_else(|| "マイクが見つかりません".to_string())?;
+
+        let supported_config = device
+            .default_input_config()
+            .map_err(|e| format!("入力設定の取得に失敗: {}", e))?;
+
+        let sample_format = supported_config.sample_format();
+        let sample_rate = supported_config.sample_rate().0;
+        let config: StreamConfig = supported_config.into();
+
+        eprintln!(
+            "AudioRecorder: sample_format={:?}, sample_rate={}, channels={}",
+            sample_format, sample_rate, config.channels
+        );
+
+        Ok(Self {
+            device,
+            config,
+            sample_format,
+            sample_rate,
+            buffer: Arc::new(Mutex::new(Vec::new())),
+            start_time: Arc::new(Mutex::new(None)),
+            stream: None,
+        })
+    }
+
+    /// 録音を開始
+    pub fn start_recording(&mut self) -> Result<(), String> {
+        // バッファをクリア
+        {
+            let mut buffer = self.buffer.lock().unwrap();
+            buffer.clear();
+        }
+
+        // 開始時刻を記録
+        {
+            let mut start_time = self.start_time.lock().unwrap();
+            *start_time = Some(Instant::now());
+        }
+
+        let channels = self.config.channels as usize;
+        let err_fn = |err| eprintln!("録音エラー: {}", err);
+
+        let stream = match self.sample_format {
+            SampleFormat::I16 => {
+                let buffer = Arc::clone(&self.buffer);
+                self.device
+                    .build_input_stream(
+                        &self.config,
+                        move |data: &[i16], _: &cpal::InputCallbackInfo| {
+                            let mut buffer = buffer.lock().unwrap();
+                            for chunk in data.chunks(channels) {
+                                if let Some(&sample) = chunk.first() {
+                                    // i16 を f32 に変換 (-1.0 ~ 1.0)
+                                    buffer.push(sample as f32 / i16::MAX as f32);
+                                }
+                            }
+                        },
+                        err_fn,
+                        None,
+                    )
+                    .map_err(|e| format!("ストリーム作成に失敗 (i16): {}", e))?
+            }
+            SampleFormat::I32 => {
+                let buffer = Arc::clone(&self.buffer);
+                self.device
+                    .build_input_stream(
+                        &self.config,
+                        move |data: &[i32], _: &cpal::InputCallbackInfo| {
+                            let mut buffer = buffer.lock().unwrap();
+                            for chunk in data.chunks(channels) {
+                                if let Some(&sample) = chunk.first() {
+                                    // i32 を f32 に変換 (-1.0 ~ 1.0)
+                                    buffer.push(sample as f32 / i32::MAX as f32);
+                                }
+                            }
+                        },
+                        err_fn,
+                        None,
+                    )
+                    .map_err(|e| format!("ストリーム作成に失敗 (i32): {}", e))?
+            }
+            SampleFormat::F32 => {
+                let buffer = Arc::clone(&self.buffer);
+                self.device
+                    .build_input_stream(
+                        &self.config,
+                        move |data: &[f32], _: &cpal::InputCallbackInfo| {
+                            let mut buffer = buffer.lock().unwrap();
+                            for chunk in data.chunks(channels) {
+                                if let Some(&sample) = chunk.first() {
+                                    buffer.push(sample);
+                                }
+                            }
+                        },
+                        err_fn,
+                        None,
+                    )
+                    .map_err(|e| format!("ストリーム作成に失敗 (f32): {}", e))?
+            }
+            _ => {
+                return Err(format!(
+                    "未対応のサンプルフォーマット: {:?}",
+                    self.sample_format
+                ));
+            }
+        };
+
+        stream
+            .play()
+            .map_err(|e| format!("録音開始に失敗: {}", e))?;
+
+        self.stream = Some(stream);
+        Ok(())
+    }
+
+    /// 録音を停止してデータを取得
+    pub fn stop_recording(&mut self) -> Result<RecordedSegment, String> {
+        // ストリームを停止
+        self.stream = None;
+
+        let samples = {
+            let buffer = self.buffer.lock().unwrap();
+            buffer.clone()
+        };
+
+        let (start_secs, end_secs) = {
+            let start_time = self.start_time.lock().unwrap();
+            if let Some(start) = *start_time {
+                let duration = start.elapsed().as_secs_f32();
+                (0.0, duration)
+            } else {
+                (0.0, 0.0)
+            }
+        };
+
+        eprintln!(
+            "録音停止: {}サンプル取得, 録音時間={:.1}秒, 元サンプルレート={}",
+            samples.len(),
+            end_secs,
+            self.sample_rate
+        );
+
+        // Whisperは16kHzを期待するので、必要に応じてリサンプリング
+        let resampled = self.resample_to_16k(&samples);
+
+        eprintln!(
+            "リサンプリング後: {}サンプル (16kHz換算で{:.1}秒)",
+            resampled.len(),
+            resampled.len() as f32 / 16000.0
+        );
+
+        Ok(RecordedSegment {
+            start_secs,
+            end_secs,
+            samples: resampled,
+        })
+    }
+
+    /// 録音中かどうか
+    pub fn is_recording(&self) -> bool {
+        self.stream.is_some()
+    }
+
+    /// 現在の録音時間（秒）
+    pub fn elapsed_secs(&self) -> f32 {
+        let start_time = self.start_time.lock().unwrap();
+        if let Some(start) = *start_time {
+            start.elapsed().as_secs_f32()
+        } else {
+            0.0
+        }
+    }
+
+    /// サンプルレートを16kHzにリサンプリング
+    fn resample_to_16k(&self, samples: &[f32]) -> Vec<f32> {
+        const TARGET_RATE: u32 = 16000;
+
+        if self.sample_rate == TARGET_RATE {
+            return samples.to_vec();
+        }
+
+        // 簡易的な線形補間リサンプリング
+        let ratio = self.sample_rate as f64 / TARGET_RATE as f64;
+        let new_len = (samples.len() as f64 / ratio) as usize;
+        let mut resampled = Vec::with_capacity(new_len);
+
+        for i in 0..new_len {
+            let src_idx = i as f64 * ratio;
+            let idx_floor = src_idx.floor() as usize;
+            let idx_ceil = (idx_floor + 1).min(samples.len() - 1);
+            let frac = src_idx - idx_floor as f64;
+
+            let sample = samples[idx_floor] as f64 * (1.0 - frac) + samples[idx_ceil] as f64 * frac;
+            resampled.push(sample as f32);
+        }
+
+        resampled
+    }
+
+    /// 録音データをWAVファイルとして保存（デバッグ用）
+    #[allow(dead_code)]
+    pub fn save_to_wav(&self, samples: &[f32], path: &str) -> Result<(), String> {
+        let spec = hound::WavSpec {
+            channels: 1,
+            sample_rate: 16000,
+            bits_per_sample: 32,
+            sample_format: hound::SampleFormat::Float,
+        };
+
+        let mut writer =
+            hound::WavWriter::create(path, spec).map_err(|e| format!("WAV作成に失敗: {}", e))?;
+
+        for &sample in samples {
+            writer
+                .write_sample(sample)
+                .map_err(|e| format!("サンプル書き込みに失敗: {}", e))?;
+        }
+
+        writer
+            .finalize()
+            .map_err(|e| format!("WAV保存に失敗: {}", e))?;
+
+        Ok(())
+    }
+}
+
+impl Default for AudioRecorder {
+    fn default() -> Self {
+        Self::new().expect("AudioRecorderの初期化に失敗")
+    }
+}
