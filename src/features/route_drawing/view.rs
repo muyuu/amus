@@ -2,14 +2,15 @@ use crate::models::{
     route::{Draw, Erase},
     Point, Route,
 };
-use crate::state::AppState;
+use crate::state::Slices;
 use egui::*;
 
 pub struct RouteDrawingView;
 
 impl RouteDrawingView {
-    pub fn render(state: &AppState, response: &Response, ui: &mut Ui) {
-        let routes = match state.routes() {
+    pub fn render(slices: &Slices<'_>, response: &Response, ui: &mut Ui) {
+        let wave_slice = slices.wave();
+        let routes = match wave_slice.routes() {
             Some(routes) => {
                 if routes.is_empty() {
                     return;
@@ -28,7 +29,7 @@ impl RouteDrawingView {
         // 処理済みのRouteを描画（Drawのみ）
         for route in &processed_routes {
             if let Route::Draw(draw) = route {
-                Self::draw_route(state, draw, &painter, rect);
+                Self::draw_route(slices, draw, &painter, rect);
             }
         }
     }
@@ -134,12 +135,13 @@ impl RouteDrawingView {
     }
 
     /// ルートを描画（開始地点と軌跡）Response
-    fn draw_route(state: &AppState, route: &Draw, painter: &Painter, rect: Rect) {
+    fn draw_route(slices: &Slices<'_>, route: &Draw, painter: &Painter, rect: Rect) {
         if route.lines.is_empty() {
             return;
         }
 
-        let player = match state.player(route.player_id) {
+        let player_slice = slices.player();
+        let player = match player_slice.player(route.player_id) {
             Some(p) => p,
             None => return,
         };

@@ -1,18 +1,19 @@
 use crate::assets::AssetManager;
-use crate::state::AppState;
+use crate::state::Slices;
 use egui::*;
 
 pub struct MapView;
 
 impl MapView {
     /// マップ全体を描画（背景画像、ルート、位置）
-    pub fn render(state: &AppState, response: &Response, ui: &mut Ui) {
+    pub fn render(slices: &Slices<'_>, response: &Response, ui: &mut Ui) {
         let painter = ui.painter_at(response.rect);
         let rect = response.rect;
 
         // エリア画像を背景として描画
         let asset_manager = AssetManager::get(ui.ctx());
-        let area = match state.area() {
+        let game_slice = slices.game();
+        let area = match game_slice.area() {
             Some(area) => area,
             None => return Self::render_default_area(&painter, rect),
         };

@@ -20,7 +20,7 @@ pub struct MainView;
 impl MainView {
     pub fn render(state: &mut AppState, ui: &mut Ui) {
         // ゲームがない場合はウェルカムメッセージを表示して早期リターン
-        let has_game = state.game().is_some();
+        let has_game = state.slices().game().has_game();
         if !has_game {
             WelcomeFeature::render(ui, state);
             return;
@@ -42,7 +42,7 @@ impl MainView {
             MapFeature::render(state, &response, ui);
             PlayerListFeature::render(state, ui);
             RouteDrawingFeature::render(state, &response, ui);
-            DebugFeature::render(state, state.show_debug_view(), ui.ctx());
+            DebugFeature::render(state, ui.ctx());
             LocationFeature::render(state, &response, ui);
             EraserFeature::render(state, ui);
         });

@@ -1,11 +1,11 @@
 use egui::*;
 
-use crate::{components::grid, constants::GridIds, state::AppState};
+use crate::{components::grid, constants::GridIds, state::Slices};
 
 pub struct DebugView;
 
 impl DebugView {
-    pub fn render(state: &AppState, render_flag: bool, ctx: &Context) {
+    pub fn render(slices: &Slices<'_>, render_flag: bool, ctx: &Context) {
         if !render_flag {
             return;
         }
@@ -20,29 +20,32 @@ impl DebugView {
         Area::new(Id::new("debug_view"))
             .fixed_pos(window_pos)
             .show(ctx, |ui| {
-                Self::render_content(state, ui, ctx, window_width);
+                Self::render_content(slices, ui, ctx, window_width);
             });
     }
 
-    fn render_content(state: &AppState, ui: &mut Ui, ctx: &Context, window_width: f32) {
+    fn render_content(slices: &Slices<'_>, ui: &mut Ui, ctx: &Context, window_width: f32) {
         Frame::popup(ui.style())
             .inner_margin(Margin::same(10))
             .show(ui, |ui| {
                 ui.set_width(window_width);
-                ui.heading("🐛 デバッグ情報");
+                ui.heading("デバッグ情報");
                 ui.separator();
 
-                Self::render_debug_table(state, ui, ctx);
+                Self::render_debug_table(slices, ui, ctx);
             });
     }
 
-    fn render_debug_table(state: &AppState, ui: &mut Ui, ctx: &Context) {
+    fn render_debug_table(slices: &Slices<'_>, ui: &mut Ui, ctx: &Context) {
+        let player_slice = slices.player();
+        let ui_slice = slices.ui();
+
         // 2列のテーブル形式で表示
         grid(ui, GridIds::DEBUG_TABLE, |ui| {
             // 選択中ユーザー
             ui.label("選択中ユーザー:");
-            if let Some(player_id) = state.selected_player_id() {
-                if let Some(player) = state.player(player_id) {
+            if let Some(player_id) = player_slice.selected_player_id() {
+                if let Some(player) = player_slice.player(player_id) {
                     ui.label(format!("{} (player_id={:?})", player.name, player_id));
                 } else {
                     ui.label(format!("player_id={:?} (存在しない)", player_id));
@@ -54,7 +57,7 @@ impl DebugView {
 
             // ドラッグ中ユーザー
             ui.label("ドラッグ中ユーザー:");
-            if let Some(player_id) = state.dragging_player_id() {
+            if let Some(player_id) = ui_slice.dragging_player_id() {
                 ui.label(format!("player_id={:?}", player_id));
             } else {
                 ui.label("なし");

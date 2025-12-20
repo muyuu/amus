@@ -11,13 +11,15 @@ pub struct LocationFeature;
 
 impl LocationFeature {
     pub fn render(state: &mut AppState, response: &Response, ui: &mut Ui) {
-        let result = LocationView::render(state, ui);
+        // ViewにはSlices（読み取り専用）を渡す
+        let slices = state.slices();
+        let result = LocationView::render(&slices, ui);
 
         // ユーザー操作をActionsに変換
         let mut location_actions = Vec::new();
 
         // dragging_player_id が Some の場合は終了時位置をドラッグしている
-        if let Some(player_id) = state.dragging_player_id() {
+        if let Some(player_id) = slices.ui().dragging_player_id() {
             if let Some(point) = current_point_with_ui(ui) {
                 location_actions.push(LocationAction::HandleEndLocationDragged(player_id, point));
             }

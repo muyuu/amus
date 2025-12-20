@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::log_debug;
 use crate::models::*;
 use crate::state::app_data::AppData;
+use crate::state::slices::Slices;
 use crate::state::AppStorage;
 use crate::state::StorageKeys;
 
@@ -23,6 +24,14 @@ impl Default for AppState {
 impl AppState {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// 読み取り専用のSlicesを取得
+    ///
+    /// ViewはこのSlicesを通じてデータにアクセスする。
+    /// 書き込みはActionsを通じて行う。
+    pub fn slices(&self) -> Slices<'_> {
+        Slices::new(&self.data)
     }
 
     pub fn t(&self, key: &str) -> String {

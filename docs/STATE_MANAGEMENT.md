@@ -10,15 +10,39 @@
 
 ```rust
 pub struct AppState {
-    data: RefCell<AppData>,
+    data: AppData,
 }
 
 pub struct AppData {
-    pub asset_manager: Option<AssetManager>,
     pub current_wave_index: usize,
     pub dragging_location: Option<DraggingLocation>,
+    pub game: Option<Game>,
     // ... その他のフィールド
 }
+```
+
+### 読み取りアクセス（Slices）
+
+ViewはSlicesを通じて読み取り専用でデータにアクセスする。
+
+```rust
+// AppStateからSlicesを取得
+let slices = state.slices();
+
+// 各ドメインのSliceを使用
+let players = slices.player().players();
+let is_selected = slices.player().is_selected(player_id);
+let is_dragging = slices.ui().is_dragging_player(player_id);
+let current_wave = slices.wave().current_wave();
+```
+
+### 書き込みアクセス（Actions）
+
+状態の変更はActionsを通じて行う。
+
+```rust
+let mut actions = Actions::new(state);
+actions.handle_player(PlayerAction::Select(player_id));
 ```
 
 ### 役割分担
@@ -107,20 +131,24 @@ pub struct AppData {
 
 ```rust
 impl AppState {
+    // Slicesを通じた読み取り専用アクセス
+    pub fn slices(&self) -> Slices<'_> {
+        Slices::new(&self.data)
+    }
+
     // 不変参照でデータを取得
-    pub fn game(&self) -> Option<Game> {
-        self.data.borrow().game.clone()
+    pub fn game(&self) -> Option<&Game> {
+        self.data.game.as_ref()
     }
 
-    // 単純なセッター
-    pub fn select_player(&self, player_id: Option<PlayerId>) {
-        self.data.borrow_mut().selected_player_id = player_id;
+    // 単純なセッター（&mut self）
+    pub fn set_selected_player_id(&mut self, player_id: Option<PlayerId>) {
+        self.data.selected_player_id = player_id;
     }
 
-    // ビジネスロジックを含む操作
-    pub fn toggle_player_state(&self, player_id: PlayerId) {
-        let mut data = self.data.borrow_mut();
-        if let Some(game) = &mut data.game {
+    // ビジネスロジックを含む操作（&mut self）
+    pub fn toggle_player_state(&mut self, player_id: PlayerId) {
+        if let Some(game) = &mut self.data.game {
             if let Some(player) = game.players.iter_mut().find(|p| p.id == player_id) {
                 player.state = match player.state {
                     PlayerState::Alive => PlayerState::Killed,
@@ -129,15 +157,6 @@ impl AppState {
                 };
             }
         }
-    }
-
-    // コレクション操作
-    pub fn add_wave(&self) {
-        let mut data = self.data.borrow_mut();
-        if let Some(game) = &mut data.game {
-            game.waves.push(Wave::default());
-        }
-        data.current_wave_index += 1;
     }
 }
 ```
@@ -857,10 +876,19 @@ impl LocationInteraction {
 Model (データ構造 + シンプルなヘルパー)
     ↓ 保持
 AppData (純粋なデータコンテナ)
-    ↓ 内包（RefCell）
+    ↓ 内包
 AppState (アクセス制御 + ビジネスロジック)
-    ↓ 経由でのみアクセス
-Feature / View / Interaction
+    ├── slices() → Slices（読み取り専用）→ View
+    └── Actions（書き込み）→ 状態更新
+```
+
+### データフロー
+
+```
+Feature層:
+    state.slices() → View::render(slices, ui) → Vec<Action>
+                                                    ↓
+    Actions::new(state) ← actions.handle_xxx(action)
 ```
 
 ### 設計原則

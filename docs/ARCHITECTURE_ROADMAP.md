@@ -190,12 +190,69 @@ pub fn with_game<R>(&self, f: impl FnOnce(Option<&Game>) -> R) -> R {
 
 ## 実装順序
 
-1. **Phase 1** (低リスク): ファイル分割のみ。動作に影響なし
-2. **Phase 2** (中リスク): Actions型導入。Viewの引数を段階的に変更
-3. **Phase 3** (中リスク): Slice導入。読み取りアクセスを整理
+1. **Phase 1** (低リスク): ファイル分割のみ。動作に影響なし ✅ 完了
+2. **Phase 2** (中リスク): Actions型導入。Viewの引数を段階的に変更 ✅ 完了
+3. **Phase 3** (中リスク): Slice導入。読み取りアクセスを整理 ✅ 完了
 4. **Phase 4** (高リスク): View層分離。全Featureを書き換え
 
 各Phaseは独立して実施可能。Phase 1だけでも大きな改善になる。
+
+## 現在の状態
+
+### Phase 3 完了時点の構造
+
+```
+src/state/
+├── mod.rs
+├── app_state.rs      # 構造体定義 + slices()メソッド
+├── app_data.rs
+├── actions/          # 状態変更用（Phase 2で導入）
+│   ├── mod.rs
+│   ├── game.rs
+│   ├── player.rs
+│   ├── location.rs
+│   └── ...
+└── slices/           # 読み取り専用アクセス（Phase 3で導入）
+    ├── mod.rs        # Slices構造体
+    ├── game.rs       # GameSlice
+    ├── player.rs     # PlayerSlice
+    ├── wave.rs       # WaveSlice
+    ├── ui.rs         # UiSlice
+    └── setup.rs      # SetupSlice
+```
+
+### 使用例
+
+```rust
+// Feature層での使用パターン
+impl PlayerListFeature {
+    pub fn render(state: &mut AppState, ui: &mut Ui) {
+        // ViewにはSlices（読み取り専用）を渡す
+        let slices = state.slices();
+        let player_actions = PlayerListView::render(&slices, ui);
+
+        // Actionsで状態を更新
+        let mut actions = Actions::new(state);
+        for action in player_actions {
+            actions.handle_player(action);
+        }
+    }
+}
+
+// View層での使用パターン
+impl PlayerListView {
+    pub fn render(slices: &Slices<'_>, ui: &mut Ui) -> Vec<PlayerAction> {
+        let players = slices.player().players();
+        let is_selected = slices.player().is_selected(player_id);
+        let is_dragging = slices.ui().is_dragging_player(player_id);
+        // ...
+    }
+}
+```
+
+### 次のステップ（Phase 4）
+
+残りのFeature/Viewを順次Sliceパターンに移行する。
 
 ## 関連ドキュメント
 

@@ -5,7 +5,7 @@ use crate::features::location::constants::LocationConstants;
 use crate::models::color::Color;
 use crate::models::location::LocationType;
 use crate::models::player;
-use crate::state::AppState;
+use crate::state::Slices;
 use egui::*;
 
 #[derive(Default)]
@@ -38,28 +38,30 @@ pub struct LocationView;
 
 impl LocationView {
     /// 出現位置と終了時位置を描画
-    pub fn render(state: &AppState, ui: &mut Ui) -> LocationViewResult {
+    pub fn render(slices: &Slices<'_>, ui: &mut Ui) -> LocationViewResult {
         let mut result = LocationViewResult::default();
 
-        let spawn_result = Self::render_spawn_locations(state, ui);
-        let end_result = Self::render_end_locations(state, ui);
+        let spawn_result = Self::render_spawn_locations(slices, ui);
+        let end_result = Self::render_end_locations(slices, ui);
 
         result.spawn = spawn_result;
         result.end = end_result;
         result
     }
 
-    fn render_spawn_locations(state: &AppState, ui: &mut Ui) -> SpawnResult {
+    fn render_spawn_locations(slices: &Slices<'_>, ui: &mut Ui) -> SpawnResult {
         let mut result = SpawnResult::default();
 
         // 出現場所を描画（四角）
-        let spawn_locations = match state.locations(LocationType::Spawn) {
+        let wave_slice = slices.wave();
+        let spawn_locations = match wave_slice.spawn_locations() {
             Some(spawn_locations) => spawn_locations,
             None => return result,
         };
 
+        let player_slice = slices.player();
         for (player_id, point) in spawn_locations {
-            let player = match state.player(player_id) {
+            let player = match player_slice.player(*player_id) {
                 Some(player) => player,
                 None => return result,
             };
@@ -80,16 +82,16 @@ impl LocationView {
 
             // イベント処理
             if response.clicked() {
-                result.click_player_id = Some(player_id);
+                result.click_player_id = Some(*player_id);
             }
             if response.drag_started() {
-                result.drag_start_player_id = Some(player_id);
+                result.drag_start_player_id = Some(*player_id);
             }
             if response.dragged() {
-                result.dragging_player_id = Some(player_id);
+                result.dragging_player_id = Some(*player_id);
             }
             if response.drag_stopped() {
-                result.drag_stop_player_id = Some(player_id);
+                result.drag_stop_player_id = Some(*player_id);
             }
 
             // 描画
@@ -106,8 +108,8 @@ impl LocationView {
             // コンテキストメニュー表示（右クリックで即座に表示）
             Self::render_location_context_menu(
                 &response,
-                state,
-                player_id,
+                slices,
+                *player_id,
                 "spawn",
                 &mut result.delete_player_id,
                 &mut result.color_change,
@@ -117,17 +119,19 @@ impl LocationView {
         result
     }
 
-    fn render_end_locations(state: &AppState, ui: &mut Ui) -> EndResult {
+    fn render_end_locations(slices: &Slices<'_>, ui: &mut Ui) -> EndResult {
         let mut result = EndResult::default();
 
-        let end_locations = match state.locations(LocationType::End) {
+        let wave_slice = slices.wave();
+        let end_locations = match wave_slice.end_locations() {
             Some(end_locations) => end_locations,
             None => return result,
         };
 
         // 終了時位置を描画（丸）
+        let player_slice = slices.player();
         for (player_id, point) in end_locations {
-            let player = match state.player(player_id) {
+            let player = match player_slice.player(*player_id) {
                 Some(p) => p,
                 None => continue,
             };
@@ -159,16 +163,16 @@ impl LocationView {
 
             // イベント処理
             if response.clicked() {
-                result.click_player_id = Some(player_id);
+                result.click_player_id = Some(*player_id);
             }
             if response.drag_started() {
-                result.drag_start_player_id = Some(player_id);
+                result.drag_start_player_id = Some(*player_id);
             }
             if response.dragged() {
-                result.dragging_player_id = Some(player_id);
+                result.dragging_player_id = Some(*player_id);
             }
             if response.drag_stopped() {
-                result.drag_stop_player_id = Some(player_id);
+                result.drag_stop_player_id = Some(*player_id);
             }
 
             let painter = ui.painter();
@@ -180,8 +184,8 @@ impl LocationView {
             // コンテキストメニュー表示（右クリックで即座に表示）
             Self::render_location_context_menu(
                 &response,
-                state,
-                player_id,
+                slices,
+                *player_id,
                 "end",
                 &mut result.delete_player_id,
                 &mut result.color_change,
@@ -286,7 +290,7 @@ impl LocationView {
     /// 位置のコンテキストメニューを描画（spawn/end共通）
     fn render_location_context_menu(
         response: &Response,
-        state: &AppState,
+        slices: &Slices<'_>,
         player_id: player::PlayerId,
         location_type: &str,
         delete_player_id: &mut Option<player::PlayerId>,
@@ -295,7 +299,7 @@ impl LocationView {
         response.context_menu(|ui| {
             let result = change_color(
                 ui,
-                state,
+                slices,
                 &ChangeColorConf {
                     player_id,
                     show_delete: true,

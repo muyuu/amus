@@ -1,7 +1,7 @@
 mod view;
 
 use crate::common::current_point_with_response;
-use crate::state::{Actions, AppState, RouteDrawingAction};
+use crate::state::{Actions, AppState, RouteDrawingAction, Slices};
 use egui::{Response, Ui};
 use view::RouteDrawingView;
 
@@ -9,25 +9,31 @@ pub struct RouteDrawingFeature;
 
 impl RouteDrawingFeature {
     pub fn render(state: &mut AppState, response: &Response, ui: &mut Ui) {
+        // ViewにはSlices（読み取り専用）を渡す
+        let slices = state.slices();
+
         // 描画
-        RouteDrawingView::render(state, response, ui);
+        RouteDrawingView::render(&slices, response, ui);
 
         // ユーザー操作を検出してActionsで処理
-        let route_actions = Self::detect_actions(state, response);
+        let route_actions = Self::detect_actions(&slices, response);
         let mut actions = Actions::new(state);
         for action in route_actions {
             actions.handle_route_drawing(action);
         }
     }
 
-    fn detect_actions(state: &AppState, response: &Response) -> Vec<RouteDrawingAction> {
+    fn detect_actions(slices: &Slices<'_>, response: &Response) -> Vec<RouteDrawingAction> {
         let mut actions = Vec::new();
+
+        let ui_slice = slices.ui();
+        let player_slice = slices.player();
 
         if response.drag_started() {
             if response.interact_pointer_pos().is_some() {
-                if state.erase_mode() {
+                if ui_slice.erase_mode() {
                     actions.push(RouteDrawingAction::StartErase);
-                } else if state.selected_player_id().is_some() {
+                } else if player_slice.selected_player_id().is_some() {
                     actions.push(RouteDrawingAction::StartDraw);
                 }
             }

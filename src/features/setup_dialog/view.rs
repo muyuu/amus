@@ -6,14 +6,15 @@ use crate::constants::SelectIds;
 use crate::i18n::keys::*;
 use crate::models::player::PlayerId;
 use crate::models::{Area, Color};
-use crate::state::{AppState, SetupAction};
+use crate::state::{SetupAction, Slices};
 
 pub struct SetupView;
 
 impl SetupView {
-    pub fn render(state: &AppState, ctx: &Context) -> Vec<SetupAction> {
-        let texts = SetupTexts::get(state);
-        let common = CommonTexts::get(state);
+    pub fn render(slices: &Slices<'_>, ctx: &Context) -> Vec<SetupAction> {
+        let texts = SetupTexts::get(slices);
+        let common = CommonTexts::get(slices);
+        let setup = slices.setup();
 
         let mut actions = Vec::new();
 
@@ -24,7 +25,7 @@ impl SetupView {
             .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
             .show(ctx, |ui| {
                 ScrollArea::vertical().show(ui, |ui| {
-                    let mut selected_area = state.setup_state().selected_area.clone();
+                    let mut selected_area = setup.selected_area().clone();
                     ui.horizontal(|ui| {
                         if let Some(area) = Self::render_area_combo_box(
                             ui,
@@ -38,7 +39,7 @@ impl SetupView {
                     ui.add_space(12.0);
 
                     ui.horizontal(|ui| {
-                        if let Some(count) = Self::render_player_amount(ui, state, &texts) {
+                        if let Some(count) = Self::render_player_amount(ui, slices, &texts) {
                             actions.push(SetupAction::AdjustPlayerCount(count));
                         }
                     });
@@ -46,9 +47,9 @@ impl SetupView {
                     ui.add_space(12.0);
 
                     // プレイヤー一覧の編集
-                    for i in 0..state.setup_state().player_count {
+                    for i in 0..setup.player_count() {
                         if let Some((id, name, color)) =
-                            Self::render_player(ui, state, &texts, i, &Color::all())
+                            Self::render_player(ui, slices, &texts, i, &Color::all())
                         {
                             actions.push(SetupAction::UpdatePlayer(id, name, color));
                         }
@@ -85,9 +86,9 @@ impl SetupView {
         select_with_options(ui, id, selected, options)
     }
 
-    fn render_player_amount(ui: &mut Ui, state: &AppState, texts: &SetupTexts) -> Option<usize> {
+    fn render_player_amount(ui: &mut Ui, slices: &Slices<'_>, texts: &SetupTexts) -> Option<usize> {
         ui.label(&texts.player_count);
-        let mut new_count = state.setup_state().player_count;
+        let mut new_count = slices.setup().player_count();
         if ui.add(Slider::new(&mut new_count, 4..=18)).changed() {
             Some(new_count)
         } else {
@@ -97,7 +98,7 @@ impl SetupView {
 
     fn render_player(
         ui: &mut Ui,
-        state: &AppState,
+        slices: &Slices<'_>,
         texts: &SetupTexts,
         i: usize,
         available_colors: &[Color],
@@ -108,7 +109,9 @@ impl SetupView {
             ui.label(&texts.player_name);
             ui.add_space(4.0);
 
-            let player = &state.setup_state().players[i].clone();
+            let setup_slice = slices.setup();
+            let players = setup_slice.players();
+            let player = &players[i];
             let mut name = player.name.clone();
             if ui.text_edit_singleline(&mut name).changed() {
                 result = Some((player.id, name, player.color.clone()));
@@ -156,12 +159,12 @@ struct SetupTexts {
 }
 
 impl SetupTexts {
-    fn get(state: &AppState) -> Self {
+    fn get(slices: &Slices<'_>) -> Self {
         Self {
-            title: state.t(SETUP_TITLE).to_string(),
-            area_selection: state.t(SETUP_AREA_SELECTION).to_string(),
-            player_count: state.t(SETUP_PLAYER_COUNT).to_string(),
-            player_name: state.t(SETUP_PLAYER_NAME).to_string(),
+            title: slices.t(SETUP_TITLE),
+            area_selection: slices.t(SETUP_AREA_SELECTION),
+            player_count: slices.t(SETUP_PLAYER_COUNT),
+            player_name: slices.t(SETUP_PLAYER_NAME),
         }
     }
 }

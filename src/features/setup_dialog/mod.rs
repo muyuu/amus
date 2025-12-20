@@ -9,7 +9,8 @@ pub struct SetupDialogFeature;
 
 impl SetupDialogFeature {
     pub fn render(state: &mut AppState, ctx: &Context) {
-        let setup_actions = SetupView::render(state, ctx);
+        let slices = state.slices();
+        let setup_actions = SetupView::render(&slices, ctx);
         let mut actions = Actions::new(state);
         for action in setup_actions {
             actions.handle_setup(action);

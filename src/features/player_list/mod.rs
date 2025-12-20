@@ -14,7 +14,11 @@ pub struct PlayerListFeature;
 
 impl PlayerListFeature {
     pub fn render(state: &mut AppState, ui: &mut Ui) {
-        let player_actions = PlayerListView::render(state, ui);
+        // ViewにはSlices（読み取り専用）を渡す
+        let slices = state.slices();
+        let player_actions = PlayerListView::render(&slices, ui);
+
+        // Actionsで状態を更新
         let mut actions = Actions::new(state);
         for action in player_actions {
             actions.handle_player(action);
