@@ -101,4 +101,27 @@ impl Color {
     pub fn name_lowercase(&self) -> String {
         self.name().to_lowercase()
     }
+
+    pub fn name_ja(&self) -> &'static str {
+        match self {
+            Color::Red => "赤",
+            Color::Blue => "青",
+            Color::Green => "緑",
+            Color::Pink => "ピンク",
+            Color::Orange => "オレンジ",
+            Color::Yellow => "黄色",
+            Color::Black => "黒",
+            Color::White => "白",
+            Color::Purple => "紫",
+            Color::Brown => "茶色",
+            Color::Cyan => "シアン",
+            Color::Lime => "ライム",
+            Color::Maroon => "マルーン",
+            Color::Rose => "ローズ",
+            Color::Banana => "バナナ",
+            Color::Gray => "グレー",
+            Color::Tan => "タン",
+            Color::Coral => "コーラル",
+        }
+    }
 }

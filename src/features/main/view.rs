@@ -12,13 +12,20 @@ use crate::features::window::lights::LightsFeature;
 use crate::features::window::o2::O2Feature;
 use crate::features::window::reactor::ReactorFeature;
 use crate::features::window::turn::TurnFeature;
+use crate::features::Features;
+use crate::resources::Resources;
 use crate::state::AppState;
 use egui::*;
 
 pub struct MainView;
 
 impl MainView {
-    pub fn render(state: &mut AppState, ui: &mut Ui) {
+    pub fn render(
+        state: &mut AppState,
+        resources: &mut Resources,
+        features: &mut Features,
+        ui: &mut Ui,
+    ) {
         // ゲームがない場合はウェルカムメッセージを表示して早期リターン
         let has_game = state.slices().game().has_game();
         if !has_game {
@@ -31,10 +38,15 @@ impl MainView {
         ui.painter()
             .rect_filled(full_rect, 0.0, MainConstants::BG_COLOR);
 
-        Self::render_main(state, ui);
+        Self::render_main(state, resources, features, ui);
     }
 
-    fn render_main(state: &mut AppState, ui: &mut Ui) {
+    fn render_main(
+        state: &mut AppState,
+        resources: &mut Resources,
+        features: &mut Features,
+        ui: &mut Ui,
+    ) {
         aspect_ratio_centered(ui, MainConstants::VIEW_RATIO, |ui| {
             // メイン領域の描画領域レスポンスを取得
             let response = ui.allocate_response(ui.available_size(), Sense::click_and_drag());
@@ -47,15 +59,23 @@ impl MainView {
             EraserFeature::render(state, ui);
         });
 
-        Self::render_windows(state, ui);
+        Self::render_windows(state, resources, features, ui);
     }
 
     // 各種機能ウィンドウの描画
-    fn render_windows(state: &mut AppState, ui: &mut Ui) {
+    fn render_windows(
+        state: &mut AppState,
+        resources: &mut Resources,
+        features: &mut Features,
+        ui: &mut Ui,
+    ) {
         TurnFeature::render(state, ui);
         CommsFeature::render(state, ui);
         LightsFeature::render(state, ui);
         O2Feature::render(state, ui);
         ReactorFeature::render(state, ui);
+
+        #[cfg(not(target_arch = "wasm32"))]
+        features.voice_memo.render(state, resources, ui);
     }
 }
