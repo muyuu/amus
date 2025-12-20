@@ -1,0 +1,9 @@
+{
+    "recommendations": [
+        "rust-lang.rust-analyzer",
+        "fill-labs.dependi",
+        "swellaby.vscode-rust-test-adapter",
+        "vadimcn.vscode-lldb",
+        "tamasfe.even-better-toml"
+    ]
+}
