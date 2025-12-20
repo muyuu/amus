@@ -9,7 +9,8 @@ pub struct LightsFeature;
 
 impl LightsFeature {
     pub fn render(state: &mut AppState, ui: &mut Ui) {
-        let res = LightsView::render(state, ui);
+        let slices = state.slices();
+        let res = LightsView::render(&slices, ui);
 
         if let Some(player) = res.click_player {
             let mut actions = Actions::new(state);

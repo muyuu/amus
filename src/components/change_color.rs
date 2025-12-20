@@ -4,7 +4,7 @@ use crate::{
         tile::{tile, TileConf},
     },
     models::{color::Color, player::PlayerId},
-    state::AppState,
+    state::Slices,
 };
 use egui::*;
 
@@ -20,7 +20,7 @@ pub struct ChangeColorResult {
 }
 
 /// 色変更UIを描画（コンテキストメニュー内で使用）
-pub fn change_color(ui: &mut Ui, state: &AppState, conf: &ChangeColorConf) -> ChangeColorResult {
+pub fn change_color(ui: &mut Ui, slices: &Slices<'_>, conf: &ChangeColorConf) -> ChangeColorResult {
     let mut result = ChangeColorResult {
         color_change: None,
         delete: false,
@@ -41,13 +41,17 @@ pub fn change_color(ui: &mut Ui, state: &AppState, conf: &ChangeColorConf) -> Ch
 
     // 使われていない色を取得
     let all_colors = Color::all();
-    let used_colors: Vec<_> = state
+    let player_slice = slices.player();
+    let used_colors: Vec<_> = player_slice
         .players()
-        .unwrap_or_default()
-        .iter()
-        .filter(|p| p.id != conf.player_id) // 自分以外の色を除外対象に
-        .map(|p| p.color.clone())
-        .collect();
+        .map(|players| {
+            players
+                .iter()
+                .filter(|p| p.id != conf.player_id)
+                .map(|p| p.color.clone())
+                .collect()
+        })
+        .unwrap_or_default();
     let available_colors: Vec<_> = all_colors
         .into_iter()
         .filter(|c| !used_colors.contains(c))

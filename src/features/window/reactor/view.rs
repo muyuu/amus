@@ -5,7 +5,7 @@ use crate::{
     constants::GridIds,
     i18n::keys::*,
     models::Player,
-    state::AppState,
+    state::Slices,
 };
 
 use super::constants::ReactorConstants;
@@ -17,8 +17,8 @@ pub struct ReactorViewResult {
 pub struct ReactorView;
 
 impl ReactorView {
-    pub fn render(state: &AppState, ui: &mut Ui) -> ReactorViewResult {
-        let text = ReactorText::get(state);
+    pub fn render(slices: &Slices<'_>, ui: &mut Ui) -> ReactorViewResult {
+        let text = ReactorText::get(slices);
         let mut result = ReactorViewResult { click_player: None };
 
         let pos = Pos2 {
@@ -30,12 +30,13 @@ impl ReactorView {
 
         window(ctx, &text.title, None, Some(pos), |ui: &mut Ui| {
             grid(ui, GridIds::REACTOR, |ui| {
-                let players = match state.players() {
+                let player_slice = slices.player();
+                let players = match player_slice.players() {
                     Some(p) => p,
                     None => return,
                 };
 
-                let r = Self::render_players(ui, &players);
+                let r = Self::render_players(ui, players);
                 if let Some(player) = r.click_player {
                     result.click_player = Some(player);
                 }
@@ -79,9 +80,9 @@ struct ReactorText {
     title: String,
 }
 impl ReactorText {
-    fn get(state: &AppState) -> Self {
+    fn get(slices: &Slices<'_>) -> Self {
         Self {
-            title: state.t(SABOTAGE_REACTOR).to_string(),
+            title: slices.t(SABOTAGE_REACTOR),
         }
     }
 }

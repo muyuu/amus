@@ -2,7 +2,7 @@ use super::PlayerInfoConstants as Constants;
 use crate::{
     components::{tile, TileConf},
     models::Player,
-    state::{AppState, PlayerAction},
+    state::{PlayerAction, Slices},
 };
 use egui::*;
 
@@ -10,7 +10,7 @@ pub struct PlayerListView;
 
 impl PlayerListView {
     /// プレイヤーリストを描画し、ユーザー操作をActionとして返す
-    pub fn render(state: &AppState, ui: &mut Ui) -> Vec<PlayerAction> {
+    pub fn render(slices: &Slices<'_>, ui: &mut Ui) -> Vec<PlayerAction> {
         // 横幅一杯、高さはプレイヤーのタイルサイズ＋マージン分
         // 配置位置は親要素の一番下からタイルの余白分上にオフセット
         let max_rect = Rect::from_min_size(
@@ -31,19 +31,20 @@ impl PlayerListView {
             ScrollArea::horizontal()
                 .scroll_bar_visibility(scroll_area::ScrollBarVisibility::AlwaysHidden)
                 .show(ui, |ui| {
-                    actions.extend(Self::render_content(state, ui));
+                    actions.extend(Self::render_content(slices, ui));
                 });
         });
 
         actions
     }
 
-    fn render_content(state: &AppState, ui: &mut Ui) -> Vec<PlayerAction> {
+    fn render_content(slices: &Slices<'_>, ui: &mut Ui) -> Vec<PlayerAction> {
         // 利用可能なエリア全体を取得
         let available_rect = ui.available_rect_before_wrap();
 
         // プレイヤー数に基づいてコンテンツ幅を計算
-        let players = match state.players() {
+        let player_slice = slices.player();
+        let players = match player_slice.players() {
             Some(players) => players,
             None => return vec![],
         };
@@ -71,14 +72,14 @@ impl PlayerListView {
             if padding > 0.0 {
                 ui.add_space(padding);
             }
-            actions.extend(Self::render_players(state, ui, &players, player_gap));
+            actions.extend(Self::render_players(slices, ui, players, player_gap));
         });
 
         actions
     }
 
     fn render_players(
-        state: &AppState,
+        slices: &Slices<'_>,
         ui: &mut Ui,
         players: &[Player],
         gap: f32,
@@ -91,8 +92,11 @@ impl PlayerListView {
         // グローバルなポインター解放を検知する必要がある。
         let pointer_released = ui.input(|i| i.pointer.any_released());
 
+        let player_slice = slices.player();
+        let ui_slice = slices.ui();
+
         // ドラッグ終了時にStopDragアクションを発行（選択状態は保持）
-        if pointer_released && state.dragging_player_id().is_some() {
+        if pointer_released && ui_slice.dragging_player_id().is_some() {
             actions.push(PlayerAction::StopDrag);
         }
 
@@ -101,8 +105,8 @@ impl PlayerListView {
         ui.add_space(gap);
 
         for (_, player) in players.iter().enumerate() {
-            let is_selected = state.selected_player_id() == Some(player.id);
-            let is_dragging = state.dragging_player_id() == Some(player.id);
+            let is_selected = player_slice.is_selected(player.id);
+            let is_dragging = ui_slice.is_dragging_player(player.id);
 
             let result = tile(
                 ui,

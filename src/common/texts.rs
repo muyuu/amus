@@ -1,5 +1,5 @@
 use crate::i18n::keys::*;
-use crate::state::AppState;
+use crate::state::Slices;
 
 /// 複数のUIコンポーネント間で共通して使用されるテキスト
 pub struct CommonTexts {
@@ -10,12 +10,12 @@ pub struct CommonTexts {
 }
 
 impl CommonTexts {
-    pub fn get(state: &AppState) -> Self {
+    pub fn get(slices: &Slices<'_>) -> Self {
         Self {
             // ボタン系
-            button_new_game: state.t(MENU_NEW_GAME).to_string(),
-            button_start_game: state.t(SETUP_START_GAME).to_string(),
-            button_cancel: state.t(SETUP_CANCEL).to_string(),
+            button_new_game: slices.t(MENU_NEW_GAME),
+            button_start_game: slices.t(SETUP_START_GAME),
+            button_cancel: slices.t(SETUP_CANCEL),
         }
     }
 }

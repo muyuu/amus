@@ -7,7 +7,9 @@ use view::DebugView;
 pub struct DebugFeature;
 
 impl DebugFeature {
-    pub fn render(state: &AppState, render_flag: bool, ctx: &Context) {
-        DebugView::render(state, render_flag, ctx);
+    pub fn render(state: &AppState, ctx: &Context) {
+        let slices = state.slices();
+        let render_flag = slices.ui().show_debug_view();
+        DebugView::render(&slices, render_flag, ctx);
     }
 }

@@ -9,7 +9,8 @@ pub struct CommsFeature;
 
 impl CommsFeature {
     pub fn render(state: &mut AppState, ui: &mut Ui) {
-        let res = CommsView::render(state, ui);
+        let slices = state.slices();
+        let res = CommsView::render(&slices, ui);
 
         if let Some(player) = res.click_player {
             let mut actions = Actions::new(state);

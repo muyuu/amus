@@ -1,11 +1,11 @@
 use crate::models::Color;
-use crate::state::{AppState, EraserAction};
+use crate::state::{EraserAction, Slices};
 use egui::*;
 
 pub struct EraserView;
 
 impl EraserView {
-    pub fn render(state: &AppState, ui: &mut Ui) -> Vec<EraserAction> {
+    pub fn render(slices: &Slices<'_>, ui: &mut Ui) -> Vec<EraserAction> {
         let mut actions = Vec::new();
 
         // 消しゴムツールの描画位置を計算
@@ -23,7 +23,7 @@ impl EraserView {
         let tool_rect = Rect::from_min_size(tool_pos, tool_size);
 
         ui.scope_builder(UiBuilder::new().max_rect(tool_rect), |ui| {
-            if Self::render_button(state, ui) {
+            if Self::render_button(slices, ui) {
                 actions.push(EraserAction::Toggle);
             }
         });
@@ -31,7 +31,7 @@ impl EraserView {
         actions
     }
 
-    fn render_button(state: &AppState, ui: &mut Ui) -> bool {
+    fn render_button(slices: &Slices<'_>, ui: &mut Ui) -> bool {
         let (rect, response) =
             ui.allocate_exact_size(Vec2::new(40.0, 40.0), Sense::click_and_drag());
 
@@ -47,7 +47,7 @@ impl EraserView {
             );
         }
 
-        if state.erase_mode() {
+        if slices.ui().erase_mode() {
             ui.painter()
                 .rect_stroke(rect, 4.0, (2.0, border), StrokeKind::Inside);
         }

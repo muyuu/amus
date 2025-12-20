@@ -8,6 +8,7 @@ pub struct MapFeature;
 
 impl MapFeature {
     pub fn render(state: &AppState, response: &Response, ui: &mut Ui) {
-        MapView::render(state, response, ui);
+        let slices = state.slices();
+        MapView::render(&slices, response, ui);
     }
 }

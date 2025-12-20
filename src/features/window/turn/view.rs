@@ -4,7 +4,8 @@ use super::constants::TurnConstants;
 use crate::{
     components::{grid, window},
     constants::GridIds,
-    state::AppState,
+    i18n::keys::*,
+    state::Slices,
 };
 
 pub struct TurnViewResult {
@@ -14,7 +15,8 @@ pub struct TurnViewResult {
 pub struct TurnView;
 
 impl TurnView {
-    pub fn render(state: &AppState, ui: &mut egui::Ui, total_waves: usize) -> TurnViewResult {
+    pub fn render(slices: &Slices<'_>, ui: &mut egui::Ui, total_waves: usize) -> TurnViewResult {
+        let text = TurnText::get(slices);
         let mut result = TurnViewResult {
             selected_wave_index: None,
         };
@@ -25,12 +27,13 @@ impl TurnView {
         };
 
         let ctx = ui.ctx();
+        let current_wave_index = slices.wave().current_wave_index();
 
-        window(ctx, "ターン", None, Some(pos), |ui: &mut Ui| {
+        window(ctx, &text.title, None, Some(pos), |ui: &mut Ui| {
             grid(ui, GridIds::TURN, |ui| {
                 for turn_index in 0..total_waves {
                     let turn_number = turn_index + 1;
-                    let is_current = state.current_wave_index() == turn_index;
+                    let is_current = current_wave_index == turn_index;
 
                     let button = TurnView::create_button(ui, &turn_number.to_string(), is_current);
 
@@ -70,5 +73,16 @@ impl TurnView {
             .min_size(Vec2 { x: 30.0, y: 20.0 })
             .fill(bg);
         ui.add_enabled(!is_current, button)
+    }
+}
+
+struct TurnText {
+    title: String,
+}
+impl TurnText {
+    fn get(slices: &Slices<'_>) -> Self {
+        Self {
+            title: slices.t(SIDEBAR_TURN_PREFIX),
+        }
     }
 }

@@ -1,16 +1,16 @@
 use crate::common::CommonTexts;
 use crate::i18n::keys::*;
-use crate::state::{AppState, GameAction};
+use crate::state::{GameAction, Slices};
 use egui::Ui;
 
 pub struct WelcomeView;
 
 impl WelcomeView {
-    pub fn render(ui: &mut Ui, state: &AppState) -> Vec<GameAction> {
+    pub fn render(ui: &mut Ui, slices: &Slices<'_>) -> Vec<GameAction> {
         let mut actions = Vec::new();
 
-        let texts = WelcomeTexts::get(state);
-        let common = CommonTexts::get(state);
+        let texts = WelcomeTexts::get(slices);
+        let common = CommonTexts::get(slices);
 
         ui.vertical_centered(|ui| {
             ui.heading(&texts.title);
@@ -31,10 +31,10 @@ struct WelcomeTexts {
 }
 
 impl WelcomeTexts {
-    fn get(state: &AppState) -> Self {
+    fn get(slices: &Slices<'_>) -> Self {
         Self {
-            title: state.t(MAIN_WELCOME_TITLE).to_string(),
-            message: state.t(MAIN_WELCOME_MESSAGE).to_string(),
+            title: slices.t(MAIN_WELCOME_TITLE),
+            message: slices.t(MAIN_WELCOME_MESSAGE),
         }
     }
 }

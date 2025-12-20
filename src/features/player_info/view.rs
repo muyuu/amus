@@ -3,44 +3,51 @@ use crate::{
     features::player_info::constants::PlayerInfoConstants,
     i18n::keys::{PLAYER_INFO_BUTTON_DONE, PLAYER_INFO_BUTTON_NOT_DONE},
     models::{color::Color, Player},
-    state::{AppState, PlayerInfoAction},
+    state::{PlayerInfoAction, Slices},
 };
 use egui::*;
 
 pub struct PlayerInfoView;
 
 impl PlayerInfoView {
-    pub fn render(state: &AppState, ui: &mut Ui) -> Vec<PlayerInfoAction> {
+    pub fn render(slices: &Slices<'_>, ui: &mut Ui) -> Vec<PlayerInfoAction> {
         let mut actions = Vec::new();
 
-        let players = match state.players() {
+        let player_slice = slices.player();
+        let players = match player_slice.players() {
             Some(p) => p,
             None => return actions,
         };
 
+        let texts = PlayerInfoText::get(slices);
+
         ui.vertical(|ui| {
             for player in players.iter() {
-                actions.extend(Self::render_player(state, ui, player));
+                actions.extend(Self::render_player(slices, ui, player, &texts));
             }
         });
         actions
     }
 
-    fn render_player(state: &AppState, ui: &mut Ui, player: &Player) -> Vec<PlayerInfoAction> {
+    fn render_player(
+        slices: &Slices<'_>,
+        ui: &mut Ui,
+        player: &Player,
+        texts: &PlayerInfoText,
+    ) -> Vec<PlayerInfoAction> {
         let mut actions = Vec::new();
-        let texts = PlayerInfoText::get(state);
 
         ui.horizontal(|ui| {
             ui.add_space(8.0);
-            if let Some(color) = Self::render_player_color_box(state, ui, player) {
+            if let Some(color) = Self::render_player_color_box(slices, ui, player) {
                 actions.push(PlayerInfoAction::ChangeColor(player.id, color));
             }
 
-            if let Some(action) = Self::render_button(ui, player, &texts) {
+            if let Some(action) = Self::render_button(ui, player, texts) {
                 actions.push(action);
             }
 
-            actions.extend(Self::render_player_name(state, ui, player));
+            actions.extend(Self::render_player_name(slices, ui, player));
         });
         actions
     }
@@ -70,7 +77,7 @@ impl PlayerInfoView {
     }
 
     // プレイヤー色の矩形を描画
-    fn render_player_color_box(state: &AppState, ui: &mut Ui, player: &Player) -> Option<Color> {
+    fn render_player_color_box(slices: &Slices<'_>, ui: &mut Ui, player: &Player) -> Option<Color> {
         let tile_result = tile(
             ui,
             &TileConf {
@@ -86,7 +93,7 @@ impl PlayerInfoView {
         tile_result.response.context_menu(|ui| {
             let result = change_color(
                 ui,
-                state,
+                slices,
                 &ChangeColorConf {
                     player_id: player.id,
                     show_delete: false,
@@ -103,10 +110,14 @@ impl PlayerInfoView {
     }
 
     /// プレイヤー名を描画または編集
-    fn render_player_name(state: &AppState, ui: &mut Ui, player: &Player) -> Vec<PlayerInfoAction> {
+    fn render_player_name(
+        slices: &Slices<'_>,
+        ui: &mut Ui,
+        player: &Player,
+    ) -> Vec<PlayerInfoAction> {
         let mut actions = Vec::new();
 
-        if !state.player_name_editing(player.id) {
+        if !slices.player().is_editing_name(player.id) {
             if background_label(ui, &player.name).double_clicked() {
                 actions.push(PlayerInfoAction::StartEditingName(player.id));
             }
@@ -131,10 +142,10 @@ struct PlayerInfoText {
     button_not_done: String,
 }
 impl PlayerInfoText {
-    fn get(state: &AppState) -> Self {
+    fn get(slices: &Slices<'_>) -> Self {
         Self {
-            button_done: state.t(PLAYER_INFO_BUTTON_DONE).to_string(),
-            button_not_done: state.t(PLAYER_INFO_BUTTON_NOT_DONE).to_string(),
+            button_done: slices.t(PLAYER_INFO_BUTTON_DONE),
+            button_not_done: slices.t(PLAYER_INFO_BUTTON_NOT_DONE),
         }
     }
 }

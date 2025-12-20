@@ -9,7 +9,8 @@ pub struct ReactorFeature;
 
 impl ReactorFeature {
     pub fn render(state: &mut AppState, ui: &mut Ui) {
-        let res = ReactorView::render(state, ui);
+        let slices = state.slices();
+        let res = ReactorView::render(&slices, ui);
 
         if let Some(player) = res.click_player {
             let mut actions = Actions::new(state);
