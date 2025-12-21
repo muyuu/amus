@@ -59,11 +59,11 @@ eframe = { version = "0.33", features = ["glow"] }
 
 # Native only: Audio recording and transcription
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-cpal = "0.15"
+cpal = "0.17"
 hound = "3.5"
-whisper-rs = "0.14"
+whisper-rs = "0.15"
 dirs-next = "2.0"
-ureq = "2.10"
+ureq = "3"
 
 # wasm
 [target.'cfg(target_arch = "wasm32")'.dependencies]

@@ -41,7 +41,7 @@ impl AudioRecorder {
             .map_err(|e| format!("入力設定の取得に失敗: {}", e))?;
 
         let sample_format = supported_config.sample_format();
-        let sample_rate = supported_config.sample_rate().0;
+        let sample_rate = supported_config.sample_rate();
         let config: StreamConfig = supported_config.into();
 
         eprintln!(

@@ -105,7 +105,8 @@ pub enum VoiceMemoAction {
 pub struct VoiceMemoFeature {
     recorder: Option<AudioRecorder>,
     transcriber: Option<WhisperTranscriber>,
-    state: VoiceMemoState,
+    /// View用の状態（pub(crate)でViewからアクセス可能）
+    pub(crate) state: VoiceMemoState,
     /// ダウンロード進捗受信用
     download_rx: Option<std::sync::mpsc::Receiver<transcriber::DownloadProgress>>,
     /// ダウンロードスレッドハンドル
@@ -116,6 +117,58 @@ pub struct VoiceMemoFeature {
 
 #[cfg(not(target_arch = "wasm32"))]
 impl VoiceMemoFeature {
+    /// AppStateを受け取って音声メモウィンドウを描画
+    /// MainView::render_windows から呼び出される
+    /// ゲームが開始されている場合は常に表示
+    pub fn render_with_state(state: &mut crate::state::AppState, ctx: &egui::Context) {
+        use crate::i18n::words::ja::JapaneseWords;
+        use crate::models::Area;
+
+        // ゲームがなければ何もしない
+        if state.game().is_none() {
+            return;
+        }
+
+        // 1. コンテキスト情報を収集（AppStateから）
+        let player_info: Vec<(String, String)> = state
+            .players()
+            .map(|players| {
+                players
+                    .iter()
+                    .map(|p| (p.name.clone(), p.color.name_ja().to_string()))
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        let room_names: &[&str] = match state.area() {
+            Some(Area::Skeld) => JapaneseWords::SKELD_ROOMS,
+            Some(Area::Mira) => JapaneseWords::MIRA_ROOMS,
+            Some(Area::Polus) => JapaneseWords::POLUS_ROOMS,
+            Some(Area::AirShip) | None => JapaneseWords::AIRSHIP_ROOMS,
+        };
+
+        // 2. VoiceMemoの状態更新（コンテキスト設定、タイマー更新など）
+        {
+            let voice_memo = state.voice_memo_mut();
+            voice_memo.set_context(&player_info, room_names);
+            voice_memo.update(ctx);
+        }
+
+        // 3. Viewを描画してActionsを取得
+        let actions = egui::Window::new("音声メモ")
+            .collapsible(true)
+            .resizable(true)
+            .default_size([300.0, 400.0])
+            .show(ctx, |ui| view::VoiceMemoView::render(&state.voice_memo_mut().state, ui))
+            .and_then(|r| r.inner)
+            .unwrap_or_default();
+
+        // 4. Actionsを処理
+        for action in actions {
+            state.voice_memo_mut().handle_action(action);
+        }
+    }
+
     pub fn new() -> Self {
         // レコーダーを初期化
         let recorder = match AudioRecorder::new() {
@@ -155,9 +208,10 @@ impl VoiceMemoFeature {
         }
     }
 
-    /// 認識用コンテキストを設定（プレイヤー名とカラー）
+    /// 認識用コンテキストを設定（プレイヤー名、カラー、部屋名）
     /// players: (名前, 色の日本語名) のタプル配列
-    pub fn set_context(&mut self, players: &[(String, String)]) {
+    /// room_names: 現在のマップの部屋名リスト
+    pub fn set_context(&mut self, players: &[(String, String)], room_names: &[&str]) {
         // プレイヤー情報を「名前(色)」形式で結合
         let player_info: Vec<String> = players
             .iter()
@@ -165,12 +219,20 @@ impl VoiceMemoFeature {
             .map(|(name, color)| format!("{}({})", name, color))
             .collect();
 
+        // 部屋名を結合（重複を除去）
+        let rooms: Vec<&str> = room_names.iter().copied().collect();
+        let rooms_str = rooms.join("、");
+
         let context = if player_info.is_empty() {
-            "Among Usのゲーム実況。赤、青、緑、ピンク、オレンジ、黄色、黒、白、紫、茶色、シアン、ライム。キル、ベント、サボタージュ、タスク、会議、追放、インポスター、クルーメイト。".to_string()
+            format!(
+                "Among Usのゲーム実況。部屋: {}。キル、ベント、サボタージュ、タスク、会議、追放、インポスター、クルーメイト。",
+                rooms_str
+            )
         } else {
             format!(
-                "Among Usのゲーム実況。プレイヤー: {}。キル、ベント、サボタージュ、タスク、会議、追放。",
-                player_info.join("、")
+                "Among Usのゲーム実況。プレイヤー: {}。部屋: {}。キル、ベント、サボタージュ、タスク、会議、追放。",
+                player_info.join("、"),
+                rooms_str
             )
         };
 
@@ -178,8 +240,9 @@ impl VoiceMemoFeature {
         self.context = Some(context);
     }
 
-    /// UIを描画
-    pub fn render(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
+    /// 状態更新（タイマー、ダウンロード進捗など）
+    /// Viewを描画する前に呼び出す
+    fn update(&mut self, ctx: &egui::Context) {
         // ラウンド進行中ならタイマーを更新
         if self.state.round_active {
             if let Some(start) = self.state.round_start_time {
@@ -197,14 +260,6 @@ impl VoiceMemoFeature {
 
         // ダウンロード進捗を更新
         self.update_download_progress();
-
-        // Viewを描画してActionを取得
-        let actions = view::VoiceMemoView::render(&self.state, ui);
-
-        // Actionを処理
-        for action in actions {
-            self.handle_action(action);
-        }
     }
 
     /// ダウンロード進捗を更新

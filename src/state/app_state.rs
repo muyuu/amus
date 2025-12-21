@@ -7,15 +7,22 @@ use crate::state::slices::Slices;
 use crate::state::AppStorage;
 use crate::state::StorageKeys;
 
+#[cfg(not(target_arch = "wasm32"))]
+use crate::features::voice_memo::VoiceMemoFeature;
+
 /// アプリケーション状態へのアクセスを提供する構造体
 pub struct AppState {
     data: AppData,
+    #[cfg(not(target_arch = "wasm32"))]
+    voice_memo: VoiceMemoFeature,
 }
 
 impl Default for AppState {
     fn default() -> Self {
         Self {
             data: AppData::default(),
+            #[cfg(not(target_arch = "wasm32"))]
+            voice_memo: VoiceMemoFeature::new(),
         }
     }
 }
@@ -363,6 +370,14 @@ impl AppState {
     #[cfg(debug_assertions)]
     pub fn toggle_debug_view(&mut self) {
         self.data.show_debug_view = !self.data.show_debug_view;
+    }
+}
+
+// 音声メモ関連（ネイティブのみ）
+#[cfg(not(target_arch = "wasm32"))]
+impl AppState {
+    pub fn voice_memo_mut(&mut self) -> &mut VoiceMemoFeature {
+        &mut self.voice_memo
     }
 }
 

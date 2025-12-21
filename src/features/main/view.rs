@@ -15,6 +15,9 @@ use crate::features::window::turn::TurnFeature;
 use crate::state::AppState;
 use egui::*;
 
+#[cfg(not(target_arch = "wasm32"))]
+use crate::features::voice_memo::VoiceMemoFeature;
+
 pub struct MainView;
 
 impl MainView {
@@ -57,5 +60,9 @@ impl MainView {
         LightsFeature::render(state, ui);
         O2Feature::render(state, ui);
         ReactorFeature::render(state, ui);
+
+        // 音声メモウィンドウ（ネイティブのみ）
+        #[cfg(not(target_arch = "wasm32"))]
+        VoiceMemoFeature::render_with_state(state, ui.ctx());
     }
 }

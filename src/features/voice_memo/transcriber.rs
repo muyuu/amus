@@ -25,145 +25,172 @@ impl WhisperTranscriber {
         samples: &[f32],
         context: Option<&str>,
     ) -> Result<Vec<VoiceMemo>, String> {
-        let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
+        const SAMPLE_RATE: usize = 16000;
 
-        // 日本語に設定
-        params.set_language(Some("ja"));
+        // 音声データから発話区間を検出
+        let speech_segments = detect_speech_segments(samples);
+        eprintln!("検出された発話区間: {:?}", speech_segments);
 
-        // タイムスタンプを有効化
-        params.set_token_timestamps(true);
-
-        // 処理を高速化するための設定
-        params.set_n_threads(4);
-
-        // 短い音声でも処理できるように
-        params.set_no_context(true);
-
-        // 単一セグメントにまとめない
-        params.set_single_segment(false);
-
-        // 初期プロンプト（コンテキスト）を設定
-        if let Some(ctx) = context {
-            params.set_initial_prompt(ctx);
-        }
-
-        // 書き起こし実行
-        let mut state = self
-            .ctx
-            .create_state()
-            .map_err(|e| format!("Whisper状態の作成に失敗: {}", e))?;
-
-        state
-            .full(params, samples)
-            .map_err(|e| format!("書き起こしに失敗: {}", e))?;
-
-        // トークンレベルでタイムスタンプを取得し、発話ごとに分割
-        let num_segments = state.full_n_segments().map_err(|e| format!("セグメント数の取得に失敗: {}", e))?;
         let mut memos = Vec::new();
 
-        // 発話を検出するための閾値（秒）- この間隔以上空いたら別の発話とみなす
-        const PAUSE_THRESHOLD_SECS: f32 = 0.8;
+        // 各発話区間ごとにWhisperを実行
+        for (start_secs, end_secs) in speech_segments {
+            let start_sample = (start_secs * SAMPLE_RATE as f32) as usize;
+            let end_sample = (end_secs * SAMPLE_RATE as f32) as usize;
 
-        let mut current_text = String::new();
-        let mut current_start: Option<f32> = None;
-        let mut last_end: f32 = 0.0;
+            if end_sample <= start_sample || end_sample > samples.len() {
+                continue;
+            }
 
-        for seg_idx in 0..num_segments {
-            let num_tokens = state
-                .full_n_tokens(seg_idx)
-                .map_err(|e| format!("トークン数の取得に失敗: {}", e))?;
+            let segment_samples = &samples[start_sample..end_sample];
 
-            for tok_idx in 0..num_tokens {
-                let token_data = match state.full_get_token_data(seg_idx, tok_idx) {
-                    Ok(data) => data,
-                    Err(_) => continue, // データ取得失敗はスキップ
-                };
+            // 短すぎる区間はスキップ（0.5秒未満）
+            if segment_samples.len() < SAMPLE_RATE / 2 {
+                continue;
+            }
 
-                let token_text = match state.full_get_token_text(seg_idx, tok_idx) {
-                    Ok(text) => text,
-                    Err(_) => continue, // UTF-8エラー等はスキップ
-                };
+            // Whisperパラメータ設定
+            let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
+            params.set_language(Some("ja"));
+            params.set_n_threads(4);
+            params.set_no_context(true);
+            params.set_single_segment(true); // 短い区間なので単一セグメント
 
-                // 特殊トークンをスキップ
-                if token_text.is_empty()
-                    || token_text.starts_with('[')
-                    || token_text.starts_with('<')
-                    || token_data.id >= 50257  // 特殊トークンID
-                {
-                    continue;
+            if let Some(ctx) = context {
+                params.set_initial_prompt(ctx);
+            }
+
+            // 書き起こし実行
+            let mut state = self
+                .ctx
+                .create_state()
+                .map_err(|e| format!("Whisper状態の作成に失敗: {}", e))?;
+
+            if let Err(e) = state.full(params, segment_samples) {
+                eprintln!("区間 {:.1}s-{:.1}s の書き起こしに失敗: {}", start_secs, end_secs, e);
+                continue;
+            }
+
+            // テキストを取得
+            let mut text = String::new();
+            for segment in state.as_iter() {
+                if let Ok(seg_text) = segment.to_str_lossy() {
+                    // 文字化け（置換文字）を除去
+                    let clean_text: String = seg_text
+                        .chars()
+                        .filter(|c| *c != '\u{FFFD}')
+                        .collect();
+                    text.push_str(&clean_text);
                 }
+            }
 
-                // 句読点のみのトークンかどうか
-                let is_punctuation = token_text.chars().all(|c| {
-                    matches!(c, '、' | '。' | ',' | '.' | '!' | '?' | '！' | '？' | '…')
-                });
+            let text = remove_sound_effects(&text);
+            let text = text.trim();
 
-                let t0_secs = token_data.t0 as f32 / 100.0;
-                let t1_secs = token_data.t1 as f32 / 100.0;
-
-                // 間隔が閾値以上空いたら、前の発話を保存して新しい発話を開始
-                if current_start.is_some() && (t0_secs - last_end) > PAUSE_THRESHOLD_SECS {
-                    let text = current_text.trim();
-                    if !text.is_empty() {
+            if !text.is_empty() {
+                // 「。」で分割して複数のメモにする
+                let sentences: Vec<&str> = text.split('。').collect();
+                for (i, sentence) in sentences.iter().enumerate() {
+                    let sentence = sentence.trim();
+                    if !sentence.is_empty() {
+                        eprintln!("  {:.1}s: {:?}", start_secs, sentence);
                         memos.push(VoiceMemo {
-                            timestamp_secs: current_start.unwrap(),
-                            text: text.to_string(),
+                            timestamp_secs: start_secs,
+                            text: if i < sentences.len() - 1 || text.ends_with('。') {
+                                format!("{}。", sentence)
+                            } else {
+                                sentence.to_string()
+                            },
                         });
                     }
-                    current_text.clear();
-                    current_start = None;
-                }
-
-                // 発話の開始
-                if current_start.is_none() {
-                    current_start = Some(t0_secs);
-                }
-
-                current_text.push_str(&token_text);
-                // 句読点以外の場合のみ last_end を更新（句読点は間隔計算に含めない）
-                if !is_punctuation {
-                    last_end = t1_secs;
                 }
             }
-        }
-
-        // 最後の発話を保存
-        let text = current_text.trim();
-        if !text.is_empty() {
-            if let Some(start) = current_start {
-                memos.push(VoiceMemo {
-                    timestamp_secs: start,
-                    text: text.to_string(),
-                });
-            }
-        }
-
-        // タイムスタンプ補正: 音声の最初の有音部分を検出してオフセットとして加算
-        let first_speech_offset = detect_first_speech(samples);
-        for memo in &mut memos {
-            memo.timestamp_secs += first_speech_offset;
         }
 
         Ok(memos)
     }
 }
 
-/// 音声データの最初の有音部分を検出（秒数を返す）
-fn detect_first_speech(samples: &[f32]) -> f32 {
-    const SAMPLE_RATE: f32 = 16000.0;
-    const WINDOW_SIZE: usize = 1600; // 100ms window
-    const THRESHOLD: f32 = 0.01; // RMSエネルギー閾値
+/// 効果音（カッコ付きテキスト）を除去
+fn remove_sound_effects(text: &str) -> String {
+    let mut result = text.to_string();
 
-    for (i, window) in samples.chunks(WINDOW_SIZE).enumerate() {
-        // RMSエネルギーを計算
-        let rms: f32 = (window.iter().map(|s| s * s).sum::<f32>() / window.len() as f32).sqrt();
-
-        if rms > THRESHOLD {
-            return (i * WINDOW_SIZE) as f32 / SAMPLE_RATE;
+    // [xxx] 形式を除去
+    while let Some(start) = result.find('[') {
+        if let Some(end) = result[start..].find(']') {
+            result.replace_range(start..start + end + 1, "");
+        } else {
+            break;
         }
     }
 
-    0.0 // 有音が見つからなければ0を返す
+    // (xxx) 形式を除去
+    while let Some(start) = result.find('(') {
+        if let Some(end) = result[start..].find(')') {
+            result.replace_range(start..start + end + 1, "");
+        } else {
+            break;
+        }
+    }
+
+    // （xxx） 形式（全角）を除去
+    while let Some(start) = result.find('（') {
+        if let Some(end) = result[start..].find('）') {
+            result.replace_range(start..start + end + '）'.len_utf8(), "");
+        } else {
+            break;
+        }
+    }
+
+    result.trim().to_string()
+}
+
+/// 音声データから発話区間を検出
+/// 戻り値: (開始秒, 終了秒) のリスト
+fn detect_speech_segments(samples: &[f32]) -> Vec<(f32, f32)> {
+    const SAMPLE_RATE: f32 = 16000.0;
+    const WINDOW_SIZE: usize = 1600; // 100ms window
+    const THRESHOLD: f32 = 0.01; // RMSエネルギー閾値
+    const MIN_SILENCE_WINDOWS: usize = 8; // 0.8秒以上の無音で分割
+
+    let mut segments = Vec::new();
+    let mut in_speech = false;
+    let mut speech_start = 0.0f32;
+    let mut silence_count = 0usize;
+
+    for (i, window) in samples.chunks(WINDOW_SIZE).enumerate() {
+        let rms: f32 = (window.iter().map(|s| s * s).sum::<f32>() / window.len() as f32).sqrt();
+        let current_time = (i * WINDOW_SIZE) as f32 / SAMPLE_RATE;
+
+        if rms > THRESHOLD {
+            // 有音
+            if !in_speech {
+                speech_start = current_time;
+                in_speech = true;
+            }
+            silence_count = 0;
+        } else {
+            // 無音
+            if in_speech {
+                silence_count += 1;
+                if silence_count >= MIN_SILENCE_WINDOWS {
+                    // 十分な無音があったので発話区間を終了
+                    let speech_end = current_time - (MIN_SILENCE_WINDOWS as f32 * WINDOW_SIZE as f32 / SAMPLE_RATE);
+                    segments.push((speech_start, speech_end));
+                    in_speech = false;
+                    silence_count = 0;
+                }
+            }
+        }
+    }
+
+    // 最後の発話区間
+    if in_speech {
+        let end_time = samples.len() as f32 / SAMPLE_RATE;
+        segments.push((speech_start, end_time));
+    }
+
+    segments
 }
 
 /// Whisperモデルのダウンロード先を取得
@@ -237,7 +264,9 @@ pub fn download_model(
         .map_err(|e| format!("ダウンロード開始に失敗: {}", e))?;
 
     let total_bytes = response
-        .header("Content-Length")
+        .headers()
+        .get("Content-Length")
+        .and_then(|s| s.to_str().ok())
         .and_then(|s| s.parse::<u64>().ok());
 
     // 一時ファイルに書き込み
@@ -245,7 +274,7 @@ pub fn download_model(
     let mut file = std::fs::File::create(&temp_path)
         .map_err(|e| format!("ファイル作成に失敗: {}", e))?;
 
-    let mut reader = response.into_reader();
+    let mut reader = response.into_body().into_reader();
     let mut buffer = [0u8; 8192];
     let mut downloaded_bytes = 0u64;
 

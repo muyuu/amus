@@ -254,6 +254,270 @@ impl PlayerListView {
 
 残りのFeature/Viewを順次Sliceパターンに移行する。
 
+---
+
+## Phase 5: Resources層とアプリケーションループの再設計（検討中）
+
+### 背景
+
+現在の設計は egui の即時モードGUI（毎フレーム `update` で描画）を前提としており、Feature は状態を持たない冪等な構造になっている。
+
+しかし、以下のような「リソース」を必要とする機能が出てきた:
+- **VoiceMemoFeature**: AudioRecorder（ハードウェア）、WhisperTranscriber（重い初期化）、非同期ダウンロードハンドル
+
+これらは毎フレーム生成/破棄できないため、現状は AppState に入れているが、以下の問題がある:
+- AppState の責務が「ゲームデータ」と「リソース管理」で混在
+- シリアライズ可能なデータと不可能なリソースが同居
+
+### 現状の問題点
+
+```
+現状:
+┌─────────────────────────────────────────┐
+│ AmusApp                                 │
+│  └─ AppState                            │
+│      ├─ AppData (シリアライズ可能)      │
+│      │   ├─ Game, Player, Wave...       │
+│      │   └─ UI状態                      │
+│      └─ VoiceMemoFeature (リソース)     │  ← 責務が混在
+│          ├─ AudioRecorder              │
+│          ├─ WhisperTranscriber         │
+│          └─ download_handle            │
+└─────────────────────────────────────────┘
+
+update():
+  毎フレーム AppState を読み取り → View描画 → 状態更新
+  （View内でリソースも触っている）
+```
+
+### 提案: Resources層の分離
+
+```
+提案:
+┌─────────────────────────────────────────────────────────┐
+│ main.rs                                                 │
+│  └─ アプリ起動のみ                                      │
+└─────────────────────────────────────────────────────────┘
+          ↓
+┌─────────────────────────────────────────────────────────┐
+│ AmusApp                                                 │
+│  ├─ state: AppState      (データ・シリアライズ可能)     │
+│  └─ resources: Resources (リソース・シリアライズ不可)   │
+│                                                         │
+│  役割:                                                  │
+│   - アプリの初期化・設定                                │
+│   - リソースの生成・管理                                │
+│   - アクションハンドリング                              │
+└─────────────────────────────────────────────────────────┘
+          ↓
+┌─────────────────────────────────────────────────────────┐
+│ update() (eframe::App::update)                          │
+│  └─ Viewの描画のみ                                      │
+│      View → AppActions を返す                           │
+└─────────────────────────────────────────────────────────┘
+          ↓
+┌─────────────────────────────────────────────────────────┐
+│ AmusApp::handle_actions()                               │
+│  └─ アクション処理                                      │
+│      - AppState の更新                                  │
+│      - Resources の使用                                 │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 構造体の分離
+
+```rust
+/// データ状態（シリアライズ可能）
+pub struct AppState {
+    data: AppData,
+    // Game, Player, Wave, UI状態など
+}
+
+/// リソース（シリアライズ不可）
+pub struct Resources {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub voice_memo: VoiceMemoResources,
+    // 将来: pub audio_player: AudioPlayer,
+    // 将来: pub network_client: NetworkClient,
+}
+
+/// VoiceMemo用リソース
+#[cfg(not(target_arch = "wasm32"))]
+pub struct VoiceMemoResources {
+    pub recorder: Option<AudioRecorder>,
+    pub transcriber: Option<WhisperTranscriber>,
+    pub download_handle: Option<JoinHandle<Result<(), String>>>,
+    pub state: VoiceMemoState,  // UIに必要な状態
+}
+```
+
+### アプリケーションループの再設計
+
+```rust
+pub struct AmusApp {
+    state: AppState,
+    resources: Resources,
+}
+
+impl eframe::App for AmusApp {
+    fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+        // 1. リソースの定期更新（タイマー、非同期完了チェック等）
+        self.resources.update(ctx);
+
+        // 2. Viewの描画 → アクションを収集
+        let actions = self.render_views(ctx);
+
+        // 3. アクションの処理
+        self.handle_actions(actions);
+    }
+}
+
+impl AmusApp {
+    fn render_views(&self, ctx: &Context) -> Vec<AppAction> {
+        let mut actions = Vec::new();
+
+        // View は &AppState と &Resources（読み取り専用）を受け取る
+        // クリックなどの操作結果を AppAction として返す
+
+        CentralPanel::default().show(ctx, |ui| {
+            actions.extend(MainView::render(&self.state, &self.resources, ui));
+        });
+
+        actions
+    }
+
+    fn handle_actions(&mut self, actions: Vec<AppAction>) {
+        for action in actions {
+            match action {
+                // AppState の更新
+                AppAction::SelectPlayer(id) => {
+                    self.state.set_selected_player_id(id);
+                }
+                // Resources の使用
+                AppAction::StartRecording => {
+                    self.resources.voice_memo.start_recording();
+                }
+                AppAction::StopRecording => {
+                    let result = self.resources.voice_memo.stop_recording();
+                    // 結果を AppState に反映
+                    self.state.add_voice_memo(result);
+                }
+            }
+        }
+    }
+}
+```
+
+### メリット
+
+1. **責務の明確化**
+   - AppState: ゲームデータとUI状態（永続化可能）
+   - Resources: ハードウェア・重いリソース（永続化不可）
+
+2. **データフローの明確化**
+   ```
+   Resources.update() → View描画 → Actions収集 → Actions処理 → State/Resources更新
+   ```
+
+3. **テスタビリティ向上**
+   - View は純粋な関数（入力 → 出力）
+   - Actions はユニットテスト可能
+
+4. **将来の拡張性**
+   - ネットワーク通信、オーディオ再生などのリソースを追加しやすい
+   - WASM/ネイティブで異なるリソース実装を切り替えやすい
+
+### 移行計画
+
+1. **Resources 構造体の作成**
+   - `src/resources/mod.rs` を新設
+   - VoiceMemoFeature から リソース部分を分離
+
+2. **AmusApp の分割**
+   - `state` と `resources` フィールドに分離
+   - `update()` 内でのフローを整理
+
+3. **View の引数変更**
+   - `&mut AppState` → `&AppState, &Resources`（読み取り専用）
+   - アクションは戻り値で返す
+
+4. **Actions の統一**
+   - 全Featureのアクションを `AppAction` enum に統合
+   - または Feature ごとの Action を `AmusApp::handle_actions` で dispatch
+
+### 検討事項
+
+- **egui の制約**: `Window::show` のクロージャ内で `&mut self` が必要な場面がある
+  - 対策: アクションを収集して後で処理するパターンで回避
+
+- **パフォーマンス**: 毎フレーム `Vec<AppAction>` を生成するコスト
+  - 対策: 小規模なので問題にならない見込み。必要なら `SmallVec` を使用
+
+- **既存コードとの互換性**: 段階的に移行可能
+  - 最初は VoiceMemo のみ Resources に移動
+  - 他の Feature は現状のまま動作
+
+---
+
+## Phase 5.1: ディレクトリ構造の整理（シンプル版）
+
+Phase 5 の前段階として、まずディレクトリ構造だけ整理する。
+Action の使い方は現状維持（`Actions::new(state)` を View 内で呼ぶ）。
+
+### 現状の問題
+
+`features/voice_memo/` に view も resources も action も混在している:
+
+```
+src/features/voice_memo/
+├── mod.rs           # Feature + Resources + Action 混在
+├── recorder.rs      # リソース
+├── transcriber.rs   # リソース
+└── view.rs          # View
+```
+
+### 目標
+
+責務ごとにディレクトリを分離:
+
+```
+src/
+├── features/                    # View とエントリーポイント
+│   └── voice_memo/
+│       ├── mod.rs               # Feature（エントリーポイント）
+│       └── view.rs              # View
+├── resources/                   # 新設：ハードウェア・重いリソース
+│   ├── mod.rs
+│   ├── audio_recorder.rs        # features/voice_memo/recorder.rs から移動
+│   ├── whisper_transcriber.rs   # features/voice_memo/transcriber.rs から移動
+│   └── model_downloader.rs      # 新設（ダウンロード処理を分離）
+└── state/
+    └── actions/
+        └── voice_memo.rs        # VoiceMemo用アクション（必要なら新設）
+```
+
+### 各ディレクトリの責務
+
+| ディレクトリ | 責務 | 例 |
+|-------------|------|-----|
+| `features/` | View とそのエントリーポイント | VoiceMemoView, VoiceMemoFeature |
+| `resources/` | ハードウェア・重いリソース | AudioRecorder, WhisperTranscriber |
+| `state/actions/` | 状態変更ロジック | VoiceMemoAction のハンドリング |
+
+### 移行手順
+
+1. `src/resources/` ディレクトリを新設
+2. `features/voice_memo/recorder.rs` → `resources/audio_recorder.rs`
+3. `features/voice_memo/transcriber.rs` → `resources/whisper_transcriber.rs`
+4. ダウンロード処理を `resources/model_downloader.rs` に分離
+5. `features/voice_memo/mod.rs` から Resources 関連を削除し、Feature/View に専念
+
+### 備考
+
+- Action の使い方は変えない（`Actions::new(state)` を View 内で呼ぶ）
+- Resources は AppState に保持する現状の構造を維持
+- 将来 Phase 5 を実施する場合は、この整理が前提になる
+
 ## 関連ドキュメント
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - 現在のアーキテクチャ
