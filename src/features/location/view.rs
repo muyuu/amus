@@ -1,10 +1,10 @@
-use crate::resources::AssetManager;
 use crate::components::{background_label_with_font_size, change_color, ChangeColorConf};
 use crate::constants::AppConstants;
 use crate::features::location::constants::LocationConstants;
 use crate::models::color::Color;
 use crate::models::location::LocationType;
 use crate::models::player;
+use crate::resources::AssetManager;
 use crate::state::Slices;
 use egui::*;
 

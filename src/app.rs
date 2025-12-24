@@ -4,24 +4,46 @@ use crate::constants::{AppConstants, PanelIds};
 use crate::features::main::MainView;
 use crate::features::player_info::PlayerInfoFeature;
 use crate::features::setup_dialog::SetupDialogFeature;
+use crate::features::Features;
 use crate::i18n::keys;
+use crate::resources::Resources;
 use crate::state::AppState;
 
 pub struct AmusApp {
     state: AppState,
+    resources: Resources,
+    features: Features,
 }
 
 impl Default for AmusApp {
     fn default() -> Self {
+        let resources = Resources::new();
+        #[cfg(not(target_arch = "wasm32"))]
+        let features = Features::new(&resources);
+        #[cfg(target_arch = "wasm32")]
+        let features = Features::new();
+
         Self {
             state: AppState::new(),
+            resources,
+            features,
         }
     }
 }
 
 impl AmusApp {
     pub fn new(_cc: &eframe::CreationContext<'_>, state: AppState) -> Self {
-        let mut app = Self { state };
+        let resources = Resources::new();
+        #[cfg(not(target_arch = "wasm32"))]
+        let features = Features::new(&resources);
+        #[cfg(target_arch = "wasm32")]
+        let features = Features::new();
+
+        let mut app = Self {
+            state,
+            resources,
+            features,
+        };
 
         if let Some(storage) = _cc.storage {
             app.state
@@ -78,36 +100,43 @@ impl AmusApp {
         CentralPanel::default()
             .frame(Self::get_frame())
             .show(ctx, |ui| {
-                MainView::render(&mut self.state, ui);
+                MainView::render(&mut self.state, &mut self.resources, &mut self.features, ui);
             });
     }
 
     fn build_menu_ui(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+        let mut toggle_setup = false;
+        #[cfg(debug_assertions)]
+        let mut toggle_debug = false;
+
         TopBottomPanel::top(PanelIds::MENU)
             .resizable(false)
             .default_height(50.0)
             .frame(Self::get_frame())
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
-                    Self::build_debug_button(&mut self.state, ui);
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        // リセットボタン
+                        if ui.button("🔄 リセット").clicked() {
+                            toggle_setup = true;
+                        }
+
+                        // デバッグボタン
+                        #[cfg(debug_assertions)]
+                        if ui.button("🐛 デバッグ").clicked() {
+                            toggle_debug = true;
+                        }
+                    });
                 });
             });
-    }
 
-    fn build_debug_button(state: &mut AppState, ui: &mut Ui) {
-        // 中央：デバッグボタン
-        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-            // リセットボタン
-            if ui.button("🔄 リセット").clicked() {
-                state.toggle_setup_dialog();
-            }
-
-            // デバッグボタン
-            #[cfg(debug_assertions)]
-            if ui.button("🐛 デバッグ").clicked() {
-                state.toggle_debug_view();
-            }
-        });
+        if toggle_setup {
+            self.state.toggle_setup_dialog();
+        }
+        #[cfg(debug_assertions)]
+        if toggle_debug {
+            self.state.toggle_debug_view();
+        }
     }
 
     fn get_frame() -> Frame {
