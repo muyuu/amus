@@ -100,12 +100,7 @@ impl AmusApp {
         CentralPanel::default()
             .frame(Self::get_frame())
             .show(ctx, |ui| {
-                MainView::render(
-                    &mut self.state,
-                    &mut self.resources,
-                    &mut self.features,
-                    ui,
-                );
+                MainView::render(&mut self.state, &mut self.resources, &mut self.features, ui);
             });
     }
 

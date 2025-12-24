@@ -52,10 +52,6 @@ impl<'a> WaveSlice<'a> {
 
     /// 全ウェーブ数
     pub fn wave_count(&self) -> usize {
-        self.data
-            .game
-            .as_ref()
-            .map(|g| g.waves.len())
-            .unwrap_or(0)
+        self.data.game.as_ref().map(|g| g.waves.len()).unwrap_or(0)
     }
 }
