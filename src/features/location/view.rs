@@ -1,4 +1,4 @@
-use crate::assets::AssetManager;
+use crate::resources::AssetManager;
 use crate::components::{background_label_with_font_size, change_color, ChangeColorConf};
 use crate::constants::AppConstants;
 use crate::features::location::constants::LocationConstants;

@@ -1,7 +1,6 @@
 #![cfg_attr(not(target_arch = "wasm32"), allow(dead_code, unused_imports))]
 
 pub mod app;
-pub mod assets;
 pub mod common;
 pub mod components;
 pub mod constants;
@@ -9,6 +8,7 @@ pub mod features;
 pub mod i18n;
 pub mod log;
 pub mod models;
+pub mod resources;
 pub mod state;
 
 use crate::log::Log;
@@ -72,7 +72,7 @@ fn setup_japanese_fonts_wasm(ctx: &Context) {
     use web_sys::console;
 
     let font_path = "fonts/NotoSansJP-Regular.ttf";
-    if let Some(font_data) = crate::assets::AssetManager::load_font_from_assets(font_path) {
+    if let Some(font_data) = crate::resources::AssetManager::load_font_from_assets(font_path) {
         console::log_1(
             &format!(
                 "Successfully loaded font: {} ({} bytes)",

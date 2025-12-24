@@ -1,7 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod app;
-mod assets;
 mod common;
 mod components;
 mod constants;
@@ -9,6 +8,7 @@ mod features;
 mod i18n;
 mod log;
 mod models;
+mod resources;
 mod state;
 
 use crate::i18n::keys::*;
@@ -25,7 +25,7 @@ fn main() -> eframe::Result<()> {
     let app_title = state.t(APP_TITLE);
 
     // アイコンを事前に読み込み（Context不要なため先に実行）
-    let icon = assets::AssetManager::load_icon_static();
+    let icon = resources::AssetManager::load_icon_static();
 
     let mut viewport = ViewportBuilder::default()
         .with_inner_size([1200.0, 840.0])
@@ -49,7 +49,7 @@ fn main() -> eframe::Result<()> {
             setup_panel_bg(&cc.egui_ctx);
 
             // アセットマネージャーの初期化
-            assets::AssetManager::initialize(&cc.egui_ctx);
+            resources::AssetManager::initialize(&cc.egui_ctx);
 
             Ok(Box::new(AmusApp::new(cc, state)))
         }),

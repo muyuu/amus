@@ -38,7 +38,7 @@ impl EraserView {
         let color = Color::Yellow.to_egui_color();
         let border = Color::White.to_egui_color();
         ui.painter().rect_filled(rect, 4.0, color);
-        if let Some(t) = crate::assets::AssetManager::get(ui.ctx()).get_eraser_texture() {
+        if let Some(t) = crate::resources::AssetManager::get(ui.ctx()).get_eraser_texture() {
             ui.painter().image(
                 t.id(),
                 rect,
