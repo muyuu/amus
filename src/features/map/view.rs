@@ -1,4 +1,4 @@
-use crate::assets::AssetManager;
+use crate::resources::AssetManager;
 use crate::state::Slices;
 use egui::*;
 

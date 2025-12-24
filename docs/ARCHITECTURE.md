@@ -97,7 +97,6 @@ AppState (アプリケーション全体の状態)
 
 ```rust
 pub struct AppData {
-    pub asset_manager: Option<AssetManager>,  // 画像リソース管理
     pub current_wave_index: usize,            // 現在のターン
     pub dragging_location: Option<DraggingLocation>,  // ドラッグ状態
     pub dragging_player_id: Option<PlayerId>,
@@ -175,11 +174,13 @@ impl SomeFeature {
 
 ## その他のモジュール
 
-### assets (`src/assets/`)
+### resources (`src/resources/`)
 
-**役割**: 画像リソースの管理
+**役割**: ハードウェアや重い初期化を必要とするリソースの管理
 
-- `AssetManager` - マップ画像などのアセットを読み込み・管理
+- `AssetManager` - マップ画像・プレイヤー画像などのテクスチャを読み込み・管理
+  - egui の `Context` 経由でシングルトン管理
+  - シリアライズ不可（AppData には含まない）
 
 ### common (`src/common/`)
 
@@ -228,7 +229,7 @@ src/
 ├── main.rs              # メイン関数
 ├── lib.rs               # ライブラリルート
 ├── constants.rs         # グローバル定数
-├── assets/              # アセット管理
+├── resources/           # リソース管理（画像テクスチャなど）
 ├── common/              # 共通ユーティリティ
 ├── components/          # 再利用可能なUIコンポーネント
 ├── features/            # 機能単位のモジュール
