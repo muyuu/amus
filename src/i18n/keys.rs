@@ -64,3 +64,23 @@ pub const SABOTAGE_LIGHTS: &str = "sabotage.lights";
 pub const SABOTAGE_REACTOR: &str = "sabotage.meltdown_reactor";
 pub const SABOTAGE_O2: &str = "sabotage.o2_depletion";
 pub const SABOTAGE_DOORS: &str = "sabotage.doors";
+
+// 音声メモ
+pub const VOICE_MEMO_TITLE: &str = "voice_memo.title";
+pub const VOICE_MEMO_MODEL_DOWNLOADING: &str = "voice_memo.model_downloading";
+pub const VOICE_MEMO_MODEL_NOT_FOUND: &str = "voice_memo.model_not_found";
+pub const VOICE_MEMO_MODEL_REQUIRED: &str = "voice_memo.model_required";
+pub const VOICE_MEMO_DOWNLOAD_MODEL: &str = "voice_memo.download_model";
+pub const VOICE_MEMO_MIC_UNAVAILABLE: &str = "voice_memo.mic_unavailable";
+pub const VOICE_MEMO_END: &str = "voice_memo.end";
+pub const VOICE_MEMO_REC: &str = "voice_memo.rec";
+pub const VOICE_MEMO_STOP: &str = "voice_memo.stop";
+pub const VOICE_MEMO_TRANSCRIBING: &str = "voice_memo.transcribing";
+pub const VOICE_MEMO_RECORD: &str = "voice_memo.record";
+pub const VOICE_MEMO_START_TURN: &str = "voice_memo.start_turn";
+pub const VOICE_MEMO_CLEAR: &str = "voice_memo.clear";
+pub const VOICE_MEMO_ERROR: &str = "voice_memo.error";
+pub const VOICE_MEMO_START_PROMPT: &str = "voice_memo.start_prompt";
+pub const VOICE_MEMO_RECORD_HINT: &str = "voice_memo.record_hint";
+pub const VOICE_MEMO_MEMO_COUNT: &str = "voice_memo.memo_count";
+pub const VOICE_MEMO_TURN_TIME: &str = "voice_memo.turn_time";

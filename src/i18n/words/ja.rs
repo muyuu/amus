@@ -8,12 +8,17 @@ impl JapaneseWords {
 
     // 基本動詞
     pub const START: &'static str = "開始";
+    pub const END: &'static str = "終了";
+    pub const STOP: &'static str = "停止";
     pub const CANCEL: &'static str = "キャンセル";
     pub const ADD: &'static str = "追加";
     pub const SAVE: &'static str = "保存";
     pub const LOAD: &'static str = "読み込み";
     pub const NEW: &'static str = "新規";
     pub const SET: &'static str = "設定";
+    pub const CLEAR: &'static str = "クリア";
+    pub const RECORD: &'static str = "録音";
+    pub const DOWNLOAD: &'static str = "ダウンロード";
 
     // 基本名詞
     pub const GAME: &'static str = "ゲーム";
@@ -34,6 +39,21 @@ impl JapaneseWords {
     pub const NAME: &'static str = "名前";
     pub const COLOR: &'static str = "色";
     pub const ERASER: &'static str = "消しゴム";
+    pub const MODEL: &'static str = "モデル";
+    pub const MIC: &'static str = "マイク";
+    pub const ERROR: &'static str = "エラー";
+    pub const TIME: &'static str = "時間";
+    pub const SECOND: &'static str = "秒";
+    pub const ITEM: &'static str = "件";
+
+    // 音声メモ関連
+    pub const VOICE_MEMO: &'static str = "音声メモ";
+    pub const TRANSCRIBING: &'static str = "書き起こし中";
+    pub const DOWNLOADING: &'static str = "ダウンロード中";
+    pub const VOICE_RECOGNITION: &'static str = "音声認識";
+    pub const WHISPER_MODEL: &'static str = "Whisperモデル";
+    pub const MODEL_REQUIRED_SIZE: &'static str = "約142MB";
+    pub const RECORD_BUTTON_HINT: &'static str = "録音ボタンで発言を記録";
 
     // 状態・形容詞
     pub const ALIVE: &'static str = "生存";

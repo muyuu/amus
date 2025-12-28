@@ -1,4 +1,5 @@
 use super::{Round, VoiceMemo, VoiceMemoAction, VoiceMemoState};
+use crate::i18n::{keys as K, Translator};
 use egui::{Color32, RichText, Ui};
 
 /// 音声メモのView（純粋な描画のみ）
@@ -6,17 +7,24 @@ pub struct VoiceMemoView;
 
 impl VoiceMemoView {
     /// UIを描画してアクションを返す
-    pub fn render(state: &VoiceMemoState, ui: &mut Ui) -> Vec<VoiceMemoAction> {
+    pub fn render(
+        state: &VoiceMemoState,
+        translator: &Translator,
+        ui: &mut Ui,
+    ) -> Vec<VoiceMemoAction> {
         let mut actions = Vec::new();
 
-        ui.heading("音声メモ");
-        ui.separator();
+        let max_width = ui.available_width().min(600.0);
+        ui.set_max_width(max_width);
 
         // モデルの状態表示
         if !state.model_available {
             if state.is_downloading {
                 // ダウンロード中
-                ui.label(RichText::new("⏳ モデルをダウンロード中...").color(Color32::YELLOW));
+                ui.label(
+                    RichText::new(translator.t(K::VOICE_MEMO_MODEL_DOWNLOADING))
+                        .color(Color32::YELLOW),
+                );
 
                 if let Some(progress) = state.download_progress {
                     ui.add(egui::ProgressBar::new(progress / 100.0).show_percentage());
@@ -34,12 +42,16 @@ impl VoiceMemoView {
                 // ダウンロード前
                 ui.horizontal(|ui| {
                     ui.label(
-                        RichText::new("⚠ Whisperモデルが見つかりません").color(Color32::YELLOW),
+                        RichText::new(translator.t(K::VOICE_MEMO_MODEL_NOT_FOUND))
+                            .color(Color32::YELLOW),
                     );
                 });
-                ui.label("音声認識には約142MBのモデルが必要です");
+                ui.label(translator.t(K::VOICE_MEMO_MODEL_REQUIRED));
 
-                if ui.button("📥 モデルをダウンロード").clicked() {
+                if ui
+                    .button(translator.t(K::VOICE_MEMO_DOWNLOAD_MODEL))
+                    .clicked()
+                {
                     actions.push(VoiceMemoAction::DownloadModel);
                 }
             }
@@ -48,11 +60,13 @@ impl VoiceMemoView {
 
         // レコーダーの状態表示
         if !state.recorder_available {
-            ui.label(RichText::new("⚠ マイクが利用できません").color(Color32::RED));
+            ui.label(
+                RichText::new(translator.t(K::VOICE_MEMO_MIC_UNAVAILABLE)).color(Color32::RED),
+            );
             return actions;
         }
 
-        // ラウンド進行中のタイマー表示
+        // ターン進行中のタイマー表示
         if state.round_active {
             let mins = state.round_elapsed_secs as i32 / 60;
             let secs = state.round_elapsed_secs as i32 % 60;
@@ -62,7 +76,7 @@ impl VoiceMemoView {
                         .size(24.0)
                         .color(Color32::LIGHT_GREEN),
                 );
-                if ui.button("終了").clicked() {
+                if ui.button(translator.t(K::VOICE_MEMO_END)).clicked() {
                     actions.push(VoiceMemoAction::EndRound);
                 }
             });
@@ -72,26 +86,35 @@ impl VoiceMemoView {
         ui.horizontal(|ui| {
             if state.is_recording {
                 ui.label(
-                    RichText::new(format!("● REC {:.1}秒", state.elapsed_secs)).color(Color32::RED),
+                    RichText::new(format!(
+                        "{} {:.1}s",
+                        translator.t(K::VOICE_MEMO_REC),
+                        state.elapsed_secs
+                    ))
+                    .color(Color32::RED),
                 );
 
-                if ui.button("⏹ 停止").clicked() {
+                if ui.button(translator.t(K::VOICE_MEMO_STOP)).clicked() {
                     actions.push(VoiceMemoAction::StopRecording);
                 }
             } else if state.is_processing {
-                ui.label(RichText::new("⏳ 書き起こし中...").color(Color32::YELLOW));
+                ui.label(
+                    RichText::new(translator.t(K::VOICE_MEMO_TRANSCRIBING)).color(Color32::YELLOW),
+                );
             } else if state.round_active {
-                // ラウンド進行中は録音ボタン
-                if ui.button("🎤 録音").clicked() {
+                // ターン進行中は録音ボタン
+                if ui.button(translator.t(K::VOICE_MEMO_RECORD)).clicked() {
                     actions.push(VoiceMemoAction::StartRecording);
                 }
             } else {
-                // ラウンド開始ボタン
-                if ui.button("▶ ラウンド開始").clicked() {
+                // ターン開始ボタン
+                if ui.button(translator.t(K::VOICE_MEMO_START_TURN)).clicked() {
                     actions.push(VoiceMemoAction::StartRound);
                 }
 
-                if !state.rounds.is_empty() && ui.button("🗑 クリア").clicked() {
+                if !state.rounds.is_empty()
+                    && ui.button(translator.t(K::VOICE_MEMO_CLEAR)).clicked()
+                {
                     actions.push(VoiceMemoAction::ClearAllRounds);
                 }
             }
@@ -99,12 +122,15 @@ impl VoiceMemoView {
 
         // エラー表示
         if let Some(error) = &state.error {
-            ui.label(RichText::new(format!("エラー: {}", error)).color(Color32::RED));
+            ui.label(
+                RichText::new(format!("{}: {}", translator.t(K::VOICE_MEMO_ERROR), error))
+                    .color(Color32::RED),
+            );
         }
 
         ui.separator();
 
-        // ラウンドタブ（2件以上の時のみ表示）
+        // ターンタブ（2件以上の時のみ表示）
         if state.rounds.len() >= 2 {
             ui.horizontal_wrapped(|ui| {
                 for (i, _) in state.rounds.iter().enumerate() {
@@ -129,26 +155,35 @@ impl VoiceMemoView {
         let current_round: Option<&Round> = state.rounds.get(state.selected_round);
 
         if state.rounds.is_empty() {
-            ui.label("ラウンドを開始してください");
+            ui.label(translator.t(K::VOICE_MEMO_START_PROMPT));
         } else if let Some(round) = current_round {
             if round.memos.is_empty() {
-                ui.label("録音ボタンで発言を記録");
+                ui.label(translator.t(K::VOICE_MEMO_RECORD_HINT));
             } else {
-                ui.label(format!("メモ ({} 件)", round.memos.len()));
+                ui.label(format!(
+                    "{} ({})",
+                    translator.t(K::VOICE_MEMO_MEMO_COUNT),
+                    round.memos.len()
+                ));
                 egui::ScrollArea::vertical()
                     .max_height(200.0)
                     .show(ui, |ui| {
                         for memo in &round.memos {
                             Self::render_memo(ui, memo);
                         }
-                        // ラウンド終了時間を表示
+                        // ターン終了時間を表示
                         if let Some(duration) = round.duration_secs {
                             ui.separator();
                             let mins = duration as i32 / 60;
                             let secs = duration as i32 % 60;
                             ui.label(
-                                RichText::new(format!("ラウンド時間: {:02}:{:02}", mins, secs))
-                                    .color(Color32::LIGHT_BLUE),
+                                RichText::new(format!(
+                                    "{}: {:02}:{:02}",
+                                    translator.t(K::VOICE_MEMO_TURN_TIME),
+                                    mins,
+                                    secs
+                                ))
+                                .color(Color32::LIGHT_BLUE),
                             );
                         }
                     });
@@ -159,15 +194,15 @@ impl VoiceMemoView {
     }
 
     fn render_memo(ui: &mut Ui, memo: &VoiceMemo) {
-        ui.horizontal(|ui| {
+        ui.horizontal_top(|ui| {
             // タイムスタンプ
             let mins = memo.timestamp_secs as i32 / 60;
             let secs = memo.timestamp_secs as i32 % 60;
             let timestamp = format!("{:02}:{:02}", mins, secs);
             ui.label(RichText::new(timestamp).monospace().color(Color32::GRAY));
 
-            // テキスト
-            ui.label(&memo.text);
+            // テキスト（折り返しあり）
+            ui.add(egui::Label::new(&memo.text).wrap());
         });
     }
 }
