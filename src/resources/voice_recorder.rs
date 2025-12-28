@@ -212,6 +212,33 @@ impl VoiceRecorder {
         }
     }
 
+    /// 現在のサンプルバッファのサイズ（サンプル数）
+    pub fn buffer_len(&self) -> usize {
+        self.buffer.lock().unwrap().len()
+    }
+
+    /// 元のサンプルレートを取得
+    pub fn sample_rate(&self) -> u32 {
+        self.sample_rate
+    }
+
+    /// 指定位置以降のサンプルを取得（録音を停止せずに）
+    /// 逐次書き起こし用。戻り値は (16kHzリサンプリング済みサンプル, 次回開始位置)
+    pub fn get_samples_since(&self, start_sample: usize) -> (Vec<f32>, usize) {
+        let buffer = self.buffer.lock().unwrap();
+        if start_sample >= buffer.len() {
+            return (Vec::new(), start_sample);
+        }
+
+        let samples = buffer[start_sample..].to_vec();
+        let next_position = buffer.len();
+        drop(buffer); // ロックを解放
+
+        // 16kHzにリサンプリング
+        let resampled = self.resample_to_16k(&samples);
+        (resampled, next_position)
+    }
+
     /// サンプルレートを16kHzにリサンプリング
     fn resample_to_16k(&self, samples: &[f32]) -> Vec<f32> {
         const TARGET_RATE: u32 = 16000;

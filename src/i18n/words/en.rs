@@ -62,7 +62,9 @@ impl EnglishWords {
     pub const SABOTAGE_O2: &'static str = "O2 Depletion";
     pub const SABOTAGE_DOORS: &'static str = "Doors Sabotage";
 
+    pub const SPAWN: &'static str = "Spawn";
     pub const VENT: &'static str = "Vent";
+    pub const TASK: &'static str = "Task";
 
     // 追加の名詞
     pub const MODEL: &'static str = "Model";
