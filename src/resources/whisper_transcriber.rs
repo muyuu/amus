@@ -26,7 +26,7 @@ pub fn get_model_path() -> String {
 
     data_dir
         .join("models")
-        .join("ggml-base.bin")
+        .join("ggml-small.bin")
         .to_string_lossy()
         .to_string()
 }
@@ -38,13 +38,13 @@ pub fn model_exists() -> bool {
 
 /// モデルのダウンロードURL
 pub fn get_model_download_url() -> &'static str {
-    // Whisper base model (約142MB) - 速度と精度のバランス
-    "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin"
+    // Whisper small model (約466MB) - 精度重視
+    "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin"
 }
 
 /// モデルサイズの説明
 pub fn get_model_size_description() -> &'static str {
-    "約142MB"
+    "約466MB"
 }
 
 // =============================================================================
@@ -80,89 +80,54 @@ impl WhisperTranscriber {
         samples: &[f32],
         context: Option<&str>,
     ) -> Result<Vec<TranscriptionSegment>, String> {
-        const SAMPLE_RATE: usize = 16000;
+        // 短すぎるサンプルはスキップ（0.5秒未満）
+        if samples.len() < 8000 {
+            return Ok(Vec::new());
+        }
 
-        // 音声データから発話区間を検出
-        let speech_segments = detect_speech_segments(samples);
-        eprintln!("検出された発話区間: {:?}", speech_segments);
+        // Whisperパラメータ設定
+        let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
+        params.set_language(Some("ja"));
+        // CPUコア数の75%を使用（最低4、最大12）
+        let n_threads = std::thread::available_parallelism()
+            .map(|n| (n.get() * 3 / 4).clamp(4, 12) as i32)
+            .unwrap_or(4);
+        params.set_n_threads(n_threads);
+        params.set_no_context(true);
+        params.set_single_segment(false); // 複数セグメント許可
 
+        if let Some(ctx) = context {
+            params.set_initial_prompt(ctx);
+        }
+
+        // 書き起こし実行
+        let mut state = self
+            .ctx
+            .create_state()
+            .map_err(|e| format!("Whisper状態の作成に失敗: {}", e))?;
+
+        if let Err(e) = state.full(params, samples) {
+            return Err(format!("書き起こしに失敗: {}", e));
+        }
+
+        // テキストを取得
         let mut segments = Vec::new();
 
-        // 各発話区間ごとにWhisperを実行
-        for (start_secs, end_secs) in speech_segments {
-            let start_sample = (start_secs * SAMPLE_RATE as f32) as usize;
-            let end_sample = (end_secs * SAMPLE_RATE as f32) as usize;
+        for segment in state.as_iter() {
+            if let Ok(text) = segment.to_str_lossy() {
+                // 文字化け（置換文字）を除去
+                let clean_text: String = text.chars().filter(|c| *c != '\u{FFFD}').collect();
+                let clean_text = remove_sound_effects(&clean_text);
+                let clean_text = clean_text.trim();
 
-            if end_sample <= start_sample || end_sample > samples.len() {
-                continue;
-            }
+                if !clean_text.is_empty() {
+                    // セグメントの開始時刻（ミリ秒）
+                    let start_secs = segment.start_timestamp() as f32 / 1000.0;
 
-            let segment_samples = &samples[start_sample..end_sample];
-
-            // 短すぎる区間はスキップ（0.5秒未満）
-            if segment_samples.len() < SAMPLE_RATE / 2 {
-                continue;
-            }
-
-            // Whisperパラメータ設定
-            let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
-            params.set_language(Some("ja"));
-            // CPUコア数の75%を使用（最低4、最大12）
-            let n_threads = std::thread::available_parallelism()
-                .map(|n| (n.get() * 3 / 4).clamp(4, 12) as i32)
-                .unwrap_or(4);
-            params.set_n_threads(n_threads);
-            params.set_no_context(true);
-            params.set_single_segment(true); // 短い区間なので単一セグメント
-
-            if let Some(ctx) = context {
-                params.set_initial_prompt(ctx);
-            }
-
-            // 書き起こし実行
-            let mut state = self
-                .ctx
-                .create_state()
-                .map_err(|e| format!("Whisper状態の作成に失敗: {}", e))?;
-
-            if let Err(e) = state.full(params, segment_samples) {
-                eprintln!(
-                    "区間 {:.1}s-{:.1}s の書き起こしに失敗: {}",
-                    start_secs, end_secs, e
-                );
-                continue;
-            }
-
-            // テキストを取得
-            let mut text = String::new();
-            for segment in state.as_iter() {
-                if let Ok(seg_text) = segment.to_str_lossy() {
-                    // 文字化け（置換文字）を除去
-                    let clean_text: String =
-                        seg_text.chars().filter(|c| *c != '\u{FFFD}').collect();
-                    text.push_str(&clean_text);
-                }
-            }
-
-            let text = remove_sound_effects(&text);
-            let text = text.trim();
-
-            if !text.is_empty() {
-                // 「。」で分割して複数のセグメントにする
-                let sentences: Vec<&str> = text.split('。').collect();
-                for (i, sentence) in sentences.iter().enumerate() {
-                    let sentence = sentence.trim();
-                    if !sentence.is_empty() {
-                        eprintln!("  {:.1}s: {:?}", start_secs, sentence);
-                        segments.push(TranscriptionSegment {
-                            timestamp_secs: start_secs,
-                            text: if i < sentences.len() - 1 || text.ends_with('。') {
-                                format!("{}。", sentence)
-                            } else {
-                                sentence.to_string()
-                            },
-                        });
-                    }
+                    segments.push(TranscriptionSegment {
+                        timestamp_secs: start_secs,
+                        text: clean_text.to_string(),
+                    });
                 }
             }
         }
@@ -209,51 +174,3 @@ fn remove_sound_effects(text: &str) -> String {
     result.trim().to_string()
 }
 
-/// 音声データから発話区間を検出
-/// 戻り値: (開始秒, 終了秒) のリスト
-fn detect_speech_segments(samples: &[f32]) -> Vec<(f32, f32)> {
-    const SAMPLE_RATE: f32 = 16000.0;
-    const WINDOW_SIZE: usize = 1600; // 100ms window
-    const THRESHOLD: f32 = 0.01; // RMSエネルギー閾値
-    const MIN_SILENCE_WINDOWS: usize = 8; // 0.8秒以上の無音で分割
-
-    let mut segments = Vec::new();
-    let mut in_speech = false;
-    let mut speech_start = 0.0f32;
-    let mut silence_count = 0usize;
-
-    for (i, window) in samples.chunks(WINDOW_SIZE).enumerate() {
-        let rms: f32 = (window.iter().map(|s| s * s).sum::<f32>() / window.len() as f32).sqrt();
-        let current_time = (i * WINDOW_SIZE) as f32 / SAMPLE_RATE;
-
-        if rms > THRESHOLD {
-            // 有音
-            if !in_speech {
-                speech_start = current_time;
-                in_speech = true;
-            }
-            silence_count = 0;
-        } else {
-            // 無音
-            if in_speech {
-                silence_count += 1;
-                if silence_count >= MIN_SILENCE_WINDOWS {
-                    // 十分な無音があったので発話区間を終了
-                    let speech_end = current_time
-                        - (MIN_SILENCE_WINDOWS as f32 * WINDOW_SIZE as f32 / SAMPLE_RATE);
-                    segments.push((speech_start, speech_end));
-                    in_speech = false;
-                    silence_count = 0;
-                }
-            }
-        }
-    }
-
-    // 最後の発話区間
-    if in_speech {
-        let end_time = samples.len() as f32 / SAMPLE_RATE;
-        segments.push((speech_start, end_time));
-    }
-
-    segments
-}

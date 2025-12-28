@@ -75,7 +75,9 @@ impl JapaneseWords {
     pub const SABOTAGE_REACTOR: &'static str = "原子炉故障";
     pub const SABOTAGE_DOORS: &'static str = "ドア封鎖";
 
+    pub const SPAWN: &'static str = "湧き";
     pub const VENT: &'static str = "ベント";
+    pub const TASK: &'static str = "タスク";
 
     // The Skeld 部屋名
     pub const SKELD_ROOMS: &'static [&'static str] = &[

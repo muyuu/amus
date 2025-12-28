@@ -63,6 +63,7 @@ impl MainView {
     }
 
     // 各種機能ウィンドウの描画
+    #[allow(unused_variables)]
     fn render_windows(
         state: &mut AppState,
         resources: &mut Resources,

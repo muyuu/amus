@@ -18,6 +18,8 @@ pub use asset_manager::AssetManager;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod file_downloader;
 #[cfg(not(target_arch = "wasm32"))]
+pub mod transcriber_thread;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod voice_recorder;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod whisper_transcriber;
@@ -31,6 +33,8 @@ pub use whisper_transcriber::{
     get_model_download_url, get_model_path, get_model_size_description, model_exists,
     TranscriptionSegment, WhisperTranscriber,
 };
+#[cfg(not(target_arch = "wasm32"))]
+pub use transcriber_thread::{TranscribeRequest, TranscribeResult, TranscriberThread};
 
 /// ハードウェアリソース
 ///
