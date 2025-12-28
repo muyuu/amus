@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 #[cfg(not(target_arch = "wasm32"))]
 use crate::i18n::words::ja::JapaneseWords;
 #[cfg(not(target_arch = "wasm32"))]
+use crate::i18n::keys as K;
+#[cfg(not(target_arch = "wasm32"))]
 use crate::models::Area;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::resources::{
@@ -164,11 +166,15 @@ impl VoiceMemoFeature {
         self.update(resources, ui.ctx());
 
         // 4. Viewを描画してActionsを取得
-        let actions = egui::Window::new("音声メモ")
+        let translator = app_state.translator();
+        let window_title = translator.t(K::VOICE_MEMO_TITLE);
+        let actions = egui::Window::new(window_title)
             .collapsible(true)
             .resizable(true)
             .default_size([300.0, 400.0])
-            .show(ui.ctx(), |ui| view::VoiceMemoView::render(&self.state, ui))
+            .show(ui.ctx(), |ui| {
+                view::VoiceMemoView::render(&self.state, translator, ui)
+            })
             .and_then(|r| r.inner)
             .unwrap_or_default();
 

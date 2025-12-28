@@ -8,12 +8,17 @@ impl EnglishWords {
 
     // 基本動詞
     pub const START: &'static str = "Start";
+    pub const END: &'static str = "End";
+    pub const STOP: &'static str = "Stop";
     pub const CANCEL: &'static str = "Cancel";
     pub const ADD: &'static str = "Add";
     pub const SAVE: &'static str = "Save";
     pub const LOAD: &'static str = "Load";
     pub const NEW: &'static str = "New";
     pub const SET: &'static str = "Set";
+    pub const CLEAR: &'static str = "Clear";
+    pub const RECORD: &'static str = "Record";
+    pub const DOWNLOAD: &'static str = "Download";
 
     // 基本名詞
     pub const GAME: &'static str = "Game";
@@ -58,4 +63,21 @@ impl EnglishWords {
     pub const SABOTAGE_DOORS: &'static str = "Doors Sabotage";
 
     pub const VENT: &'static str = "Vent";
+
+    // 追加の名詞
+    pub const MODEL: &'static str = "Model";
+    pub const MIC: &'static str = "Microphone";
+    pub const ERROR: &'static str = "Error";
+    pub const TIME: &'static str = "Time";
+    pub const SECOND: &'static str = "s";
+    pub const ITEM: &'static str = "items";
+
+    // 音声メモ関連
+    pub const VOICE_MEMO: &'static str = "Voice Memo";
+    pub const TRANSCRIBING: &'static str = "Transcribing";
+    pub const DOWNLOADING: &'static str = "Downloading";
+    pub const VOICE_RECOGNITION: &'static str = "Voice recognition";
+    pub const WHISPER_MODEL: &'static str = "Whisper model";
+    pub const MODEL_REQUIRED_SIZE: &'static str = "~142MB";
+    pub const RECORD_BUTTON_HINT: &'static str = "Press record to capture speech";
 }

@@ -101,5 +101,54 @@ pub fn get_translations() -> HashMap<&'static str, String> {
     translations.insert(SABOTAGE_O2, W::SABOTAGE_O2.to_string());
     translations.insert(SABOTAGE_DOORS, W::SABOTAGE_DOORS.to_string());
 
+    // 音声メモ
+    translations.insert(VOICE_MEMO_TITLE, W::VOICE_MEMO.to_string());
+    translations.insert(
+        VOICE_MEMO_MODEL_DOWNLOADING,
+        format!("⏳ {}を{}...", W::MODEL, W::DOWNLOADING),
+    );
+    translations.insert(
+        VOICE_MEMO_MODEL_NOT_FOUND,
+        format!("⚠ {}が見つかりません", W::WHISPER_MODEL),
+    );
+    translations.insert(
+        VOICE_MEMO_MODEL_REQUIRED,
+        format!(
+            "{}には{}の{}が必要です",
+            W::VOICE_RECOGNITION,
+            W::MODEL_REQUIRED_SIZE,
+            W::MODEL
+        ),
+    );
+    translations.insert(
+        VOICE_MEMO_DOWNLOAD_MODEL,
+        format!("📥 {}を{}", W::MODEL, W::DOWNLOAD),
+    );
+    translations.insert(
+        VOICE_MEMO_MIC_UNAVAILABLE,
+        format!("⚠ {}が利用できません", W::MIC),
+    );
+    translations.insert(VOICE_MEMO_END, W::END.to_string());
+    translations.insert(VOICE_MEMO_REC, "● REC".to_string());
+    translations.insert(VOICE_MEMO_STOP, format!("⏹ {}", W::STOP));
+    translations.insert(
+        VOICE_MEMO_TRANSCRIBING,
+        format!("⏳ {}...", W::TRANSCRIBING),
+    );
+    translations.insert(VOICE_MEMO_RECORD, format!("🎤 {}", W::RECORD));
+    translations.insert(
+        VOICE_MEMO_START_TURN,
+        format!("▶ {}{}", W::TURN, W::START),
+    );
+    translations.insert(VOICE_MEMO_CLEAR, format!("🗑 {}", W::CLEAR));
+    translations.insert(VOICE_MEMO_ERROR, W::ERROR.to_string());
+    translations.insert(
+        VOICE_MEMO_START_PROMPT,
+        format!("{}を{}してください", W::TURN, W::START),
+    );
+    translations.insert(VOICE_MEMO_RECORD_HINT, W::RECORD_BUTTON_HINT.to_string());
+    translations.insert(VOICE_MEMO_MEMO_COUNT, W::NOTES.to_string());
+    translations.insert(VOICE_MEMO_TURN_TIME, format!("{}{}", W::TURN, W::TIME));
+
     translations
 }

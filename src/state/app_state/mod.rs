@@ -38,4 +38,8 @@ impl AppState {
     pub fn t(&self, key: &str) -> String {
         self.data.translator.t(key).to_string()
     }
+
+    pub fn translator(&self) -> &crate::i18n::Translator {
+        &self.data.translator
+    }
 }
