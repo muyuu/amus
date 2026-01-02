@@ -1,16 +1,16 @@
 [package]
-name = "amus"
+name = "memongus"
 version = "1.2.1"
 edition = "2021"
 
 # バイナリターゲット
 [[bin]]
-name = "amus"
+name = "memongus"
 path = "src/main.rs"
 
 # ライブラリターゲット
 [lib]
-name = "amus_wasm"
+name = "memongus_wasm"
 path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
 

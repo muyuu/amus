@@ -12,7 +12,7 @@ mod resources;
 mod state;
 
 use crate::i18n::keys::*;
-use amus_wasm::log::Log;
+use memongus_wasm::log::Log;
 use app::AmusApp;
 use eframe::egui;
 use egui::*;

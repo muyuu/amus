@@ -182,35 +182,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "amus"
-version = "1.2.1"
-dependencies = [
- "chrono",
- "colored",
- "console_error_panic_hook",
- "console_log",
- "cpal",
- "dirs-next",
- "eframe",
- "egui",
- "env_logger",
- "hound",
- "image",
- "include_dir",
- "log",
- "serde",
- "serde_json",
- "ureq",
- "uuid",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
- "wgpu",
- "whisper-rs",
- "winres",
-]
-
-[[package]]
 name = "android-activity"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2426,6 +2397,35 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "memongus"
+version = "1.2.1"
+dependencies = [
+ "chrono",
+ "colored",
+ "console_error_panic_hook",
+ "console_log",
+ "cpal",
+ "dirs-next",
+ "eframe",
+ "egui",
+ "env_logger",
+ "hound",
+ "image",
+ "include_dir",
+ "log",
+ "serde",
+ "serde_json",
+ "ureq",
+ "uuid",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "wgpu",
+ "whisper-rs",
+ "winres",
 ]
 
 [[package]]
