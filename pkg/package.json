@@ -1,14 +1,14 @@
 {
-  "name": "amus",
+  "name": "memongus",
   "type": "module",
   "version": "1.2.1",
   "files": [
-    "amus_wasm_bg.wasm",
-    "amus_wasm.js",
-    "amus_wasm.d.ts"
+    "memongus_wasm_bg.wasm",
+    "memongus_wasm.js",
+    "memongus_wasm.d.ts"
   ],
-  "main": "amus_wasm.js",
-  "types": "amus_wasm.d.ts",
+  "main": "memongus_wasm.js",
+  "types": "memongus_wasm.d.ts",
   "sideEffects": [
     "./snippets/*"
   ]
