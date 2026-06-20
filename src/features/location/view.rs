@@ -7,6 +7,7 @@ use crate::models::player;
 use crate::resources::AssetManager;
 use crate::state::Slices;
 use egui::*;
+use crate::common::ui_color_adapter::to_egui_color;
 
 #[derive(Default)]
 pub struct SpawnResult {
@@ -66,7 +67,7 @@ impl LocationView {
                 None => return result,
             };
 
-            let color = player.color.to_egui_color();
+            let color = to_egui_color(&player.color);
             let ui_rect = ui.max_rect();
             let size = LocationConstants::SPAWN_LOCATION_SIZE;
 
@@ -224,7 +225,7 @@ impl LocationView {
             );
         } else {
             // フォールバック: 元の円描画
-            let mut color = player.color.to_egui_color();
+            let mut color = to_egui_color(&player.color);
             if player.is_ejected() {
                 color = Color32::from_rgba_premultiplied(color.r(), color.g(), color.b(), 128);
             }

@@ -9,6 +9,7 @@ use crate::{
 };
 
 use super::constants::O2Constants;
+use crate::common::ui_color_adapter::to_egui_color;
 
 pub struct O2ViewResult {
     pub click_player: Option<Player>,
@@ -52,7 +53,7 @@ impl O2View {
             let res = tile::with_mark(
                 ui,
                 &tile::WithMarkConf {
-                    color: player.color.to_egui_color(),
+                    color: to_egui_color(&player.color),
                     label: Some(player.name.clone()),
                     size: None,
                     is_selected: false,

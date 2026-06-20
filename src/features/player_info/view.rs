@@ -6,6 +6,7 @@ use crate::{
     state::{PlayerInfoAction, Slices},
 };
 use egui::*;
+use crate::common::ui_color_adapter::to_egui_color;
 
 pub struct PlayerInfoView;
 
@@ -81,7 +82,7 @@ impl PlayerInfoView {
         let tile_result = tile(
             ui,
             &TileConf {
-                color: player.color.to_egui_color(),
+                color: to_egui_color(&player.color),
                 label: None,
                 size: Some(Vec2::splat(PlayerInfoConstants::COLOR_BOX_SIZE)),
                 is_selected: false,

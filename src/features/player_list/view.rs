@@ -5,6 +5,7 @@ use crate::{
     state::{PlayerAction, Slices},
 };
 use egui::*;
+use crate::common::ui_color_adapter::to_egui_color;
 
 pub struct PlayerListView;
 
@@ -111,7 +112,7 @@ impl PlayerListView {
             let result = tile(
                 ui,
                 &TileConf {
-                    color: player.color.to_egui_color(),
+                    color: to_egui_color(&player.color),
                     label: Some(player.name.clone()),
                     size: Some(Vec2::new(Constants::TILE_SIZE, Constants::TILE_SIZE)),
                     is_selected,
