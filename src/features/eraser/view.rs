@@ -1,6 +1,7 @@
 use crate::models::Color;
 use crate::state::{EraserAction, Slices};
 use egui::*;
+use crate::common::ui_color_adapter::to_egui_color;
 
 pub struct EraserView;
 
@@ -35,8 +36,8 @@ impl EraserView {
         let (rect, response) =
             ui.allocate_exact_size(Vec2::new(40.0, 40.0), Sense::click_and_drag());
 
-        let color = Color::Yellow.to_egui_color();
-        let border = Color::White.to_egui_color();
+        let color = to_egui_color(&Color::Yellow);
+        let border = to_egui_color(&Color::White);
         ui.painter().rect_filled(rect, 4.0, color);
         if let Some(t) = crate::resources::AssetManager::get(ui.ctx()).get_eraser_texture() {
             ui.painter().image(

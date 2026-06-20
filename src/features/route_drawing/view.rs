@@ -4,6 +4,7 @@ use crate::models::{
 };
 use crate::state::Slices;
 use egui::*;
+use crate::common::ui_color_adapter::to_egui_color;
 
 pub struct RouteDrawingView;
 
@@ -165,7 +166,7 @@ impl RouteDrawingView {
                 let stroke_width = 6.0;
                 painter.line_segment(
                     [prev_pos, pos],
-                    (stroke_width, player.color.to_egui_color()),
+                    (stroke_width, to_egui_color(&player.color)),
                 );
                 prev_pos = pos;
             }

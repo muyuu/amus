@@ -7,6 +7,7 @@ use crate::i18n::keys::*;
 use crate::models::player::PlayerId;
 use crate::models::{Area, Color};
 use crate::state::{SetupAction, Slices};
+use crate::common::ui_color_adapter::to_egui_color;
 
 pub struct SetupView;
 
@@ -124,7 +125,7 @@ impl SetupView {
             // 色プレビューのサイズと位置を調整
             let (rect, _response) = ui.allocate_exact_size(Vec2::new(20.0, 20.0), Sense::hover());
             ui.painter()
-                .rect_filled(rect, 2.0, selected_color.to_egui_color());
+                .rect_filled(rect, 2.0, to_egui_color(&selected_color));
 
             ui.add_space(4.0);
 
@@ -133,8 +134,8 @@ impl SetupView {
             select_with_contents(ui, id, selected_text, |ui| {
                 for color in available_colors {
                     let text = RichText::new(color.name())
-                        .background_color(color.to_egui_color())
-                        .color(choose_text_color(color.to_egui_color()));
+                        .background_color(to_egui_color(&color))
+                        .color(choose_text_color(to_egui_color(&color)));
                     if ui
                         .selectable_label(selected_color == *color, text)
                         .clicked()
