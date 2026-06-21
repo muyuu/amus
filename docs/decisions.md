@@ -64,3 +64,38 @@
 独立能力型アプリでは「変更の局所性」で規模に強い。しかし本アプリは共有ドメイン型のため、
 ロジックを feature へ分散するとドメインの不変条件が散り、横断的な一貫性ドリフトと共有状態バグが
 規模で増える。よって採らない。
+
+---
+
+## 0002. Actions 層を「段取り層」として残す
+
+- 状態: 採用
+- 日付: 2026-06-21
+- 関連: #139, #137
+
+### 背景
+
+中央 dispatch（0001）を導入した結果、`handle_actions` から呼ぶ各ドメインの `handle_xxx`
+（`Actions<'a>` の impl）は `&mut AppState` を包んで mutator を呼ぶだけの薄いラッパに見える。
+`Actions` 層を廃止して `handle_actions` か `AppState` に畳むか、層として残すかを検討した。
+
+### 決定
+
+`Actions` 層を **「intent を受けて AppState の原子的操作を段取りする層」** として残す。
+
+### 理由
+
+- 責務が分かれている: **AppState** = データ・不変条件・原子的操作（`add_location` 等）、
+  **Actions(`handle_xxx`)** = intent を受けて原子的操作を段取りする層（例: location の
+  `HandleAreaClick` の判定列）。畳むと段取りロジックが AppState か `handle_actions` に散る。
+- `state/actions/*.rs` がドメイン単位の handler 置き場として機能している。
+- **重要**: undo/redo・replay・ロギング等の横断フックを挟む単一点は `Actions` 層ではなく
+  **`AmusApp::handle_actions`**（全 `AppAction` が通る所、0001 で導入済み）。これは
+  `Actions` 層の存廃とは独立。よって「フックのために Actions を残す」必要はなく、
+  残す理由はあくまで上記のコード構成（段取り層の分離）。
+
+### 帰結
+
+- `Actions` は `state/actions/` にドメイン分割で残す。
+- 横断的な記録 / replay / undo が必要になったら `handle_actions` にフックを挟む
+  （undo/redo は別途、Action の可逆化 or スナップショットが必要）。
