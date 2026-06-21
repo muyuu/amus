@@ -30,6 +30,11 @@ impl<'a> Slices<'a> {
         self.data.translator.t(key).to_string()
     }
 
+    /// 翻訳器への参照（同じ翻訳器で複数回 `t` を引きたい場合に使う）
+    pub fn translator(&self) -> &'a crate::i18n::Translator {
+        &self.data.translator
+    }
+
     /// ゲーム関連の読み取り専用アクセス
     pub fn game(&self) -> GameSlice<'a> {
         GameSlice::new(self.data)

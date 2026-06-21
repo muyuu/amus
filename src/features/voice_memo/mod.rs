@@ -25,7 +25,7 @@ use crate::i18n::words::ja::JapaneseWords;
 use crate::log_error;
 use crate::models::Area;
 use crate::resources::{DownloadProgress, Resources, TranscriberThread};
-use crate::state::AppState;
+use crate::state::Slices;
 
 /// 音声メモのアクション
 #[derive(Debug, Clone)]
@@ -104,10 +104,9 @@ impl VoiceMemoFeature {
 
     /// 音声メモウィンドウを描画し、操作を Action として返す（中央 dispatch の②）。
     /// 状態のリアルタイム更新は `update()`（①）、Action の適用は `handle_action()`（③）。
-    pub fn render(&mut self, app_state: &AppState, ui: &mut egui::Ui) -> Vec<AppAction> {
-        // 1. コンテキスト情報を収集（AppStateから）
-        let player_info: Vec<(String, String)> = app_state
-            .slices()
+    pub fn render(&mut self, slices: &Slices, ui: &mut egui::Ui) -> Vec<AppAction> {
+        // 1. コンテキスト情報を収集（Slices から）
+        let player_info: Vec<(String, String)> = slices
             .player()
             .players()
             .map(|players| {
@@ -118,7 +117,7 @@ impl VoiceMemoFeature {
             })
             .unwrap_or_default();
 
-        let room_names: &[&str] = match app_state.slices().game().area() {
+        let room_names: &[&str] = match slices.game().area() {
             Some(Area::Skeld) => JapaneseWords::SKELD_ROOMS,
             Some(Area::Mira) => JapaneseWords::MIRA_ROOMS,
             Some(Area::Polus) => JapaneseWords::POLUS_ROOMS,
@@ -129,7 +128,7 @@ impl VoiceMemoFeature {
         self.set_context(&player_info, room_names);
 
         // 3. Viewを描画して Action を取得
-        let translator = app_state.translator();
+        let translator = slices.translator();
         let window_title = translator.t(K::VOICE_MEMO_TITLE);
         let actions = egui::Window::new(window_title)
             .collapsible(true)
