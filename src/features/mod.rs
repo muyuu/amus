@@ -7,6 +7,8 @@ pub mod player_info;
 pub mod player_list;
 pub mod route_drawing;
 pub mod setup_dialog;
+// voice_memo は録音・Whisper 書き起こし（cpal / whisper-rs）を使うネイティブ専用機能
+#[cfg(not(target_arch = "wasm32"))]
 pub mod voice_memo;
 pub mod welcome;
 pub mod window;
