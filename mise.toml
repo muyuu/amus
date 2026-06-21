@@ -7,6 +7,9 @@ rust = "1.91.1"
 # Windows環境でも動作するように Node.js でスクリプト記述
 node = "24"
 
+# `mise watch`（dev / check-watch タスク）が使うファイル監視ツール
+watchexec = "latest"
+
 [env]
 RUST_BACKTRACE = "1"
 
