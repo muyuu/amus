@@ -36,8 +36,15 @@ jobs:
                 restore-keys: |
                   ${{ runner.os }}-cargo-wasm-
 
+            - name: Rustツールチェインのキャッシュ
+              uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+              with:
+                path: ~/.rustup
+                key: ${{ runner.os }}-rustup-${{ hashFiles('rust-toolchain.toml', 'mise.toml', '.mise/dependencies.toml') }}
+
+            # toolchain / component のダウンロードは稀に一時失敗するためリトライする
             - name: Rustツールチェイン・ターゲットのインストール
-              run: mise run install-rust-toolchain
+              run: for i in 1 2 3; do mise run install-rust-toolchain && break || sleep 10; done
 
             - name: フォーマット検査
               run: mise run fmt-check
@@ -82,8 +89,15 @@ jobs:
                 restore-keys: |
                   ${{ runner.os }}-cargo-native-
 
+            - name: Rustツールチェインのキャッシュ
+              uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+              with:
+                path: ~/.rustup
+                key: ${{ runner.os }}-rustup-${{ hashFiles('rust-toolchain.toml', 'mise.toml', '.mise/dependencies.toml') }}
+
+            # toolchain / component のダウンロードは稀に一時失敗するためリトライする
             - name: Rustツールチェイン・ターゲットのインストール
-              run: mise run install-rust-toolchain
+              run: for i in 1 2 3; do mise run install-rust-toolchain && break || sleep 10; done
 
             - name: 静的解析（native、警告はエラー扱い）
               run: mise run lint-native
