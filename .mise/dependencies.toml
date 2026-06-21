@@ -19,13 +19,18 @@ hide = true
 
 ["install-rust-toolchain"]
 description = "CI用: Rustツールチェイン関連をインストール"
-depends = ["install-target-wasm32", "install-rust-components"]
+# rustup を並列で走らせると、未インストールの toolchain を複数プロセスが同時に
+# ダウンロードして競合する（downloads/*.partial の rename に失敗する）。
+# depends を1本の鎖（target → components）にして直列実行を強制する。
+# 先頭の install-target-wasm32 が toolchain 本体のインストールも兼ねる。
+depends = ["install-rust-components"]
 hide = true
 
 ["install-rust-components"]
 # mise が RUSTUP_TOOLCHAIN を設定すると rust-toolchain.toml の components 指定が
 # 無視されるため、fmt / clippy で必要な component を明示的に入れる。
 description = "rustfmt / clippy component をインストール"
+depends = ["install-target-wasm32"]
 run = "rustup component add rustfmt clippy"
 hide = true
 
