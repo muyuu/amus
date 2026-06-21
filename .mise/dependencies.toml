@@ -1,11 +1,19 @@
 ["install-all"]
 description = "全ての依存パッケージをインストール"
 depends = [
+    "install-mise-tools",
     "install-cargo-packages",
     "install-rust-build-tools",
     "install-npm-packages",
     "install-dev-tools",
 ]
+
+["install-mise-tools"]
+# mise.toml [tools] に宣言したツール（rust / node / watchexec）を導入する。
+# watchexec は dev / check-watch の `mise watch` が使う。
+description = "mise 管理ツールをインストール"
+run = "mise install"
+hide = true
 
 ["install-cargo-packages"]
 description = "Rust依存パッケージをインストール"
@@ -41,7 +49,7 @@ hide = true
 
 ["install-dev-tools"]
 description = "開発用ツールをインストール"
-depends = ["install-cargo-watch", "install-miniserve"]
+depends = ["install-miniserve"]
 hide = true
 
 ["install-target-wasm32"]
@@ -52,11 +60,6 @@ hide = true
 ["install-wasm-pack"]
 description = "wasm-packをインストール"
 run = "cargo install wasm-pack"
-hide = true
-
-["install-cargo-watch"]
-description = "cargo-watchをインストール"
-run = "cargo install cargo-watch"
 hide = true
 
 ["install-miniserve"]
