@@ -40,7 +40,7 @@ mod tests {
     fn state_with_player() -> (AppState, PlayerId) {
         let mut state = AppState::new();
         state.create_game_from_setup();
-        let id = state.players().unwrap()[0].id;
+        let id = state.slices().player().players().unwrap()[0].id;
         (state, id)
     }
 
@@ -51,8 +51,8 @@ mod tests {
 
         Actions::new(&mut state).handle_player(PlayerAction::Select(id));
 
-        assert_eq!(state.selected_player_id(), Some(id));
-        assert!(!state.erase_mode());
+        assert_eq!(state.slices().player().selected_player_id(), Some(id));
+        assert!(!state.slices().ui().erase_mode());
     }
 
     #[test]
@@ -61,8 +61,8 @@ mod tests {
 
         Actions::new(&mut state).handle_player(PlayerAction::StartDrag(id));
 
-        assert_eq!(state.dragging_player_id(), Some(id));
-        assert_eq!(state.selected_player_id(), Some(id));
+        assert_eq!(state.slices().ui().dragging_player_id(), Some(id));
+        assert_eq!(state.slices().player().selected_player_id(), Some(id));
     }
 
     #[test]
@@ -72,6 +72,6 @@ mod tests {
 
         Actions::new(&mut state).handle_player(PlayerAction::StopDrag);
 
-        assert!(state.dragging_player_id().is_none());
+        assert!(state.slices().ui().dragging_player_id().is_none());
     }
 }

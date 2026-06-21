@@ -157,7 +157,7 @@ mod tests {
         src.create_game_from_setup();
         src.select_wave(4);
         src.set_erase_mode(true);
-        let player_count = src.players().unwrap().len();
+        let player_count = src.slices().player().players().unwrap().len();
 
         src.save_to_storage(Some(&mut storage)).unwrap();
 
@@ -165,10 +165,11 @@ mod tests {
         let mut dst = AppState::new();
         dst.load_from_storage(Some(&storage)).unwrap();
 
-        assert_eq!(dst.current_wave_index(), 4);
-        assert!(dst.erase_mode());
-        assert_eq!(dst.setup_state().selected_area, Area::Polus);
-        let game = dst.game().expect("ゲームが復元される");
+        assert_eq!(dst.slices().wave().current_wave_index(), 4);
+        assert!(dst.slices().ui().erase_mode());
+        assert_eq!(dst.slices().setup().selected_area(), &Area::Polus);
+        let slices = dst.slices();
+        let game = slices.game().game().expect("ゲームが復元される");
         assert_eq!(game.players.len(), player_count);
         assert_eq!(game.area, Area::Polus);
     }
@@ -180,8 +181,8 @@ mod tests {
         state.load_from_storage(None).unwrap();
 
         // ストレージが無ければ既定値のまま
-        assert!(state.game().is_none());
-        assert_eq!(state.current_wave_index(), 0);
-        assert!(!state.erase_mode());
+        assert!(state.slices().game().game().is_none());
+        assert_eq!(state.slices().wave().current_wave_index(), 0);
+        assert!(!state.slices().ui().erase_mode());
     }
 }

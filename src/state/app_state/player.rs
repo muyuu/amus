@@ -69,26 +69,9 @@ impl AppState {
         }
     }
 
-    pub fn players(&self) -> Option<Vec<Player>> {
-        self.game().map(|game| game.players.clone())
-    }
-
-    // 読み取りは Slices に集約予定 (#136)。現状この AppState 直アクセサはテストからのみ使用。
-    #[allow(dead_code)]
-    pub fn player(&self, player_id: PlayerId) -> Option<Player> {
-        let players = self.players()?;
-        players.into_iter().find(|p| p.id == player_id)
-    }
-
     pub(super) fn player_mut(&mut self, player_id: PlayerId) -> Option<&mut Player> {
         let game = self.data.game.as_mut()?;
         game.players.iter_mut().find(|p| p.id == player_id)
-    }
-
-    // 読み取りは Slices に集約予定 (#136)。現状この AppState 直アクセサはテストからのみ使用。
-    #[allow(dead_code)]
-    pub fn player_name_editing(&self, player_id: PlayerId) -> bool {
-        self.data.editing_name_player_id == Some(player_id)
     }
 
     pub fn toggle_player_name_editing(&mut self, player_id: PlayerId) {
@@ -120,12 +103,13 @@ impl AppState {
     #[allow(dead_code)]
     /// 色の変更を試みる（重複している場合は変更を拒否）
     pub fn try_update_player_color(&mut self, id: PlayerId, color: Color) -> Result<(), String> {
-        // setup_state での重複チェック
+        // 既存プレイヤーとの色重複チェック
         let is_duplicate = self
-            .players()
-            .unwrap_or_default()
-            .iter()
-            .any(|p| p.id != id && p.color == color);
+            .data
+            .game
+            .as_ref()
+            .map(|g| g.players.iter().any(|p| p.id != id && p.color == color))
+            .unwrap_or(false);
 
         if is_duplicate {
             return Err(format!("色 {} は既に使用されています", color.name()));
@@ -241,23 +225,35 @@ mod tests {
     fn game_with_players() -> (AppState, PlayerId) {
         let mut state = AppState::new();
         state.create_game_from_setup();
-        let id = state.players().expect("players")[0].id;
+        let id = state.slices().player().players().expect("players")[0].id;
         (state, id)
     }
 
     #[test]
     fn toggle_player_state_cycles_alive_killed_ejected() {
         let (mut state, id) = game_with_players();
-        assert_eq!(state.player(id).unwrap().state, PlayerState::Alive);
+        assert_eq!(
+            state.slices().player().player(id).unwrap().state,
+            PlayerState::Alive
+        );
 
         state.toggle_player_state(id);
-        assert_eq!(state.player(id).unwrap().state, PlayerState::Killed);
+        assert_eq!(
+            state.slices().player().player(id).unwrap().state,
+            PlayerState::Killed
+        );
 
         state.toggle_player_state(id);
-        assert_eq!(state.player(id).unwrap().state, PlayerState::Ejected);
+        assert_eq!(
+            state.slices().player().player(id).unwrap().state,
+            PlayerState::Ejected
+        );
 
         state.toggle_player_state(id);
-        assert_eq!(state.player(id).unwrap().state, PlayerState::Alive);
+        assert_eq!(
+            state.slices().player().player(id).unwrap().state,
+            PlayerState::Alive
+        );
     }
 
     #[test]
@@ -266,11 +262,12 @@ mod tests {
 
         state.update_player_name(id, "あお".to_string());
 
-        assert_eq!(state.player(id).unwrap().name, "あお");
+        assert_eq!(state.slices().player().player(id).unwrap().name, "あお");
         // setup_state 側も同じ id のプレイヤーが更新される
-        let in_setup = state
-            .setup_state()
-            .players
+        let slices = state.slices();
+        let in_setup = slices
+            .setup()
+            .players()
             .iter()
             .find(|p| p.id == id)
             .expect("setup にも同じ id が居る");
@@ -281,12 +278,15 @@ mod tests {
     fn try_update_player_color_rejects_duplicate() {
         let (mut state, id) = game_with_players();
         // 別プレイヤーが既に使っている色を取得
-        let other_color = state.players().unwrap()[1].color.clone();
+        let other_color = state.slices().player().players().unwrap()[1].color.clone();
 
         let result = state.try_update_player_color(id, other_color.clone());
 
         assert!(result.is_err());
         // 拒否されたので色は変わらない
-        assert_ne!(state.player(id).unwrap().color, other_color);
+        assert_ne!(
+            state.slices().player().player(id).unwrap().color,
+            other_color
+        );
     }
 }

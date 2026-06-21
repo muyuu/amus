@@ -30,16 +30,11 @@ impl Actions<'_> {
                 self.state.toggle_player_name_editing(player_id);
             }
             PlayerInfoAction::ToggleDoneButton(player_id) => {
-                let game = match self.state.game() {
-                    Some(g) => g,
+                let done_button = match self.state.slices().player().player(player_id) {
+                    Some(p) => p.done_button,
                     None => return,
                 };
-                let player = match game.players.iter().find(|p| p.id == player_id) {
-                    Some(p) => p,
-                    None => return,
-                };
-                self.state
-                    .update_player_button(player_id, !player.done_button);
+                self.state.update_player_button(player_id, !done_button);
             }
             PlayerInfoAction::ChangeColor(player_id, color) => {
                 if let Err(e) = self.state.try_update_player_color(player_id, color) {
@@ -58,7 +53,7 @@ mod tests {
     fn state_with_player() -> (AppState, PlayerId) {
         let mut state = AppState::new();
         state.create_game_from_setup();
-        let id = state.players().unwrap()[0].id;
+        let id = state.slices().player().players().unwrap()[0].id;
         (state, id)
     }
 
@@ -69,17 +64,17 @@ mod tests {
         Actions::new(&mut state)
             .handle_player_info(PlayerInfoAction::UpdateName(id, "きいろ".to_string()));
 
-        assert_eq!(state.player(id).unwrap().name, "きいろ");
+        assert_eq!(state.slices().player().player(id).unwrap().name, "きいろ");
     }
 
     #[test]
     fn toggle_done_button_flips_flag() {
         let (mut state, id) = state_with_player();
-        assert!(!state.player(id).unwrap().done_button);
+        assert!(!state.slices().player().player(id).unwrap().done_button);
 
         Actions::new(&mut state).handle_player_info(PlayerInfoAction::ToggleDoneButton(id));
 
-        assert!(state.player(id).unwrap().done_button);
+        assert!(state.slices().player().player(id).unwrap().done_button);
     }
 
     #[test]
@@ -88,6 +83,6 @@ mod tests {
 
         Actions::new(&mut state).handle_player_info(PlayerInfoAction::StartEditingName(id));
 
-        assert!(state.player_name_editing(id));
+        assert!(state.slices().player().is_editing_name(id));
     }
 }

@@ -4,26 +4,12 @@ use super::AppState;
 
 // ウェーブとルート管理関連
 impl AppState {
-    /// 現在の wave への不変参照を取得
-    pub fn current_wave(&self) -> Result<&Wave, String> {
-        let wave_index = self.data.current_wave_index;
-        let game = self.data.game.as_ref().ok_or("Game not found")?;
-        game.get_wave(wave_index)
-            .ok_or_else(|| "Wave not found".to_string())
-    }
-
     /// 現在の wave への可変参照を取得
     pub(super) fn current_wave_mut(&mut self) -> Result<&mut Wave, String> {
         let wave_index = self.data.current_wave_index;
         let game = self.data.game.as_mut().ok_or("Game not found")?;
         game.get_wave_mut(wave_index)
             .ok_or_else(|| "Wave not found".to_string())
-    }
-
-    // 読み取りは Slices に集約予定 (#136)。現状この AppState 直アクセサはテストからのみ使用。
-    #[allow(dead_code)]
-    pub fn routes(&self) -> Option<Vec<Route>> {
-        self.current_wave().ok().map(|wave| wave.routes.clone())
     }
 
     pub fn push_route(&mut self, route: Route) {
@@ -71,41 +57,41 @@ mod tests {
     #[test]
     fn current_wave_errors_without_game() {
         let state = AppState::new();
-        assert!(state.current_wave().is_err());
+        assert!(state.slices().wave().current_wave().is_none());
     }
 
     #[test]
     fn push_route_appends_to_current_wave() {
         let mut state = AppState::new();
         state.create_game_from_setup();
-        let player_id = state.players().unwrap()[0].id;
-        assert_eq!(state.routes().unwrap().len(), 0);
+        let player_id = state.slices().player().players().unwrap()[0].id;
+        assert_eq!(state.slices().wave().routes().unwrap().len(), 0);
 
         state.push_route(Route::Draw(Draw::new(player_id)));
 
-        assert_eq!(state.routes().unwrap().len(), 1);
+        assert_eq!(state.slices().wave().routes().unwrap().len(), 1);
     }
 
     #[test]
     fn push_route_targets_selected_wave() {
         let mut state = AppState::new();
         state.create_game_from_setup();
-        let player_id = state.players().unwrap()[0].id;
+        let player_id = state.slices().player().players().unwrap()[0].id;
 
         state.select_wave(2);
         state.push_route(Route::Draw(Draw::new(player_id)));
 
         // wave 2 にだけ route が入る
-        assert_eq!(state.routes().unwrap().len(), 1);
+        assert_eq!(state.slices().wave().routes().unwrap().len(), 1);
         state.select_wave(0);
-        assert_eq!(state.routes().unwrap().len(), 0);
+        assert_eq!(state.slices().wave().routes().unwrap().len(), 0);
     }
 
     #[test]
     fn add_point_to_last_route_skips_duplicate_point() {
         let mut state = AppState::new();
         state.create_game_from_setup();
-        let player_id = state.players().unwrap()[0].id;
+        let player_id = state.slices().player().players().unwrap()[0].id;
         state.push_route(Route::Draw(Draw::new(player_id)));
 
         state.add_point_to_last_route(Point::new(1.0, 1.0));
@@ -113,7 +99,8 @@ mod tests {
         state.add_point_to_last_route(Point::new(1.0, 1.0));
         state.add_point_to_last_route(Point::new(2.0, 2.0));
 
-        let routes = state.routes().unwrap();
+        let slices = state.slices();
+        let routes = slices.wave().routes().unwrap();
         let Route::Draw(draw) = &routes[0] else {
             panic!("Draw のはず");
         };

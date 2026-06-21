@@ -17,7 +17,7 @@ impl Actions<'_> {
     pub fn handle_route_drawing(&mut self, action: RouteDrawingAction) {
         match action {
             RouteDrawingAction::StartDraw => {
-                let player_id = match self.state.selected_player_id() {
+                let player_id = match self.state.slices().player().selected_player_id() {
                     Some(id) => id,
                     None => return,
                 };
@@ -27,7 +27,7 @@ impl Actions<'_> {
                 self.state.push_route(Route::Erase(Erase::default()));
             }
             RouteDrawingAction::AddPoint(point) => {
-                if self.state.current_wave().is_ok() {
+                if self.state.slices().wave().current_wave().is_some() {
                     self.state.add_point_to_last_route(point);
                 }
             }

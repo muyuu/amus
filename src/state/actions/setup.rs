@@ -52,7 +52,7 @@ mod tests {
 
         Actions::new(&mut state).handle_setup(SetupAction::SelectArea(Area::Polus));
 
-        assert_eq!(state.setup_state().selected_area, Area::Polus);
+        assert_eq!(state.slices().setup().selected_area(), &Area::Polus);
     }
 
     #[test]
@@ -61,7 +61,7 @@ mod tests {
 
         Actions::new(&mut state).handle_setup(SetupAction::AdjustPlayerCount(15));
 
-        assert_eq!(state.setup_state().player_count, 15);
+        assert_eq!(state.slices().setup().player_count(), 15);
     }
 
     #[test]
@@ -71,7 +71,7 @@ mod tests {
 
         Actions::new(&mut state).handle_setup(SetupAction::StartGame);
 
-        assert!(state.game().is_some());
+        assert!(state.slices().game().game().is_some());
         assert!(!state.show_setup_dialog());
     }
 

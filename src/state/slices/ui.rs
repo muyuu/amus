@@ -1,3 +1,4 @@
+use crate::models::location::DraggingLocation;
 use crate::models::player::PlayerId;
 use crate::state::app_data::AppData;
 
@@ -29,5 +30,10 @@ impl<'a> UiSlice<'a> {
     /// 指定プレイヤーがドラッグ中かどうか
     pub fn is_dragging_player(&self, player_id: PlayerId) -> bool {
         self.data.dragging_player_id == Some(player_id)
+    }
+
+    /// ドラッグ中の位置情報
+    pub fn dragging_location(&self) -> Option<DraggingLocation> {
+        self.data.dragging_location
     }
 }

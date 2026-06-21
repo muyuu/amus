@@ -21,18 +21,18 @@ impl<'a> WaveSlice<'a> {
     }
 
     /// 現在のウェーブへの参照を取得
-    pub fn current_wave(&self) -> Option<&Wave> {
+    pub fn current_wave(&self) -> Option<&'a Wave> {
         let game = self.data.game.as_ref()?;
         game.get_wave(self.data.current_wave_index)
     }
 
     /// 現在のウェーブのルート一覧
-    pub fn routes(&self) -> Option<&[Route]> {
+    pub fn routes(&self) -> Option<&'a [Route]> {
         self.current_wave().map(|w| w.routes.as_slice())
     }
 
     /// 指定タイプの位置情報を取得
-    pub fn locations(&self, location_type: LocationType) -> Option<&HashMap<PlayerId, Point>> {
+    pub fn locations(&self, location_type: LocationType) -> Option<&'a HashMap<PlayerId, Point>> {
         let wave = self.current_wave()?;
         match location_type {
             LocationType::Spawn => Some(&wave.spawn_locations),
@@ -41,12 +41,12 @@ impl<'a> WaveSlice<'a> {
     }
 
     /// 出現位置の一覧
-    pub fn spawn_locations(&self) -> Option<&HashMap<PlayerId, Point>> {
+    pub fn spawn_locations(&self) -> Option<&'a HashMap<PlayerId, Point>> {
         self.locations(LocationType::Spawn)
     }
 
     /// 終了時位置の一覧
-    pub fn end_locations(&self) -> Option<&HashMap<PlayerId, Point>> {
+    pub fn end_locations(&self) -> Option<&'a HashMap<PlayerId, Point>> {
         self.locations(LocationType::End)
     }
 }
