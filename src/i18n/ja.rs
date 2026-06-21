@@ -136,10 +136,7 @@ pub fn get_translations() -> HashMap<&'static str, String> {
         format!("⏳ {}...", W::TRANSCRIBING),
     );
     translations.insert(VOICE_MEMO_RECORD, format!("🎤 {}", W::RECORD));
-    translations.insert(
-        VOICE_MEMO_START_TURN,
-        format!("▶ {}{}", W::TURN, W::START),
-    );
+    translations.insert(VOICE_MEMO_START_TURN, format!("▶ {}{}", W::TURN, W::START));
     translations.insert(VOICE_MEMO_CLEAR, format!("🗑 {}", W::CLEAR));
     translations.insert(VOICE_MEMO_ERROR, W::ERROR.to_string());
     translations.insert(

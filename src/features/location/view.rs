@@ -1,3 +1,4 @@
+use crate::common::ui_color_adapter::to_egui_color;
 use crate::components::{background_label_with_font_size, change_color, ChangeColorConf};
 use crate::constants::AppConstants;
 use crate::features::location::constants::LocationConstants;
@@ -7,7 +8,6 @@ use crate::models::player;
 use crate::resources::AssetManager;
 use crate::state::Slices;
 use egui::*;
-use crate::common::ui_color_adapter::to_egui_color;
 
 #[derive(Default)]
 pub struct SpawnResult {

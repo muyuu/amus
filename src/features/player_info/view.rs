@@ -1,3 +1,4 @@
+use crate::common::ui_color_adapter::to_egui_color;
 use crate::{
     components::{background_label, change_color, tile, ChangeColorConf, TileConf},
     features::player_info::constants::PlayerInfoConstants,
@@ -6,7 +7,6 @@ use crate::{
     state::{PlayerInfoAction, Slices},
 };
 use egui::*;
-use crate::common::ui_color_adapter::to_egui_color;
 
 pub struct PlayerInfoView;
 

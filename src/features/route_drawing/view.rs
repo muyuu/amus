@@ -1,10 +1,10 @@
+use crate::common::ui_color_adapter::to_egui_color;
 use crate::models::{
     route::{Draw, Erase},
     Point, Route,
 };
 use crate::state::Slices;
 use egui::*;
-use crate::common::ui_color_adapter::to_egui_color;
 
 pub struct RouteDrawingView;
 

@@ -173,4 +173,3 @@ fn remove_sound_effects(text: &str) -> String {
 
     result.trim().to_string()
 }
-

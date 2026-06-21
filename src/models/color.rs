@@ -46,7 +46,6 @@ impl Color {
         }
     }
 
-
     pub fn all() -> Vec<Color> {
         vec![
             Color::Red,

@@ -1,11 +1,11 @@
 use super::PlayerInfoConstants as Constants;
+use crate::common::ui_color_adapter::to_egui_color;
 use crate::{
     components::{tile, TileConf},
     models::Player,
     state::{PlayerAction, Slices},
 };
 use egui::*;
-use crate::common::ui_color_adapter::to_egui_color;
 
 pub struct PlayerListView;
 

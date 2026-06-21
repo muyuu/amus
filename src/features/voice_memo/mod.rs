@@ -8,9 +8,9 @@ pub mod view;
 use serde::{Deserialize, Serialize};
 
 #[cfg(not(target_arch = "wasm32"))]
-use crate::i18n::words::ja::JapaneseWords;
-#[cfg(not(target_arch = "wasm32"))]
 use crate::i18n::keys as K;
+#[cfg(not(target_arch = "wasm32"))]
+use crate::i18n::words::ja::JapaneseWords;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::log_debug;
 #[cfg(not(target_arch = "wasm32"))]
@@ -166,7 +166,10 @@ impl VoiceMemoFeature {
             match TranscriberThread::new() {
                 Ok(t) => Some(t),
                 Err(e) => {
-                    log_error!("VoiceMemo", &format!("TranscriberThread初期化エラー: {}", e));
+                    log_error!(
+                        "VoiceMemo",
+                        &format!("TranscriberThread初期化エラー: {}", e)
+                    );
                     None
                 }
             }
@@ -335,7 +338,10 @@ impl VoiceMemoFeature {
                             .partial_cmp(&b.timestamp_secs)
                             .unwrap_or(std::cmp::Ordering::Equal)
                     });
-                    log_debug!("VoiceMemo", &format!("解析完了: {}件のメモを追加", added_count));
+                    log_debug!(
+                        "VoiceMemo",
+                        &format!("解析完了: {}件のメモを追加", added_count)
+                    );
                 }
             }
 
@@ -374,19 +380,27 @@ impl VoiceMemoFeature {
                 // 発話開始
                 self.is_speaking = true;
                 self.speech_start_sample = window_start;
-                log_debug!("VoiceMemo", &format!("発話開始検出 (RMS={:.4}, sample_rate={})", rms, sample_rate));
+                log_debug!(
+                    "VoiceMemo",
+                    &format!("発話開始検出 (RMS={:.4}, sample_rate={})", rms, sample_rate)
+                );
             }
             self.silence_start = None;
         } else {
             // 無音
             if self.is_speaking {
                 // 発話中に無音を検出
-                let silence_start = self.silence_start.get_or_insert_with(std::time::Instant::now);
+                let silence_start = self
+                    .silence_start
+                    .get_or_insert_with(std::time::Instant::now);
                 let silence_duration = silence_start.elapsed().as_secs_f32();
 
                 if silence_duration >= SILENCE_DURATION_SECS {
                     // 無音が十分続いた → 発話終了、チャンクを送信
-                    log_debug!("VoiceMemo", &format!("無音検知、解析開始 (無音継続={:.1}s)", silence_duration));
+                    log_debug!(
+                        "VoiceMemo",
+                        &format!("無音検知、解析開始 (無音継続={:.1}s)", silence_duration)
+                    );
                     self.send_speech_chunk(resources, sample_rate);
                 }
             }
@@ -416,13 +430,28 @@ impl VoiceMemoFeature {
 
         if samples.len() < min_speech_samples {
             let duration_secs = samples.len() as f32 / 16000.0;
-            log_debug!("VoiceMemo", &format!("発話が短すぎるためスキップ ({:.1}秒, {}サンプル@16kHz)", duration_secs, samples.len()));
+            log_debug!(
+                "VoiceMemo",
+                &format!(
+                    "発話が短すぎるためスキップ ({:.1}秒, {}サンプル@16kHz)",
+                    duration_secs,
+                    samples.len()
+                )
+            );
             self.reset_vad_state();
             return;
         }
 
         let duration_secs = samples.len() as f32 / 16000.0;
-        log_debug!("VoiceMemo", &format!("発話チャンク準備: {:.1}秒分 ({}サンプル@16kHz, 元rate={})", duration_secs, samples.len(), sample_rate));
+        log_debug!(
+            "VoiceMemo",
+            &format!(
+                "発話チャンク準備: {:.1}秒分 ({}サンプル@16kHz, 元rate={})",
+                duration_secs,
+                samples.len(),
+                sample_rate
+            )
+        );
 
         self.send_transcription_request(samples, next_pos);
         self.reset_vad_state();
@@ -441,8 +470,8 @@ impl VoiceMemoFeature {
             let current_round = self.state.rounds.len().saturating_sub(1);
 
             // オフセット計算: 録音開始時のラウンド経過時間 + 発話開始位置
-            let chunk_start_secs = self.recording_start_round_secs
-                + (self.speech_start_sample as f32 / 48000.0); // 元サンプルレート（概算）
+            let chunk_start_secs =
+                self.recording_start_round_secs + (self.speech_start_sample as f32 / 48000.0); // 元サンプルレート（概算）
 
             let request = TranscribeRequest {
                 samples,
@@ -455,7 +484,13 @@ impl VoiceMemoFeature {
             self.state.pending_chunks += 1;
             self.state.is_processing = true;
 
-            log_debug!("VoiceMemo", &format!("発話チャンク送信: offset={:.1}s, round={}", chunk_start_secs, current_round));
+            log_debug!(
+                "VoiceMemo",
+                &format!(
+                    "発話チャンク送信: offset={:.1}s, round={}",
+                    chunk_start_secs, current_round
+                )
+            );
         }
     }
 
@@ -491,7 +526,10 @@ impl VoiceMemoFeature {
                                         log_debug!("VoiceMemo", "TranscriberThread初期化完了");
                                     }
                                     Err(e) => {
-                                        log_error!("VoiceMemo", &format!("TranscriberThread初期化エラー: {}", e));
+                                        log_error!(
+                                            "VoiceMemo",
+                                            &format!("TranscriberThread初期化エラー: {}", e)
+                                        );
                                     }
                                 }
                             }
@@ -550,7 +588,13 @@ impl VoiceMemoFeature {
                     self.silence_start = None;
                     self.is_speaking = false;
                     self.recording_start_round_secs = self.state.round_elapsed_secs;
-                    log_debug!("VoiceMemo", &format!("録音開始: round_elapsed={:.1}s", self.recording_start_round_secs));
+                    log_debug!(
+                        "VoiceMemo",
+                        &format!(
+                            "録音開始: round_elapsed={:.1}s",
+                            self.recording_start_round_secs
+                        )
+                    );
                 }
                 Err(e) => {
                     log_error!("VoiceMemo", &format!("録音開始エラー: {}", e));
@@ -646,13 +690,27 @@ impl VoiceMemoFeature {
 
                     // 発話中だった場合は残りのサンプルを送信
                     if let Some((samples, next_pos)) = remaining {
-                        if samples.len() >= min_speech_samples && self.transcriber_thread.is_some() {
+                        if samples.len() >= min_speech_samples && self.transcriber_thread.is_some()
+                        {
                             let duration_secs = samples.len() as f32 / 16000.0;
-                            log_debug!("VoiceMemo", &format!("録音停止: 最終発話チャンク送信 ({:.1}秒), pending={}", duration_secs, self.state.pending_chunks + 1));
+                            log_debug!(
+                                "VoiceMemo",
+                                &format!(
+                                    "録音停止: 最終発話チャンク送信 ({:.1}秒), pending={}",
+                                    duration_secs,
+                                    self.state.pending_chunks + 1
+                                )
+                            );
                             self.send_transcription_request(samples, next_pos);
                         } else {
                             let duration_secs = samples.len() as f32 / 16000.0;
-                            log_debug!("VoiceMemo", &format!("録音停止: 発話が短すぎるためスキップ ({:.1}秒)", duration_secs));
+                            log_debug!(
+                                "VoiceMemo",
+                                &format!(
+                                    "録音停止: 発話が短すぎるためスキップ ({:.1}秒)",
+                                    duration_secs
+                                )
+                            );
                         }
                     } else {
                         log_debug!("VoiceMemo", "録音停止: 発話中ではなかった");

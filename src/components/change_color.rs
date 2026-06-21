@@ -1,3 +1,4 @@
+use crate::common::ui_color_adapter::to_egui_color;
 use crate::{
     components::{
         grid::grid,
@@ -7,7 +8,6 @@ use crate::{
     state::Slices,
 };
 use egui::*;
-use crate::common::ui_color_adapter::to_egui_color;
 
 pub struct ChangeColorConf {
     pub player_id: PlayerId,

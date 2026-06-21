@@ -1,5 +1,6 @@
 use egui::*;
 
+use crate::common::ui_color_adapter::to_egui_color;
 use crate::common::{choose_text_color, CommonTexts};
 use crate::components::{select_with_contents, select_with_options};
 use crate::constants::SelectIds;
@@ -7,7 +8,6 @@ use crate::i18n::keys::*;
 use crate::models::player::PlayerId;
 use crate::models::{Area, Color};
 use crate::state::{SetupAction, Slices};
-use crate::common::ui_color_adapter::to_egui_color;
 
 pub struct SetupView;
 

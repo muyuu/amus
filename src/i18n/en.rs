@@ -147,15 +147,16 @@ pub fn get_translations() -> HashMap<&'static str, String> {
         format!("⏳ {}...", W::TRANSCRIBING),
     );
     translations.insert(VOICE_MEMO_RECORD, format!("🎤 {}", W::RECORD));
-    translations.insert(
-        VOICE_MEMO_START_TURN,
-        format!("▶ {} {}", W::START, W::TURN),
-    );
+    translations.insert(VOICE_MEMO_START_TURN, format!("▶ {} {}", W::START, W::TURN));
     translations.insert(VOICE_MEMO_CLEAR, format!("🗑 {}", W::CLEAR));
     translations.insert(VOICE_MEMO_ERROR, W::ERROR.to_string());
     translations.insert(
         VOICE_MEMO_START_PROMPT,
-        format!("Please {} a {}", W::START.to_lowercase(), W::TURN.to_lowercase()),
+        format!(
+            "Please {} a {}",
+            W::START.to_lowercase(),
+            W::TURN.to_lowercase()
+        ),
     );
     translations.insert(VOICE_MEMO_RECORD_HINT, W::RECORD_BUTTON_HINT.to_string());
     translations.insert(VOICE_MEMO_MEMO_COUNT, W::NOTES.to_string());
