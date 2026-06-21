@@ -1,0 +1,55 @@
+name: CI (fmt / lint / test)
+
+on:
+    pull_request:
+    push:
+        branches:
+            - main
+
+jobs:
+    quality:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: チェックアウト
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+            - name: mise のセットアップ
+              uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # v3.5.1
+              env:
+                # GPG検証をスキップ（CIでは署名検証は不要）
+                MISE_NODE_VERIFY: "false"
+
+            - name: Rust依存パッケージのキャッシュ
+              id: cache-cargo
+              uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+              with:
+                path: |
+                  ~/.cargo/registry
+                  ~/.cargo/git
+                  target
+                key: ${{ runner.os }}-cargo-ci-${{ hashFiles('**/Cargo.lock') }}
+
+            - name: Rust依存パッケージのインストール
+              if: steps.cache-cargo.outputs.cache-hit != 'true'
+              run: mise run install-cargo-packages
+
+            - name: Rustツールチェイン・ターゲットのキャッシュ
+              id: cache-rustup
+              uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+              with:
+                path: ~/.rustup
+                key: ${{ runner.os }}-rustup-${{ hashFiles('rust-toolchain.toml', 'mise.toml') }}
+
+            - name: Rustツールチェイン・ターゲットのインストール
+              if: steps.cache-rustup.outputs.cache-hit != 'true'
+              run: mise run install-rust-toolchain
+
+            - name: フォーマット検査
+              run: mise run fmt-check
+
+            - name: 静的解析（native / wasm、警告はエラー扱い）
+              run: mise run lint-ci
+
+            - name: テスト
+              run: mise run test

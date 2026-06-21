@@ -7,6 +7,18 @@ run = "cargo fmt"
 description = "コードの静的解析を行う"
 run = "cargo clippy"
 
+[fmt-check]
+description = "CI用: フォーマット崩れがないか検査する（書き換えない）"
+run = "cargo fmt --check"
+
+[lint-ci]
+description = "CI用: 警告をエラー扱いで native / wasm 両ターゲットを静的解析する"
+# wasm 成果物は lib（trunk がビルド）。native 専用の bin を wasm 用にビルドさせないため lib に絞る。
+run = [
+    "cargo clippy --all-targets -- -D warnings",
+    "cargo clippy --target wasm32-unknown-unknown --lib -- -D warnings",
+]
+
 [test]
 description = "テストを実行する"
 run = "cargo test"
