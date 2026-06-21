@@ -1,5 +1,5 @@
 use crate::models::player::Player;
-use crate::models::{Area, SetupState};
+use crate::models::Area;
 use crate::state::app_data::AppData;
 
 /// セットアップ状態の読み取り専用アクセスを提供
@@ -10,11 +10,6 @@ pub struct SetupSlice<'a> {
 impl<'a> SetupSlice<'a> {
     pub fn new(data: &'a AppData) -> Self {
         Self { data }
-    }
-
-    /// セットアップ状態全体への参照
-    pub fn state(&self) -> &SetupState {
-        &self.data.setup_state
     }
 
     /// 選択中のエリア

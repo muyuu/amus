@@ -1,0 +1,5 @@
+[toolchain]
+# fmt / clippy の結果を全環境（ローカル・CI）で一致させるためにバージョンを固定する。
+# 更新するときは意図的に上げ、fmt / clippy 差分を別コミットで取り込むこと。
+channel = "1.91.1"
+components = ["rustfmt", "clippy"]

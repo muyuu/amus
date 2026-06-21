@@ -73,6 +73,8 @@ impl AppState {
         self.game().map(|game| game.players.clone())
     }
 
+    // 読み取りは Slices に集約予定 (#136)。現状この AppState 直アクセサはテストからのみ使用。
+    #[allow(dead_code)]
     pub fn player(&self, player_id: PlayerId) -> Option<Player> {
         let players = self.players()?;
         players.into_iter().find(|p| p.id == player_id)
@@ -83,6 +85,8 @@ impl AppState {
         game.players.iter_mut().find(|p| p.id == player_id)
     }
 
+    // 読み取りは Slices に集約予定 (#136)。現状この AppState 直アクセサはテストからのみ使用。
+    #[allow(dead_code)]
     pub fn player_name_editing(&self, player_id: PlayerId) -> bool {
         self.data.editing_name_player_id == Some(player_id)
     }

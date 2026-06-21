@@ -1,13 +1,12 @@
+use crate::common::ui_color_adapter::to_egui_color;
 use crate::components::{background_label_with_font_size, change_color, ChangeColorConf};
 use crate::constants::AppConstants;
 use crate::features::location::constants::LocationConstants;
 use crate::models::color::Color;
-use crate::models::location::LocationType;
 use crate::models::player;
 use crate::resources::AssetManager;
 use crate::state::Slices;
 use egui::*;
-use crate::common::ui_color_adapter::to_egui_color;
 
 #[derive(Default)]
 pub struct SpawnResult {
@@ -75,7 +74,7 @@ impl LocationView {
             let margin = size;
 
             // 中心座標を計算してクランプ
-            let center = Self::calculate_clamped_position(&point, ui_rect, margin, margin, margin);
+            let center = Self::calculate_clamped_position(point, ui_rect, margin, margin, margin);
 
             // 描画領域を確保してResponseを取得
             let rect = Rect::from_center_size(center, Vec2::new(size, size));
@@ -151,7 +150,7 @@ impl LocationView {
 
             // 中心座標を計算してクランプ
             let center = Self::calculate_clamped_position(
-                &point,
+                point,
                 ui_rect,
                 margin_top,
                 margin_horizontal,
@@ -178,9 +177,9 @@ impl LocationView {
 
             let painter = ui.painter();
             let asset_manager = AssetManager::get(ui.ctx());
-            Self::render_player(&player, painter, center, size / 2.0, &asset_manager);
-            Self::render_dead_mark(&player, painter, center);
-            Self::render_label(ui, &player, center, size / 2.0);
+            Self::render_player(player, painter, center, size / 2.0, &asset_manager);
+            Self::render_dead_mark(player, painter, center);
+            Self::render_label(ui, player, center, size / 2.0);
 
             // コンテキストメニュー表示（右クリックで即座に表示）
             Self::render_location_context_menu(

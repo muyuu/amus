@@ -18,7 +18,7 @@ impl MapView {
             None => return Self::render_default_area(&painter, rect),
         };
 
-        let texture = match asset_manager.get_area_texture(&area) {
+        let texture = match asset_manager.get_area_texture(area) {
             Some(texture) => texture,
             None => return Self::render_default_area(&painter, rect),
         };

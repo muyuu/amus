@@ -1,7 +1,7 @@
+use crate::common::ui_color_adapter::to_egui_color;
 use crate::models::Color;
 use crate::state::{EraserAction, Slices};
 use egui::*;
-use crate::common::ui_color_adapter::to_egui_color;
 
 pub struct EraserView;
 

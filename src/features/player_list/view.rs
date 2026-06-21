@@ -1,11 +1,11 @@
 use super::PlayerInfoConstants as Constants;
+use crate::common::ui_color_adapter::to_egui_color;
 use crate::{
     components::{tile, TileConf},
     models::Player,
     state::{PlayerAction, Slices},
 };
 use egui::*;
-use crate::common::ui_color_adapter::to_egui_color;
 
 pub struct PlayerListView;
 
@@ -105,7 +105,7 @@ impl PlayerListView {
         // 必ず最初と最後にギャップを追加
         ui.add_space(gap);
 
-        for (_, player) in players.iter().enumerate() {
+        for player in players.iter() {
             let is_selected = player_slice.is_selected(player.id);
             let is_dragging = ui_slice.is_dragging_player(player.id);
 

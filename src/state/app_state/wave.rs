@@ -20,6 +20,8 @@ impl AppState {
             .ok_or_else(|| "Wave not found".to_string())
     }
 
+    // 読み取りは Slices に集約予定 (#136)。現状この AppState 直アクセサはテストからのみ使用。
+    #[allow(dead_code)]
     pub fn routes(&self) -> Option<Vec<Route>> {
         self.current_wave().ok().map(|wave| wave.routes.clone())
     }

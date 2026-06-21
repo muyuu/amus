@@ -6,6 +6,8 @@ use super::AppState;
 
 // ドラッグ&ドロップ関連
 impl AppState {
+    // 読み取りは Slices に集約予定 (#136)。現状この AppState 直アクセサはテストからのみ使用。
+    #[allow(dead_code)]
     pub fn dragging_player_id(&self) -> Option<PlayerId> {
         self.data.dragging_player_id
     }
@@ -22,6 +24,8 @@ impl AppState {
         self.data.dragging_location = location;
     }
 
+    // 読み取りは Slices に集約予定 (#136)。現状この AppState 直アクセサはテストからのみ使用。
+    #[allow(dead_code)]
     pub fn locations(&self, location_type: LocationType) -> Option<HashMap<PlayerId, Point>> {
         self.current_wave().ok().map(|w| match location_type {
             LocationType::Spawn => w.spawn_locations.clone(),

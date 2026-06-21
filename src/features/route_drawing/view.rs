@@ -1,10 +1,10 @@
+use crate::common::ui_color_adapter::to_egui_color;
 use crate::models::{
     route::{Draw, Erase},
     Point, Route,
 };
 use crate::state::Slices;
 use egui::*;
-use crate::common::ui_color_adapter::to_egui_color;
 
 pub struct RouteDrawingView;
 
@@ -22,7 +22,7 @@ impl RouteDrawingView {
         };
 
         // 消去処理を適用した新しいRouteを生成
-        let processed_routes = Self::process_routes_with_eraser(&routes);
+        let processed_routes = Self::process_routes_with_eraser(routes);
 
         let painter = ui.painter_at(response.rect);
         let rect = response.rect;

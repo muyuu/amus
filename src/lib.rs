@@ -1,4 +1,6 @@
 #![cfg_attr(not(target_arch = "wasm32"), allow(dead_code, unused_imports))]
+// components 配下は mod.rs が再エクスポート配線・<name>.rs が実装本体という構成を意図的に採る
+#![allow(clippy::module_inception)]
 
 pub mod app;
 pub mod common;

@@ -1,0 +1,106 @@
+name: CI (fmt / lint / test)
+
+on:
+    pull_request:
+    push:
+        branches:
+            - main
+
+# 同じ ref に新しい push が来たら実行中の run をキャンセルし、無駄な実行を避ける
+concurrency:
+    group: ci-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    # 軽い検査: 毎 push で実行。system library 不要・whisper.cpp をビルドしない。
+    fast:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: チェックアウト
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+            - name: mise のセットアップ
+              uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # v3.5.1
+              env:
+                MISE_NODE_VERIFY: "false"
+
+            - name: Rust依存パッケージ・ビルド成果物のキャッシュ
+              uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+              with:
+                path: |
+                  ~/.cargo/registry
+                  ~/.cargo/git
+                  target
+                key: ${{ runner.os }}-cargo-wasm-${{ hashFiles('**/Cargo.lock') }}
+                restore-keys: |
+                  ${{ runner.os }}-cargo-wasm-
+
+            - name: Rustツールチェインのキャッシュ
+              uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+              with:
+                path: ~/.rustup
+                key: ${{ runner.os }}-rustup-${{ hashFiles('rust-toolchain.toml', 'mise.toml', '.mise/dependencies.toml') }}
+
+            # toolchain / component のダウンロードは稀に一時失敗するためリトライする
+            - name: Rustツールチェイン・ターゲットのインストール
+              run: for i in 1 2 3; do mise run install-rust-toolchain && break || sleep 10; done
+
+            - name: フォーマット検査
+              run: mise run fmt-check
+
+            - name: 静的解析（wasm、警告はエラー扱い）
+              run: mise run lint-wasm
+
+    # 重い検査: native は cpal(ALSA) / whisper-rs(whisper.cpp) をビルドするため
+    # system library が必要で時間もかかる。main への push 時のみ実行する。
+    native:
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: チェックアウト
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+            # native ビルドの依存:
+            #   libasound2-dev    : cpal (ALSA)
+            #   libudev-dev       : winit / wgpu (Linux)
+            #   libxkbcommon-dev  : winit (Linux)
+            #   cmake clang libclang-dev : whisper-rs (whisper.cpp ビルド + bindgen)
+            - name: native ビルド用システムライブラリのインストール
+              run: |
+                sudo apt-get update
+                sudo apt-get install -y --no-install-recommends \
+                  libasound2-dev libudev-dev libxkbcommon-dev cmake clang libclang-dev
+
+            - name: mise のセットアップ
+              uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # v3.5.1
+              env:
+                MISE_NODE_VERIFY: "false"
+
+            - name: Rust依存パッケージ・ビルド成果物のキャッシュ
+              uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+              with:
+                path: |
+                  ~/.cargo/registry
+                  ~/.cargo/git
+                  target
+                key: ${{ runner.os }}-cargo-native-${{ hashFiles('**/Cargo.lock') }}
+                restore-keys: |
+                  ${{ runner.os }}-cargo-native-
+
+            - name: Rustツールチェインのキャッシュ
+              uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+              with:
+                path: ~/.rustup
+                key: ${{ runner.os }}-rustup-${{ hashFiles('rust-toolchain.toml', 'mise.toml', '.mise/dependencies.toml') }}
+
+            # toolchain / component のダウンロードは稀に一時失敗するためリトライする
+            - name: Rustツールチェイン・ターゲットのインストール
+              run: for i in 1 2 3; do mise run install-rust-toolchain && break || sleep 10; done
+
+            - name: 静的解析（native、警告はエラー扱い）
+              run: mise run lint-native
+
+            - name: テスト
+              run: mise run test

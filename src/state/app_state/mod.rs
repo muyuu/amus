@@ -9,16 +9,9 @@ use crate::state::app_data::AppData;
 use crate::state::slices::Slices;
 
 /// アプリケーション状態へのアクセスを提供する構造体
+#[derive(Default)]
 pub struct AppState {
     pub(super) data: AppData,
-}
-
-impl Default for AppState {
-    fn default() -> Self {
-        Self {
-            data: AppData::default(),
-        }
-    }
 }
 
 // 基本的なコンストラクタとデータアクセス

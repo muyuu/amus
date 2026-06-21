@@ -10,6 +10,4 @@ pub use actions::{
     RouteDrawingAction, SetupAction, WindowAction,
 };
 pub use app_state::AppState;
-pub use slices::{GameSlice, PlayerSlice, SetupSlice, Slices, UiSlice, WaveSlice};
-pub use storage::AppStorage;
-pub use storage_keys::StorageKeys;
+pub use slices::Slices;

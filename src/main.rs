@@ -1,4 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// components 配下は mod.rs が再エクスポート配線・<name>.rs が実装本体という構成を意図的に採る
+#![allow(clippy::module_inception)]
 
 mod app;
 mod common;
@@ -12,10 +14,10 @@ mod resources;
 mod state;
 
 use crate::i18n::keys::*;
-use memongus_wasm::log::Log;
 use app::AmusApp;
 use eframe::egui;
 use egui::*;
+use memongus_wasm::log::Log;
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result<()> {

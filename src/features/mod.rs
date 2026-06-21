@@ -20,6 +20,7 @@ use voice_memo::VoiceMemoFeature;
 ///
 /// 状態を持つ Feature をまとめて管理する。
 /// AmusApp から MainView に渡して使用する。
+#[derive(Default)]
 pub struct Features {
     #[cfg(not(target_arch = "wasm32"))]
     pub voice_memo: VoiceMemoFeature,
@@ -36,20 +37,5 @@ impl Features {
     #[cfg(target_arch = "wasm32")]
     pub fn new() -> Self {
         Self {}
-    }
-}
-
-impl Default for Features {
-    fn default() -> Self {
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            Self {
-                voice_memo: VoiceMemoFeature::default(),
-            }
-        }
-        #[cfg(target_arch = "wasm32")]
-        {
-            Self {}
-        }
     }
 }

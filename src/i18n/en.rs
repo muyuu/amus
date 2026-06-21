@@ -6,7 +6,7 @@ pub fn get_translations() -> HashMap<&'static str, String> {
     let mut translations = HashMap::new();
 
     // アプリケーション
-    translations.insert(APP_TITLE, format!("{}", W::APP_TITLE));
+    translations.insert(APP_TITLE, W::APP_TITLE.to_string());
 
     // メニュー (using word dictionary)
     translations.insert(MENU_FILE, W::FILE.to_string());
@@ -88,7 +88,7 @@ pub fn get_translations() -> HashMap<&'static str, String> {
     translations.insert(MAIN_SELECT_PROMPT, "Please select".to_string());
     translations.insert(MAIN_STATUS_ALIVE, W::ALIVE.to_string());
     translations.insert(MAIN_STATUS_DEAD, W::DEAD.to_string());
-    translations.insert(MAIN_WELCOME_TITLE, format!("{}", W::APP_TITLE));
+    translations.insert(MAIN_WELCOME_TITLE, W::APP_TITLE.to_string());
     translations.insert(
         MAIN_WELCOME_MESSAGE,
         format!(
@@ -147,15 +147,16 @@ pub fn get_translations() -> HashMap<&'static str, String> {
         format!("⏳ {}...", W::TRANSCRIBING),
     );
     translations.insert(VOICE_MEMO_RECORD, format!("🎤 {}", W::RECORD));
-    translations.insert(
-        VOICE_MEMO_START_TURN,
-        format!("▶ {} {}", W::START, W::TURN),
-    );
+    translations.insert(VOICE_MEMO_START_TURN, format!("▶ {} {}", W::START, W::TURN));
     translations.insert(VOICE_MEMO_CLEAR, format!("🗑 {}", W::CLEAR));
     translations.insert(VOICE_MEMO_ERROR, W::ERROR.to_string());
     translations.insert(
         VOICE_MEMO_START_PROMPT,
-        format!("Please {} a {}", W::START.to_lowercase(), W::TURN.to_lowercase()),
+        format!(
+            "Please {} a {}",
+            W::START.to_lowercase(),
+            W::TURN.to_lowercase()
+        ),
     );
     translations.insert(VOICE_MEMO_RECORD_HINT, W::RECORD_BUTTON_HINT.to_string());
     translations.insert(VOICE_MEMO_MEMO_COUNT, W::NOTES.to_string());

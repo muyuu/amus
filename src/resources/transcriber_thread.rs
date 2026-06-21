@@ -82,7 +82,10 @@ impl TranscriberThread {
     }
 
     /// 書き起こしループ（バックグラウンドスレッド）
-    fn transcriber_loop(request_rx: Receiver<TranscribeRequest>, result_tx: Sender<TranscribeResult>) {
+    fn transcriber_loop(
+        request_rx: Receiver<TranscribeRequest>,
+        result_tx: Sender<TranscribeResult>,
+    ) {
         use super::whisper_transcriber::WhisperTranscriber;
 
         // Whisperを初期化
@@ -119,7 +122,8 @@ impl TranscriberThread {
                                 seg.timestamp_secs += req.offset_secs;
                             }
                             // 結果のテキストも表示
-                            let texts: Vec<&str> = segments.iter().map(|s| s.text.as_str()).collect();
+                            let texts: Vec<&str> =
+                                segments.iter().map(|s| s.text.as_str()).collect();
                             eprintln!(
                                 "{} [TranscriberThread] 書き起こし完了: {}セグメント {:?}",
                                 now(),

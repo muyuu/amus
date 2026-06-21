@@ -19,7 +19,14 @@ hide = true
 
 ["install-rust-toolchain"]
 description = "CI用: Rustツールチェイン関連をインストール"
-depends = ["install-target-wasm32"]
+depends = ["install-target-wasm32", "install-rust-components"]
+hide = true
+
+["install-rust-components"]
+# mise が RUSTUP_TOOLCHAIN を設定すると rust-toolchain.toml の components 指定が
+# 無視されるため、fmt / clippy で必要な component を明示的に入れる。
+description = "rustfmt / clippy component をインストール"
+run = "rustup component add rustfmt clippy"
 hide = true
 
 ["install-npm-packages"]

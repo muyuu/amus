@@ -42,11 +42,6 @@ pub fn get_model_download_url() -> &'static str {
     "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin"
 }
 
-/// モデルサイズの説明
-pub fn get_model_size_description() -> &'static str {
-    "約466MB"
-}
-
 // =============================================================================
 // WhisperTranscriber
 // =============================================================================
@@ -64,11 +59,6 @@ impl WhisperTranscriber {
             .map_err(|e| format!("Whisperモデルの読み込みに失敗: {}", e))?;
 
         Ok(Self { ctx })
-    }
-
-    /// デフォルトのモデルパスで初期化
-    pub fn with_default_model() -> Result<Self, String> {
-        Self::new(&get_model_path())
     }
 
     /// 音声データを書き起こし
@@ -173,4 +163,3 @@ fn remove_sound_effects(text: &str) -> String {
 
     result.trim().to_string()
 }
-

@@ -1,5 +1,7 @@
 [tools]
-rust = "stable"
+# fmt / clippy 結果を全環境で一致させるためバージョンを固定する。
+# 正準は rust-toolchain.toml。更新時は両方を同じ版に揃える。
+rust = "1.91.1"
 
 # ./scripts/ にある各種スクリプト用
 # Windows環境でも動作するように Node.js でスクリプト記述
