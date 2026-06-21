@@ -23,7 +23,7 @@ trunk build --release  # 本番ビルド
 ### 設計ドキュメント
 
 - **[ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - レイヤー構成、データフロー、Feature設計
-- **[STATE_MANAGEMENT.md](./docs/STATE_MANAGEMENT.md)** - AppState/AppData、RefCell、ビジネスロジック配置
+- **[STATE_MANAGEMENT.md](./docs/STATE_MANAGEMENT.md)** - AppState/AppData、Slices/Actions、ビジネスロジック配置
 
 ### 基本方針
 
@@ -33,19 +33,21 @@ Model (データ構造)
 AppData (データコンテナ)
   ↓
 AppState (アクセス制御 + ビジネスロジック)
+  ├─ Slices  (読み取り)
+  └─ Actions (書き込み)
   ↓
-Feature → View → Interaction
+Feature → View
 ```
 
 - **Model**: 純粋なデータ構造。ロジックを持たない
-- **AppState**: 全てのビジネスロジックを集約。Modelを直接触らせない
-- **View**: 描画のみ。操作結果をResultで返す
-- **Interaction**: Viewの結果を受けてAppStateを更新
+- **AppState**: 全てのビジネスロジックを集約。`AppData`を値で所有する（内部可変性は使わない）
+- **Slices**: 読み取り専用アクセス。Viewはこれでデータを読む
+- **View**: 描画のみ。状態を直接変更せず操作結果（Action）を返す
+- **Actions**: Viewが返した操作結果を受けてAppStateを更新
 
 ### 現在の課題（検討中）
 
-View層がegui（`ui: &mut Ui`）と直接結合している。
-フレームワーク変更を見据える場合、Actions層の明確化を検討。
+View層がegui（`ui: &mut Ui`）と直接結合している。詳細な方針は [ARCHITECTURE_ROADMAP.md](./docs/ARCHITECTURE_ROADMAP.md) を参照。
 
 ## ディレクトリ構造
 
@@ -54,7 +56,7 @@ src/
 ├── app.rs           # エントリーポイント
 ├── state/           # AppState, AppData
 ├── models/          # データ構造
-├── features/        # 機能単位モジュール (View + Interaction)
+├── features/        # 機能単位モジュール (Feature + View)
 ├── components/      # 再利用UIコンポーネント
 ├── assets/          # 画像リソース管理
 ├── i18n/            # 多言語対応
@@ -63,6 +65,6 @@ src/
 
 ## コード規約
 
-- Viewから直接AppDataを変更しない（Interaction経由）
+- Viewから直接AppDataを変更しない（読み取りはSlices、書き込みはActions経由）
 - Modelに状態変更ロジックを持たせない（AppStateに集約）
-- `data_mut()`は最終手段。専用メソッドを優先
+- `AppData`のフィールドは`pub(in crate::state)`。stateモジュール外からは直接触らない

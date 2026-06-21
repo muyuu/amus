@@ -9,25 +9,22 @@
 ## ドキュメント一覧
 
 1. **[ARCHITECTURE.md](./ARCHITECTURE.md)**: アーキテクチャ設計指針
-   - 基本構成とレイヤー構成
+   - 基本構成とレイヤー構成（Model / AppData / AppState / Slices / Actions / Feature / Resources）
    - ディレクトリ構造
-   - Featureの粒度とModelの必要性
-   - グローバルなModelの更新方法
+   - Featureの粒度
    - データフロー
    - 命名規則
    - 禁止事項
 
 2. **[STATE_MANAGEMENT.md](./STATE_MANAGEMENT.md)**: 状態管理パターン
-   - AppDataとAppStateの関係性
-   - 設計意図（所有権、mutの制限、カプセル化）
+   - AppDataとAppStateの関係性（読み取り Slices / 書き込み Actions）
+   - 設計意図（所有権、&mutの限定、カプセル化）
    - 実装パターンとベストプラクティス
-   - RefCellによる借用管理
-   - 他の設計パターンとの比較
 
-3. **[ARCHITECTURE_ROADMAP.md](./ARCHITECTURE_ROADMAP.md)**: アーキテクチャ改善ロードマップ（TODO）
-   - UIフレームワーク分離の方針
-   - AppState分割（Actionsファイル分割）
-   - Redux/Elm的データフローへの移行計画
+3. **[ARCHITECTURE_ROADMAP.md](./ARCHITECTURE_ROADMAP.md)**: アーキテクチャ方針（今後の方向性）
+   - UIフレームワーク分離（View の egui 依存の解消）
+   - アクション処理の中央 dispatch 化
+   - Feature の render シグネチャ規約化 / Actions 層の位置づけ見直し
 
 ## 使い方
 
@@ -45,4 +42,4 @@
 - **アーキテクチャ全般**: `ARCHITECTURE.md`
 - **状態管理・データアクセス**: `STATE_MANAGEMENT.md`
 - **Featureの粒度**: `ARCHITECTURE.md` の「Feature の粒度」セクション
-- **Modelの更新方法**: `ARCHITECTURE.md` の「グローバルなModelの更新」セクション
+- **読み取り/書き込みの分離（Slices / Actions）**: `STATE_MANAGEMENT.md`
