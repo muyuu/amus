@@ -165,16 +165,19 @@ match action {
 - `view.rs` - UI描画
 - `constants.rs` - 定数定義（オプション）
 
-**典型的なFeature構成**: render は `&AppState`（読み取り）で描画し、`Vec<AppAction>` を返すだけ。
-状態は変更しない（変更は `AmusApp::handle_actions` が一括で行う）。
+**render の規約**:
+
+- 読み取りは `&Slices` で受ける（`&AppState` を見せない）。
+- 戻り値は必ず `Vec<AppAction>`（描画のみで操作が無い feature も空 Vec を返す）。
+- 状態は変更しない（変更は `AmusApp::handle_actions` が一括で行う）。
+- egui の入力は描画先に応じて必要なものだけ受ける（基本は `&mut Ui`。`ctx` は `ui.ctx()` から取るので受けない。中央マップ領域を共有する location/route/map のみ `&Response` を併せて受ける）。
 
 ```rust
 pub struct PlayerListFeature;
 
 impl PlayerListFeature {
-    pub fn render(state: &AppState, ui: &mut Ui) -> Vec<AppAction> {
-        let slices = state.slices();
-        PlayerListView::render(&slices, ui)
+    pub fn render(slices: &Slices, ui: &mut Ui) -> Vec<AppAction> {
+        PlayerListView::render(slices, ui)
             .into_iter()
             .map(AppAction::Player)
             .collect()
@@ -299,9 +302,8 @@ src/
 ```rust
 // features/location/mod.rs — render は Action を返すだけ
 impl LocationFeature {
-    pub fn render(state: &AppState, response: &Response, ui: &mut Ui) -> Vec<AppAction> {
-        let slices = state.slices();
-        let result = LocationView::render(&slices, ui);
+    pub fn render(slices: &Slices, response: &Response, ui: &mut Ui) -> Vec<AppAction> {
+        let result = LocationView::render(slices, ui);
 
         let mut location_actions = Vec::new();
         if response.clicked() {

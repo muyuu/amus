@@ -4,17 +4,15 @@ mod view;
 use crate::app_action::AppAction;
 use crate::common::current_point_with_ui;
 use crate::models::{DraggingLocation, LocationType};
-use crate::state::{AppState, LocationAction};
+use crate::state::{LocationAction, Slices};
 use egui::{Response, Ui};
 use view::LocationView;
 
 pub struct LocationFeature;
 
 impl LocationFeature {
-    pub fn render(state: &AppState, response: &Response, ui: &mut Ui) -> Vec<AppAction> {
-        // ViewにはSlices（読み取り専用）を渡す
-        let slices = state.slices();
-        let result = LocationView::render(&slices, ui);
+    pub fn render(slices: &Slices, response: &Response, ui: &mut Ui) -> Vec<AppAction> {
+        let result = LocationView::render(slices, ui);
 
         // ユーザー操作をActionsに変換
         let mut location_actions = Vec::new();

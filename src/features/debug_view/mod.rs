@@ -1,15 +1,17 @@
 mod view;
 
-use crate::state::AppState;
-use egui::Context;
+use crate::app_action::AppAction;
+use crate::state::Slices;
+use egui::Ui;
 use view::DebugView;
 
 pub struct DebugFeature;
 
 impl DebugFeature {
-    pub fn render(state: &AppState, ctx: &Context) {
-        let slices = state.slices();
+    // 描画のみ（操作なし）。ctx は ui.ctx() から取る
+    pub fn render(slices: &Slices, ui: &mut Ui) -> Vec<AppAction> {
         let render_flag = slices.ui().show_debug_view();
-        DebugView::render(&slices, render_flag, ctx);
+        DebugView::render(slices, render_flag, ui.ctx());
+        Vec::new()
     }
 }

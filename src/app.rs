@@ -67,9 +67,17 @@ impl eframe::App for AmusApp {
     fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
         ctx.set_pixels_per_point(1.5);
 
-        // セットアップダイアログ表示中はそれだけを描画
+        // セットアップダイアログ表示中はそれだけを描画。
+        // setup_dialog は ui を受けるので、透明な CentralPanel で ui を用意する
+        // （Window 自体は ui.ctx() に開くので見た目は変わらない）。
         if self.state.show_setup_dialog() {
-            let actions = SetupDialogFeature::render(&self.state, ctx);
+            let actions = {
+                let slices = self.state.slices();
+                CentralPanel::default()
+                    .frame(Frame::NONE)
+                    .show(ctx, |ui| SetupDialogFeature::render(&slices, ui))
+                    .inner
+            };
             self.handle_actions(actions);
             return;
         }
@@ -91,8 +99,8 @@ impl eframe::App for AmusApp {
 
 impl AmusApp {
     fn build_main_ui(&mut self, ctx: &Context, _frame: &mut eframe::Frame) -> Vec<AppAction> {
-        // self の disjoint なフィールドを先に分けて借りておく（クロージャが self 全体を掴まないように）
-        let state = &self.state;
+        // 読み取りは Slices、Feature の状態は features（disjoint なフィールドを分けて借りる）
+        let slices = self.state.slices();
         let features = &mut self.features;
         let mut actions = Vec::new();
 
@@ -103,20 +111,20 @@ impl AmusApp {
                 ui.add_space(4.0);
                 ui.horizontal(|ui| {
                     ui.add_space(8.0);
-                    let head_text = RichText::new(state.t(keys::SIDEBAR_PLAYERS))
+                    let head_text = RichText::new(slices.t(keys::SIDEBAR_PLAYERS))
                         .heading()
                         .color(Color32::WHITE);
                     ui.heading(head_text);
                 });
                 ui.separator();
-                PlayerInfoFeature::render(state, ui)
+                PlayerInfoFeature::render(&slices, ui)
             });
         actions.extend(side.inner);
 
         // 残りの中央領域
         let central = CentralPanel::default()
             .frame(Self::get_frame())
-            .show(ctx, |ui| MainView::render(state, features, ui));
+            .show(ctx, |ui| MainView::render(&slices, features, ui));
         actions.extend(central.inner);
 
         actions

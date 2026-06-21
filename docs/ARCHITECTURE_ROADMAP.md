@@ -31,12 +31,7 @@ impl LocationView {
 
 `fluffy` / `golem` のようなクロスプラットフォーム前提のプロジェクトではないが、UIフレームワークの選定変更コストを下げる狙い。
 
-### 2. Feature の render シグネチャ規約化
-
-Feature ごとに `render` の引数（`&AppState` / `&Response` / `&mut Ui` の組み合わせ）が揺れている。
-View へは `&Slices` だけを渡す（`&AppState` を見せない）など、Feature/View の `render` シグネチャの規約を定める。
-
-### 3. Actions 層の位置づけの見直し
+### 2. Actions 層の位置づけの見直し
 
 `Slices`（読み取り）と `Actions`（書き込み）で読み書きを分離している。
 中央 dispatch を導入した結果、ドメイン handler の薄いラッパが目立つ場合がある。

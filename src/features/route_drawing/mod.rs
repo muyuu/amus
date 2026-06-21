@@ -2,22 +2,19 @@ mod view;
 
 use crate::app_action::AppAction;
 use crate::common::current_point_with_response;
-use crate::state::{AppState, RouteDrawingAction, Slices};
+use crate::state::{RouteDrawingAction, Slices};
 use egui::{Response, Ui};
 use view::RouteDrawingView;
 
 pub struct RouteDrawingFeature;
 
 impl RouteDrawingFeature {
-    pub fn render(state: &AppState, response: &Response, ui: &mut Ui) -> Vec<AppAction> {
-        // ViewにはSlices（読み取り専用）を渡す
-        let slices = state.slices();
-
+    pub fn render(slices: &Slices, response: &Response, ui: &mut Ui) -> Vec<AppAction> {
         // 描画
-        RouteDrawingView::render(&slices, response, ui);
+        RouteDrawingView::render(slices, response, ui);
 
         // ユーザー操作を検出して Action として返す
-        Self::detect_actions(&slices, response)
+        Self::detect_actions(slices, response)
             .into_iter()
             .map(AppAction::RouteDrawing)
             .collect()
