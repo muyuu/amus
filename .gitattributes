@@ -1,0 +1,14 @@
+# テキストファイルの改行コードを LF に統一する（全 OS 共通）。
+# Windows でチェックアウトしても LF を維持し、CRLF 混入を防ぐ。
+* text=auto eol=lf
+
+# バイナリは git に内容変換させない（誤った改行変換を防ぐ）。
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.wasm binary
