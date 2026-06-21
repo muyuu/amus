@@ -115,6 +115,9 @@ impl AmusApp {
             .frame(Self::get_frame())
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
+                    // 左: アプリのバージョン（ビルド時の Cargo.toml の値）
+                    ui.weak(concat!("v", env!("CARGO_PKG_VERSION")));
+
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         // リセットボタン
                         if ui.button("🔄 リセット").clicked() {
