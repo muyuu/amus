@@ -138,12 +138,16 @@ let area = slices.game().area();
 
 **役割**: 状態変更の集約
 
-Viewは状態を直接変更せず、ドメインごとの Action 値（`PlayerAction`、`LocationAction`、`GameAction` など）を返す。`Actions::new(state)`がそれを受けて`AppState`を更新する。ハンドラはドメイン単位で別ファイルに`impl`される（`handle_player` / `handle_location` / `handle_game` など）。
+Feature は状態を直接変更せず、`AppAction`（各ドメイン Action を束ねた enum、`src/app_action.rs`）を返す。
+`AmusApp::handle_actions` が 1 箇所でまとめて dispatch し、ドメイン handler（`handle_player` /
+`handle_location` など、ドメイン単位で別ファイルに`impl`）へ委譲する（中央 dispatch）。
 
 ```rust
-let mut actions = Actions::new(state);
-for action in player_actions {
-    actions.handle_player(action);
+// AmusApp::handle_actions（抜粋）
+match action {
+    AppAction::Player(a) => Actions::new(&mut self.state).handle_player(a),
+    AppAction::Location(a) => Actions::new(&mut self.state).handle_location(a),
+    // ...
 }
 ```
 
@@ -157,26 +161,23 @@ for action in player_actions {
 **役割**: 機能単位のモジュール
 
 各featureは以下の構成を持つ:
-- `mod.rs` - モジュール定義とFeature構造体（Slices→View→Actions を配線するエントリーポイント）
+- `mod.rs` - モジュール定義とFeature構造体（描画して `Vec<AppAction>` を返すエントリーポイント）
 - `view.rs` - UI描画
 - `constants.rs` - 定数定義（オプション）
 
-**典型的なFeature構成**:
+**典型的なFeature構成**: render は `&AppState`（読み取り）で描画し、`Vec<AppAction>` を返すだけ。
+状態は変更しない（変更は `AmusApp::handle_actions` が一括で行う）。
 
 ```rust
 pub struct PlayerListFeature;
 
 impl PlayerListFeature {
-    pub fn render(state: &mut AppState, ui: &mut Ui) {
-        // Viewには Slices（読み取り専用）を渡し、操作結果（Action 群）を受け取る
+    pub fn render(state: &AppState, ui: &mut Ui) -> Vec<AppAction> {
         let slices = state.slices();
-        let player_actions = PlayerListView::render(&slices, ui);
-
-        // Actions で状態を更新する
-        let mut actions = Actions::new(state);
-        for action in player_actions {
-            actions.handle_player(action);
-        }
+        PlayerListView::render(&slices, ui)
+            .into_iter()
+            .map(AppAction::Player)
+            .collect()
     }
 }
 ```
@@ -280,49 +281,28 @@ src/
 
 ## データフロー
 
-### 統一されたデータフロー
+毎フレーム（`AmusApp::update`）を 3 段に統一する（中央 dispatch）。詳細・選定理由は
+[decisions.md](./decisions.md) 0001 を参照。
 
 ```
-AppState.slices() → View.render(&slices) → 操作結果(Action) → Actions.handle_xxx() → AppState更新
+① resources.update(ctx)              リアルタイム更新（タイマー・非同期・voice_memo の VAD/ポーリング）
+② render_views(ctx) → Vec<AppAction> render は &AppState 読み取りのみ。各 Feature は Action を返すだけ
+③ handle_actions(Vec<AppAction>)     &mut で 1 箇所に集約して dispatch → AppState 更新
 ```
 
-### フレーム N: 描画とインタラクション
-
-```
-1. AppState.slices() で読み取り専用ビューを取得
-   ↓
-2. Feature.render() が View.render(&slices, ui) を呼ぶ
-   ↓
-3. View が描画し、操作結果を Action 値として返す
-   ↓
-4. Feature が Actions::new(state) に Action を渡す
-   ↓
-5. Actions が AppState を更新する
-```
-
-### フレーム N+1: 更新された描画
-
-```
-1. 更新された AppState から slices() を取得
-   ↓
-2. Feature.render() を呼び出し
-   ↓
-3. View が描画（変更が反映される）
-```
+- render(②)は読み取り専用なので `&mut AppState` を描画ツリーに通さない。
+- egui のクロージャからは `.inner` で `Vec<AppAction>` を回収して上位へ畳む。
+- 状態変更は③の 1 箇所だけで起きる。
 
 ### 具体例
 
 ```rust
-// features/location/mod.rs
-pub struct LocationFeature;
-
+// features/location/mod.rs — render は Action を返すだけ
 impl LocationFeature {
-    pub fn render(state: &mut AppState, response: &Response, ui: &mut Ui) {
-        // 1. Slices（読み取り専用）を渡して描画し、操作結果を取得
+    pub fn render(state: &AppState, response: &Response, ui: &mut Ui) -> Vec<AppAction> {
         let slices = state.slices();
         let result = LocationView::render(&slices, ui);
 
-        // 2. 操作結果を Action 値に変換
         let mut location_actions = Vec::new();
         if response.clicked() {
             if let Some(point) = current_point_with_ui(ui) {
@@ -331,10 +311,16 @@ impl LocationFeature {
         }
         // ...（ドラッグ・色変更・削除なども同様に Action へ）
 
-        // 3. Actions で状態を更新
-        let mut actions = Actions::new(state);
-        for action in location_actions {
-            actions.handle_location(action);
+        location_actions.into_iter().map(AppAction::Location).collect()
+    }
+}
+
+// app.rs — 収集した Action を 1 箇所で dispatch
+fn handle_actions(&mut self, actions: Vec<AppAction>) {
+    for action in actions {
+        match action {
+            AppAction::Location(a) => Actions::new(&mut self.state).handle_location(a),
+            // ... 他ドメインも同様
         }
     }
 }
@@ -400,30 +386,26 @@ impl Game {
 3. **各Feature**: 画面に描画される全ての機能
 
 ```rust
-// app.rs（抜粋）
+// app.rs（抜粋）— update は ①リアルタイム更新 → ②描画して収集 → ③dispatch の 3 段
 impl eframe::App for AmusApp {
     fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
-        // セットアップダイアログの表示
         if self.state.show_setup_dialog() {
-            SetupDialogFeature::render(&mut self.state, ctx);
+            let actions = SetupDialogFeature::render(&self.state, ctx);
+            self.handle_actions(actions);
             return;
         }
 
-        // メニューUI
+        // ① リアルタイム更新（リソース系のステートフル feature）
+        #[cfg(not(target_arch = "wasm32"))]
+        self.features.voice_memo.update(&self.resources, ctx);
+
         self.build_menu_ui(ctx, frame);
 
-        // メインUI
-        SidePanel::right("player_info_panel").show(ctx, |ui| {
-            PlayerInfoFeature::render(&mut self.state, ui);
-        });
+        // ② 描画して Action を収集（render は &AppState 読み取りのみ）
+        let actions = self.build_main_ui(ctx, frame);
 
-        CentralPanel::default().show(ctx, |ui| {
-            MainView::render(&mut self.state, ui);
-        });
-
-        TopBottomPanel::bottom("player_list_panel").show(ctx, |ui| {
-            PlayerListFeature::render(&mut self.state, ui);
-        });
+        // ③ 1 箇所で dispatch
+        self.handle_actions(actions);
     }
 }
 ```

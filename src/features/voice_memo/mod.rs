@@ -19,6 +19,7 @@ pub mod view;
 
 pub use types::{Round, VoiceMemo, VoiceMemoState};
 
+use crate::app_action::AppAction;
 use crate::i18n::keys as K;
 use crate::i18n::words::ja::JapaneseWords;
 use crate::log_error;
@@ -101,8 +102,9 @@ impl VoiceMemoFeature {
         }
     }
 
-    /// 音声メモウィンドウを描画
-    pub fn render(&mut self, app_state: &AppState, resources: &mut Resources, ui: &mut egui::Ui) {
+    /// 音声メモウィンドウを描画し、操作を Action として返す（中央 dispatch の②）。
+    /// 状態のリアルタイム更新は `update()`（①）、Action の適用は `handle_action()`（③）。
+    pub fn render(&mut self, app_state: &AppState, ui: &mut egui::Ui) -> Vec<AppAction> {
         // 1. コンテキスト情報を収集（AppStateから）
         let player_info: Vec<(String, String)> = app_state
             .slices()
@@ -126,10 +128,7 @@ impl VoiceMemoFeature {
         // 2. コンテキスト設定
         self.set_context(&player_info, room_names);
 
-        // 3. 状態更新
-        self.update(resources, ui.ctx());
-
-        // 4. Viewを描画してActionsを取得
+        // 3. Viewを描画して Action を取得
         let translator = app_state.translator();
         let window_title = translator.t(K::VOICE_MEMO_TITLE);
         let actions = egui::Window::new(window_title)
@@ -142,10 +141,7 @@ impl VoiceMemoFeature {
             .and_then(|r| r.inner)
             .unwrap_or_default();
 
-        // 5. Actionsを処理
-        for action in actions {
-            self.handle_action(resources, action);
-        }
+        actions.into_iter().map(AppAction::VoiceMemo).collect()
     }
 
     fn set_context(&mut self, players: &[(String, String)], room_names: &[&str]) {
@@ -191,7 +187,8 @@ impl VoiceMemoFeature {
         self.context = Some(context);
     }
 
-    fn update(&mut self, resources: &Resources, ctx: &egui::Context) {
+    /// リアルタイム更新（中央 dispatch の①）。タイマー・ポーリング・VAD・ダウンロード進捗。
+    pub fn update(&mut self, resources: &Resources, ctx: &egui::Context) {
         // ラウンド進行中ならタイマーを更新
         if self.state.round_active {
             if let Some(start) = self.state.round_start_time {
@@ -219,7 +216,8 @@ impl VoiceMemoFeature {
         self.update_download_progress(resources);
     }
 
-    fn handle_action(&mut self, resources: &mut Resources, action: VoiceMemoAction) {
+    /// Action の適用（中央 dispatch の③）。
+    pub fn handle_action(&mut self, resources: &mut Resources, action: VoiceMemoAction) {
         match action {
             VoiceMemoAction::StartRound => self.start_round(resources),
             VoiceMemoAction::EndRound => self.end_round(resources),
