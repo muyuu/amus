@@ -31,11 +31,6 @@ impl<'a> PlayerSlice<'a> {
         self.data.selected_player_id == Some(player_id)
     }
 
-    /// プレイヤー名編集中のプレイヤーID
-    pub fn editing_name_player_id(&self) -> Option<PlayerId> {
-        self.data.editing_name_player_id
-    }
-
     /// 指定プレイヤーが名前編集中かどうか
     pub fn is_editing_name(&self, player_id: PlayerId) -> bool {
         self.data.editing_name_player_id == Some(player_id)

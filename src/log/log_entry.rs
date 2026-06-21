@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use chrono::Local;
 use serde::Serialize;
 
+#[cfg(not(target_arch = "wasm32"))]
 use crate::log::LogLevel;
 
 pub struct LogEntry {

@@ -7,17 +7,6 @@ use cpal::{Device, SampleFormat, Stream, StreamConfig};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-/// 録音データ（タイムスタンプ付き）
-#[derive(Debug, Clone)]
-pub struct RecordedSegment {
-    /// 録音開始からの秒数
-    pub start_secs: f32,
-    /// 録音終了からの秒数
-    pub end_secs: f32,
-    /// 音声データ（16kHz, mono, f32）
-    pub samples: Vec<f32>,
-}
-
 /// 音声録音を管理
 pub struct VoiceRecorder {
     device: Device,
@@ -154,8 +143,8 @@ impl VoiceRecorder {
         Ok(())
     }
 
-    /// 録音を停止してデータを取得
-    pub fn stop_recording(&mut self) -> Result<RecordedSegment, String> {
+    /// 録音を停止する
+    pub fn stop_recording(&mut self) -> Result<(), String> {
         // ストリームを停止
         self.stream = None;
 
@@ -164,42 +153,21 @@ impl VoiceRecorder {
             buffer.clone()
         };
 
-        let (start_secs, end_secs) = {
+        let duration_secs = {
             let start_time = self.start_time.lock().unwrap();
-            if let Some(start) = *start_time {
-                let duration = start.elapsed().as_secs_f32();
-                (0.0, duration)
-            } else {
-                (0.0, 0.0)
-            }
+            start_time
+                .map(|start| start.elapsed().as_secs_f32())
+                .unwrap_or(0.0)
         };
 
         eprintln!(
             "録音停止: {}サンプル取得, 録音時間={:.1}秒, 元サンプルレート={}",
             samples.len(),
-            end_secs,
+            duration_secs,
             self.sample_rate
         );
 
-        // Whisperは16kHzを期待するので、必要に応じてリサンプリング
-        let resampled = self.resample_to_16k(&samples);
-
-        eprintln!(
-            "リサンプリング後: {}サンプル (16kHz換算で{:.1}秒)",
-            resampled.len(),
-            resampled.len() as f32 / 16000.0
-        );
-
-        Ok(RecordedSegment {
-            start_secs,
-            end_secs,
-            samples: resampled,
-        })
-    }
-
-    /// 録音中かどうか
-    pub fn is_recording(&self) -> bool {
-        self.stream.is_some()
+        Ok(())
     }
 
     /// 現在の録音時間（秒）

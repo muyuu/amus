@@ -494,7 +494,7 @@ impl VoiceMemoFeature {
         }
     }
 
-    fn update_download_progress(&mut self, resources: &Resources) {
+    fn update_download_progress(&mut self, _resources: &Resources) {
         if let Some(rx) = &self.download_rx {
             let mut latest_progress = None;
             while let Ok(progress) = rx.try_recv() {
@@ -682,7 +682,7 @@ impl VoiceMemoFeature {
 
             // 録音を停止
             match recorder.stop_recording() {
-                Ok(_segment) => {
+                Ok(()) => {
                     self.state.is_recording = false;
 
                     // 16kHzでの最小サンプル数

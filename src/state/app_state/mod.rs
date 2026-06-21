@@ -14,7 +14,6 @@ pub struct AppState {
     pub(super) data: AppData,
 }
 
-
 // 基本的なコンストラクタとデータアクセス
 impl AppState {
     pub fn new() -> Self {

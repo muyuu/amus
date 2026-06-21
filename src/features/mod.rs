@@ -39,4 +39,3 @@ impl Features {
         Self {}
     }
 }
-

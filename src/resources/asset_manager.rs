@@ -7,7 +7,9 @@ use std::sync::Arc;
 use crate::models::Area;
 use crate::models::Theme;
 
-// アセットディレクトリのパスを一元管理
+// アセットディレクトリのパスを一元管理。
+// wasm デバッグビルドのフォント読み込み (load_font_from_assets) でのみ使う。
+#[cfg(all(target_arch = "wasm32", debug_assertions))]
 macro_rules! assets_dir {
     () => {
         "assets"

@@ -4,12 +4,10 @@ use super::AppState;
 
 // UI状態管理関連
 impl AppState {
+    // 読み取りは Slices に集約予定 (#136)。現状この AppState 直アクセサはテストからのみ使用。
+    #[allow(dead_code)]
     pub fn current_wave_index(&self) -> usize {
         self.data.current_wave_index
-    }
-
-    pub fn show_debug_view(&self) -> bool {
-        self.data.show_debug_view
     }
 
     pub fn show_setup_dialog(&self) -> bool {
@@ -32,6 +30,8 @@ impl AppState {
         self.data.selected_player_id = player_id;
     }
 
+    // 読み取りは Slices に集約予定 (#136)。現状この AppState 直アクセサはテストからのみ使用。
+    #[allow(dead_code)]
     pub fn setup_state(&self) -> &SetupState {
         &self.data.setup_state
     }
