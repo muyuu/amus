@@ -1,19 +1,19 @@
 mod constants;
 mod view;
 
-use crate::state::{Actions, AppState};
+use crate::app_action::AppAction;
+use crate::state::AppState;
 use egui::*;
 use view::PlayerInfoView;
 
 pub struct PlayerInfoFeature;
 
 impl PlayerInfoFeature {
-    pub fn render(state: &mut AppState, ui: &mut Ui) {
+    pub fn render(state: &AppState, ui: &mut Ui) -> Vec<AppAction> {
         let slices = state.slices();
-        let player_info_actions = PlayerInfoView::render(&slices, ui);
-        let mut actions = Actions::new(state);
-        for action in player_info_actions {
-            actions.handle_player_info(action);
-        }
+        PlayerInfoView::render(&slices, ui)
+            .into_iter()
+            .map(AppAction::PlayerInfo)
+            .collect()
     }
 }

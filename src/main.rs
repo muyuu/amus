@@ -3,6 +3,7 @@
 #![allow(clippy::module_inception)]
 
 mod app;
+mod app_action;
 mod common;
 mod components;
 mod constants;

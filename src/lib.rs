@@ -3,6 +3,7 @@
 #![allow(clippy::module_inception)]
 
 pub mod app;
+pub mod app_action;
 pub mod common;
 pub mod components;
 pub mod constants;

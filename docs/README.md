@@ -26,6 +26,9 @@
    - アクション処理の中央 dispatch 化
    - Feature の render シグネチャ規約化 / Actions 層の位置づけ見直し
 
+4. **[decisions.md](./decisions.md)**: 設計判断記録（ADR）
+   - 採用した設計の「なぜ」と却下した案
+
 ## 使い方
 
 ### チームのオンボーディング用

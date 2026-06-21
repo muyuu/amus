@@ -1,16 +1,17 @@
 mod constants;
 mod view;
 
+use crate::app_action::AppAction;
 use crate::common::current_point_with_ui;
 use crate::models::{DraggingLocation, LocationType};
-use crate::state::{Actions, AppState, LocationAction};
+use crate::state::{AppState, LocationAction};
 use egui::{Response, Ui};
 use view::LocationView;
 
 pub struct LocationFeature;
 
 impl LocationFeature {
-    pub fn render(state: &mut AppState, response: &Response, ui: &mut Ui) {
+    pub fn render(state: &AppState, response: &Response, ui: &mut Ui) -> Vec<AppAction> {
         // ViewにはSlices（読み取り専用）を渡す
         let slices = state.slices();
         let result = LocationView::render(&slices, ui);
@@ -112,10 +113,9 @@ impl LocationFeature {
             location_actions.push(LocationAction::DeleteLocation(LocationType::End, player_id));
         }
 
-        // Actionsで処理
-        let mut actions = Actions::new(state);
-        for action in location_actions {
-            actions.handle_location(action);
-        }
+        location_actions
+            .into_iter()
+            .map(AppAction::Location)
+            .collect()
     }
 }

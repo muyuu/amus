@@ -1,20 +1,21 @@
 mod constants;
 mod view;
 
-use crate::state::{Actions, AppState, WindowAction};
+use crate::app_action::AppAction;
+use crate::state::{AppState, WindowAction};
 use egui::Ui;
 use view::O2View;
 
 pub struct O2Feature;
 
 impl O2Feature {
-    pub fn render(state: &mut AppState, ui: &mut Ui) {
+    pub fn render(state: &AppState, ui: &mut Ui) -> Vec<AppAction> {
         let slices = state.slices();
         let res = O2View::render(&slices, ui);
 
-        if let Some(player) = res.click_player {
-            let mut actions = Actions::new(state);
-            actions.handle_window(WindowAction::ToggleO2(player.id));
-        }
+        res.click_player
+            .map(|player| AppAction::Window(WindowAction::ToggleO2(player.id)))
+            .into_iter()
+            .collect()
     }
 }
