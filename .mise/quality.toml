@@ -11,13 +11,18 @@ run = "cargo clippy"
 description = "CI用: フォーマット崩れがないか検査する（書き換えない）"
 run = "cargo fmt --check"
 
-[lint-ci]
-description = "CI用: 警告をエラー扱いで native / wasm 両ターゲットを静的解析する"
+[lint-native]
+description = "CI用: native ターゲットを警告エラー扱いで静的解析する"
+run = "cargo clippy --all-targets -- -D warnings"
+
+[lint-wasm]
 # wasm 成果物は lib（trunk がビルド）。native 専用の bin を wasm 用にビルドさせないため lib に絞る。
-run = [
-    "cargo clippy --all-targets -- -D warnings",
-    "cargo clippy --target wasm32-unknown-unknown --lib -- -D warnings",
-]
+description = "CI用: wasm ターゲット(lib)を警告エラー扱いで静的解析する"
+run = "cargo clippy --target wasm32-unknown-unknown --lib -- -D warnings"
+
+[lint-ci]
+description = "CI用: native / wasm 両ターゲットを静的解析する"
+depends = ["lint-native", "lint-wasm"]
 
 [test]
 description = "テストを実行する"
