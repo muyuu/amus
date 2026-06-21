@@ -31,3 +31,47 @@ impl Actions<'_> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::state::{Actions, AppState};
+
+    fn state_with_player() -> (AppState, PlayerId) {
+        let mut state = AppState::new();
+        state.create_game_from_setup();
+        let id = state.players().unwrap()[0].id;
+        (state, id)
+    }
+
+    #[test]
+    fn select_sets_selected_and_clears_erase_mode() {
+        let (mut state, id) = state_with_player();
+        state.set_erase_mode(true);
+
+        Actions::new(&mut state).handle_player(PlayerAction::Select(id));
+
+        assert_eq!(state.selected_player_id(), Some(id));
+        assert!(!state.erase_mode());
+    }
+
+    #[test]
+    fn start_drag_sets_dragging_and_selected() {
+        let (mut state, id) = state_with_player();
+
+        Actions::new(&mut state).handle_player(PlayerAction::StartDrag(id));
+
+        assert_eq!(state.dragging_player_id(), Some(id));
+        assert_eq!(state.selected_player_id(), Some(id));
+    }
+
+    #[test]
+    fn stop_drag_clears_dragging() {
+        let (mut state, id) = state_with_player();
+        Actions::new(&mut state).handle_player(PlayerAction::StartDrag(id));
+
+        Actions::new(&mut state).handle_player(PlayerAction::StopDrag);
+
+        assert!(state.dragging_player_id().is_none());
+    }
+}

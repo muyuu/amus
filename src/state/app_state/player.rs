@@ -228,3 +228,61 @@ impl AppState {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// ゲームを開始し、最初のプレイヤーの id を返すヘルパー
+    fn game_with_players() -> (AppState, PlayerId) {
+        let mut state = AppState::new();
+        state.create_game_from_setup();
+        let id = state.players().expect("players")[0].id;
+        (state, id)
+    }
+
+    #[test]
+    fn toggle_player_state_cycles_alive_killed_ejected() {
+        let (mut state, id) = game_with_players();
+        assert_eq!(state.player(id).unwrap().state, PlayerState::Alive);
+
+        state.toggle_player_state(id);
+        assert_eq!(state.player(id).unwrap().state, PlayerState::Killed);
+
+        state.toggle_player_state(id);
+        assert_eq!(state.player(id).unwrap().state, PlayerState::Ejected);
+
+        state.toggle_player_state(id);
+        assert_eq!(state.player(id).unwrap().state, PlayerState::Alive);
+    }
+
+    #[test]
+    fn update_player_name_updates_game_and_setup() {
+        let (mut state, id) = game_with_players();
+
+        state.update_player_name(id, "あお".to_string());
+
+        assert_eq!(state.player(id).unwrap().name, "あお");
+        // setup_state 側も同じ id のプレイヤーが更新される
+        let in_setup = state
+            .setup_state()
+            .players
+            .iter()
+            .find(|p| p.id == id)
+            .expect("setup にも同じ id が居る");
+        assert_eq!(in_setup.name, "あお");
+    }
+
+    #[test]
+    fn try_update_player_color_rejects_duplicate() {
+        let (mut state, id) = game_with_players();
+        // 別プレイヤーが既に使っている色を取得
+        let other_color = state.players().unwrap()[1].color.clone();
+
+        let result = state.try_update_player_color(id, other_color.clone());
+
+        assert!(result.is_err());
+        // 拒否されたので色は変わらない
+        assert_ne!(state.player(id).unwrap().color, other_color);
+    }
+}

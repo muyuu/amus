@@ -20,7 +20,7 @@ fn calculate_aspect_ratio_size(available_size: Vec2, ratio: f32) -> Vec2 {
 /// アスペクト比を維持してUIを描画する
 ///
 /// # Examples
-/// ```
+/// ```ignore
 /// aspect_ratio(ui, 16.0 / 9.0, |ui| {
 ///     ui.label("コンテンツ");
 /// });
@@ -43,7 +43,7 @@ pub fn aspect_ratio<R>(
 /// アスペクト比を維持して中央に配置してUIを描画する
 ///
 /// # Examples
-/// ```
+/// ```ignore
 /// aspect_ratio_centered(ui, 16.0 / 9.0, |ui| {
 ///     ui.label("中央配置されたコンテンツ");
 /// });

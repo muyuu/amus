@@ -40,3 +40,48 @@ impl Actions<'_> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::state::{Actions, AppState};
+
+    #[test]
+    fn select_area_updates_setup_state() {
+        let mut state = AppState::new();
+
+        Actions::new(&mut state).handle_setup(SetupAction::SelectArea(Area::Polus));
+
+        assert_eq!(state.setup_state().selected_area, Area::Polus);
+    }
+
+    #[test]
+    fn adjust_player_count_changes_count() {
+        let mut state = AppState::new();
+
+        Actions::new(&mut state).handle_setup(SetupAction::AdjustPlayerCount(15));
+
+        assert_eq!(state.setup_state().player_count, 15);
+    }
+
+    #[test]
+    fn start_game_creates_game_and_closes_dialog() {
+        let mut state = AppState::new();
+        state.start_new_game();
+
+        Actions::new(&mut state).handle_setup(SetupAction::StartGame);
+
+        assert!(state.game().is_some());
+        assert!(!state.show_setup_dialog());
+    }
+
+    #[test]
+    fn cancel_closes_dialog() {
+        let mut state = AppState::new();
+        state.start_new_game();
+
+        Actions::new(&mut state).handle_setup(SetupAction::Cancel);
+
+        assert!(!state.show_setup_dialog());
+    }
+}

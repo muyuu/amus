@@ -124,3 +124,64 @@ impl AppState {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::Area;
+    use std::collections::HashMap;
+
+    /// テスト用のインメモリ eframe::Storage 実装
+    #[derive(Default)]
+    struct MemStorage {
+        map: HashMap<String, String>,
+    }
+
+    impl eframe::Storage for MemStorage {
+        fn get_string(&self, key: &str) -> Option<String> {
+            self.map.get(key).cloned()
+        }
+        fn set_string(&mut self, key: &str, value: String) {
+            self.map.insert(key.to_string(), value);
+        }
+        fn flush(&mut self) {}
+    }
+
+    #[test]
+    fn save_then_load_round_trips_game_and_ui_state() {
+        let mut storage = MemStorage::default();
+
+        // 保存元の状態を作る
+        let mut src = AppState::new();
+        src.set_selected_area(Area::Polus);
+        src.create_game_from_setup();
+        src.select_wave(4);
+        src.set_erase_mode(true);
+        let player_count = src.players().unwrap().len();
+
+        src.save_to_storage(Some(&mut storage)).unwrap();
+
+        // 別の AppState に読み戻す
+        let mut dst = AppState::new();
+        dst.load_from_storage(Some(&storage)).unwrap();
+
+        assert_eq!(dst.current_wave_index(), 4);
+        assert!(dst.erase_mode());
+        assert_eq!(dst.setup_state().selected_area, Area::Polus);
+        let game = dst.game().expect("ゲームが復元される");
+        assert_eq!(game.players.len(), player_count);
+        assert_eq!(game.area, Area::Polus);
+    }
+
+    #[test]
+    fn load_from_none_storage_keeps_defaults() {
+        let mut state = AppState::new();
+
+        state.load_from_storage(None).unwrap();
+
+        // ストレージが無ければ既定値のまま
+        assert!(state.game().is_none());
+        assert_eq!(state.current_wave_index(), 0);
+        assert!(!state.erase_mode());
+    }
+}

@@ -60,3 +60,62 @@ impl AppState {
         last_line.push(point);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::route::Draw;
+
+    #[test]
+    fn current_wave_errors_without_game() {
+        let state = AppState::new();
+        assert!(state.current_wave().is_err());
+    }
+
+    #[test]
+    fn push_route_appends_to_current_wave() {
+        let mut state = AppState::new();
+        state.create_game_from_setup();
+        let player_id = state.players().unwrap()[0].id;
+        assert_eq!(state.routes().unwrap().len(), 0);
+
+        state.push_route(Route::Draw(Draw::new(player_id)));
+
+        assert_eq!(state.routes().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn push_route_targets_selected_wave() {
+        let mut state = AppState::new();
+        state.create_game_from_setup();
+        let player_id = state.players().unwrap()[0].id;
+
+        state.select_wave(2);
+        state.push_route(Route::Draw(Draw::new(player_id)));
+
+        // wave 2 にだけ route が入る
+        assert_eq!(state.routes().unwrap().len(), 1);
+        state.select_wave(0);
+        assert_eq!(state.routes().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn add_point_to_last_route_skips_duplicate_point() {
+        let mut state = AppState::new();
+        state.create_game_from_setup();
+        let player_id = state.players().unwrap()[0].id;
+        state.push_route(Route::Draw(Draw::new(player_id)));
+
+        state.add_point_to_last_route(Point::new(1.0, 1.0));
+        // 直前と同じ点は追加されない
+        state.add_point_to_last_route(Point::new(1.0, 1.0));
+        state.add_point_to_last_route(Point::new(2.0, 2.0));
+
+        let routes = state.routes().unwrap();
+        let Route::Draw(draw) = &routes[0] else {
+            panic!("Draw のはず");
+        };
+        // 最初の line に 2 点だけ入る
+        assert_eq!(draw.lines[0].len(), 2);
+    }
+}

@@ -53,3 +53,70 @@ impl AppState {
         };
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn game_with_player() -> (AppState, PlayerId) {
+        let mut state = AppState::new();
+        state.create_game_from_setup();
+        let id = state.players().unwrap()[0].id;
+        (state, id)
+    }
+
+    #[test]
+    fn add_location_stores_point_for_player() {
+        let (mut state, id) = game_with_player();
+
+        state.add_location(LocationType::Spawn, id, Point::new(10.0, 20.0));
+
+        let spawns = state.locations(LocationType::Spawn).unwrap();
+        let point = spawns.get(&id).expect("出現位置が登録される");
+        assert_eq!((point.x, point.y), (10.0, 20.0));
+    }
+
+    #[test]
+    fn add_location_keeps_spawn_and_end_separate() {
+        let (mut state, id) = game_with_player();
+
+        state.add_location(LocationType::Spawn, id, Point::new(1.0, 1.0));
+        state.add_location(LocationType::End, id, Point::new(2.0, 2.0));
+
+        assert_eq!(state.locations(LocationType::Spawn).unwrap().len(), 1);
+        let ends = state.locations(LocationType::End).unwrap();
+        assert_eq!(ends.len(), 1);
+        assert!(ends.contains_key(&id));
+    }
+
+    #[test]
+    fn remove_location_deletes_only_target_type() {
+        let (mut state, id) = game_with_player();
+        state.add_location(LocationType::Spawn, id, Point::new(1.0, 1.0));
+        state.add_location(LocationType::End, id, Point::new(2.0, 2.0));
+
+        state.remove_location(LocationType::Spawn, id);
+
+        assert!(state.locations(LocationType::Spawn).unwrap().is_empty());
+        // End 側は残る
+        assert!(state
+            .locations(LocationType::End)
+            .unwrap()
+            .contains_key(&id));
+    }
+
+    #[test]
+    fn set_dragging_location_round_trips() {
+        let (mut state, id) = game_with_player();
+        assert!(state.dragging_location().is_none());
+
+        state.set_dragging_location(Some(DraggingLocation {
+            location_type: LocationType::Spawn,
+            player_id: id,
+        }));
+
+        let dragging = state.dragging_location().expect("ドラッグ中");
+        assert_eq!(dragging.location_type, LocationType::Spawn);
+        assert_eq!(dragging.player_id, id);
+    }
+}
