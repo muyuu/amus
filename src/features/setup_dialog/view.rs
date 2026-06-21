@@ -134,8 +134,8 @@ impl SetupView {
             select_with_contents(ui, id, selected_text, |ui| {
                 for color in available_colors {
                     let text = RichText::new(color.name())
-                        .background_color(to_egui_color(&color))
-                        .color(choose_text_color(to_egui_color(&color)));
+                        .background_color(to_egui_color(color))
+                        .color(choose_text_color(to_egui_color(color)));
                     if ui
                         .selectable_label(selected_color == *color, text)
                         .clicked()

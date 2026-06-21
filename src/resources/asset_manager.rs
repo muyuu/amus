@@ -191,7 +191,7 @@ impl AssetManager {
     fn load_eraser_images(&mut self, ctx: &Context) {
         // 将来的に消しゴム画像を追加する場合はここに実装
         let path = assets_path!("images/tool/eraser.png");
-        if let Ok(t) = Self::load_texture_from_path(ctx, &path) {
+        if let Ok(t) = Self::load_texture_from_path(ctx, path) {
             self.player_images.insert("eraser".to_string(), t);
         }
     }
@@ -208,7 +208,7 @@ impl AssetManager {
     /// アイコンファイルを読み込み
     fn load_icon() -> Option<Arc<egui::IconData>> {
         let icon_path = assets_path!("icons/icon.ico");
-        let icon_bytes = Self::load_file_bytes(&icon_path).ok()?;
+        let icon_bytes = Self::load_file_bytes(icon_path).ok()?;
 
         // ICO形式を読み込んでIconDataに変換
         let image = image::load_from_memory(&icon_bytes).ok()?;
@@ -217,8 +217,8 @@ impl AssetManager {
 
         Some(Arc::new(egui::IconData {
             rgba: rgba.into_raw(),
-            width: width as u32,
-            height: height as u32,
+            width,
+            height,
         }))
     }
 

@@ -27,13 +27,12 @@ pub mod whisper_transcriber;
 #[cfg(not(target_arch = "wasm32"))]
 pub use file_downloader::{download_file, DownloadProgress};
 #[cfg(not(target_arch = "wasm32"))]
-pub use transcriber_thread::{TranscribeRequest, TranscribeResult, TranscriberThread};
+pub use transcriber_thread::{TranscribeRequest, TranscriberThread};
 #[cfg(not(target_arch = "wasm32"))]
-pub use voice_recorder::{RecordedSegment, VoiceRecorder};
+pub use voice_recorder::VoiceRecorder;
 #[cfg(not(target_arch = "wasm32"))]
 pub use whisper_transcriber::{
-    get_model_download_url, get_model_path, get_model_size_description, model_exists,
-    TranscriptionSegment, WhisperTranscriber,
+    get_model_download_url, get_model_path, model_exists, WhisperTranscriber,
 };
 
 /// ハードウェアリソース

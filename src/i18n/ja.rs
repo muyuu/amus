@@ -6,7 +6,7 @@ pub fn get_translations() -> HashMap<&'static str, String> {
     let mut translations = HashMap::new();
 
     // アプリケーション
-    translations.insert(APP_TITLE, format!("{}", W::APP_TITLE));
+    translations.insert(APP_TITLE, W::APP_TITLE.to_string());
 
     // メニュー（単語辞書を使用）
     translations.insert(MENU_FILE, W::FILE.to_string());
@@ -81,7 +81,7 @@ pub fn get_translations() -> HashMap<&'static str, String> {
     translations.insert(MAIN_SELECT_PROMPT, "{}してください".to_string());
     translations.insert(MAIN_STATUS_ALIVE, W::ALIVE.to_string());
     translations.insert(MAIN_STATUS_DEAD, W::DEAD.to_string());
-    translations.insert(MAIN_WELCOME_TITLE, format!("{}", W::APP_TITLE));
+    translations.insert(MAIN_WELCOME_TITLE, W::APP_TITLE.to_string());
     translations.insert(
         MAIN_WELCOME_MESSAGE,
         format!("新しい{}を{}してください", W::GAME, W::START),

@@ -20,7 +20,7 @@ use crate::models::Area;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::resources::{
     download_file, get_model_download_url, get_model_path, DownloadProgress, Resources,
-    TranscribeRequest, TranscriberThread, WhisperTranscriber,
+    TranscribeRequest, TranscriberThread,
 };
 #[cfg(not(target_arch = "wasm32"))]
 use crate::state::AppState;
@@ -243,7 +243,7 @@ impl VoiceMemoFeature {
             .map(|(name, color)| format!("{}({})", name, color))
             .collect();
 
-        let rooms: Vec<&str> = room_names.iter().copied().collect();
+        let rooms: Vec<&str> = room_names.to_vec();
         let rooms_str = rooms.join("、");
 
         // i18n/words/ja.rs のアモアス用語を使用

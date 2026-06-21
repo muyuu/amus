@@ -67,7 +67,7 @@ pub fn change_color(ui: &mut Ui, slices: &Slices<'_>, conf: &ChangeColorConf) ->
             let tile_result = tile(
                 ui,
                 &TileConf {
-                    color: to_egui_color(&available_color),
+                    color: to_egui_color(available_color),
                     label: None,
                     size: Some(Vec2::new(tile_size, tile_size)),
                     is_selected: false,
