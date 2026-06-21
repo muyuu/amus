@@ -3,34 +3,37 @@ use crate::models::player::PlayerId;
 use crate::models::*;
 
 /// 実際のアプリケーション状態を保持する構造体
+///
+/// フィールドは `pub(in crate::state)` に閉じてある。外部（Feature / View 等）からは
+/// Slices で読み取り、Actions / AppState メソッドで書き込む規約をコンパイラに強制するため。
 pub struct AppData {
-    pub current_wave_index: usize,
+    pub(in crate::state) current_wave_index: usize,
 
     // ドラッグ中の位置（出現位置 or 終了時位置）
-    pub dragging_location: Option<DraggingLocation>,
+    pub(in crate::state) dragging_location: Option<DraggingLocation>,
 
     // プレイヤーリストの player をドラッグしている場合のプレイヤーID
-    pub dragging_player_id: Option<PlayerId>,
+    pub(in crate::state) dragging_player_id: Option<PlayerId>,
 
     /// プレイヤー名編集中のプレイヤーID
-    pub editing_name_player_id: Option<PlayerId>,
+    pub(in crate::state) editing_name_player_id: Option<PlayerId>,
 
     // 消しゴムモードの状態
-    pub erase_mode: bool,
+    pub(in crate::state) erase_mode: bool,
 
-    pub game: Option<Game>,
+    pub(in crate::state) game: Option<Game>,
 
-    pub selected_player_id: Option<PlayerId>,
+    pub(in crate::state) selected_player_id: Option<PlayerId>,
 
     // ゲーム設定の状態
-    pub setup_state: SetupState,
+    pub(in crate::state) setup_state: SetupState,
 
     // デバッグビューの表示状態
-    pub show_debug_view: bool,
+    pub(in crate::state) show_debug_view: bool,
 
-    pub show_setup_dialog: bool,
+    pub(in crate::state) show_setup_dialog: bool,
 
-    pub translator: Translator,
+    pub(in crate::state) translator: Translator,
 }
 
 impl Default for AppData {
