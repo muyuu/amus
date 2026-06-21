@@ -53,3 +53,68 @@ impl AppState {
         self.game().map(|game| game.area.clone())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn start_new_game_opens_setup_dialog() {
+        let mut state = AppState::new();
+        assert!(!state.show_setup_dialog());
+
+        state.start_new_game();
+
+        assert!(state.show_setup_dialog());
+    }
+
+    #[test]
+    fn create_game_from_setup_builds_game_and_closes_dialog() {
+        let mut state = AppState::new();
+        state.start_new_game();
+        let expected_players = state.setup_state().player_count;
+
+        state.create_game_from_setup();
+
+        let game = state.game().expect("ゲームが生成される");
+        assert_eq!(game.players.len(), expected_players);
+        // create_game_from_setup は固定で 20 wave 作る
+        assert_eq!(game.waves.len(), 20);
+        assert_eq!(state.current_wave_index(), 0);
+        assert!(!state.show_setup_dialog());
+    }
+
+    #[test]
+    fn reset_game_clears_game_but_keeps_setup_state() {
+        let mut state = AppState::new();
+        state.set_selected_area(Area::Polus);
+        state.create_game_from_setup();
+        assert!(state.game().is_some());
+
+        state.reset_game();
+
+        assert!(state.game().is_none());
+        // setup_state は保持される
+        assert_eq!(state.setup_state().selected_area, Area::Polus);
+    }
+
+    #[test]
+    fn select_wave_updates_current_index() {
+        let mut state = AppState::new();
+        state.create_game_from_setup();
+
+        state.select_wave(3);
+
+        assert_eq!(state.current_wave_index(), 3);
+    }
+
+    #[test]
+    fn cancel_setup_closes_dialog() {
+        let mut state = AppState::new();
+        state.start_new_game();
+
+        state.cancel_setup();
+
+        assert!(!state.show_setup_dialog());
+    }
+}

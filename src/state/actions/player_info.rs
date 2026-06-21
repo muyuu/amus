@@ -49,3 +49,45 @@ impl Actions<'_> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::state::{Actions, AppState};
+
+    fn state_with_player() -> (AppState, PlayerId) {
+        let mut state = AppState::new();
+        state.create_game_from_setup();
+        let id = state.players().unwrap()[0].id;
+        (state, id)
+    }
+
+    #[test]
+    fn update_name_changes_player_name() {
+        let (mut state, id) = state_with_player();
+
+        Actions::new(&mut state)
+            .handle_player_info(PlayerInfoAction::UpdateName(id, "きいろ".to_string()));
+
+        assert_eq!(state.player(id).unwrap().name, "きいろ");
+    }
+
+    #[test]
+    fn toggle_done_button_flips_flag() {
+        let (mut state, id) = state_with_player();
+        assert!(!state.player(id).unwrap().done_button);
+
+        Actions::new(&mut state).handle_player_info(PlayerInfoAction::ToggleDoneButton(id));
+
+        assert!(state.player(id).unwrap().done_button);
+    }
+
+    #[test]
+    fn start_editing_name_marks_player_editing() {
+        let (mut state, id) = state_with_player();
+
+        Actions::new(&mut state).handle_player_info(PlayerInfoAction::StartEditingName(id));
+
+        assert!(state.player_name_editing(id));
+    }
+}

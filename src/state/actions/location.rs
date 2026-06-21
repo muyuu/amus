@@ -76,3 +76,79 @@ impl Actions<'_> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::PlayerState;
+    use crate::state::{Actions, AppState};
+
+    fn state_with_player() -> (AppState, PlayerId) {
+        let mut state = AppState::new();
+        state.create_game_from_setup();
+        let id = state.players().unwrap()[0].id;
+        (state, id)
+    }
+
+    #[test]
+    fn add_location_registers_point() {
+        let (mut state, id) = state_with_player();
+
+        Actions::new(&mut state).handle_location(LocationAction::AddLocation(
+            LocationType::Spawn,
+            id,
+            Point::new(3.0, 4.0),
+        ));
+
+        let spawns = state.locations(LocationType::Spawn).unwrap();
+        let point = spawns.get(&id).expect("出現位置が登録される");
+        assert_eq!((point.x, point.y), (3.0, 4.0));
+    }
+
+    #[test]
+    fn delete_location_removes_point() {
+        let (mut state, id) = state_with_player();
+        Actions::new(&mut state).handle_location(LocationAction::AddLocation(
+            LocationType::Spawn,
+            id,
+            Point::new(1.0, 1.0),
+        ));
+
+        Actions::new(&mut state)
+            .handle_location(LocationAction::DeleteLocation(LocationType::Spawn, id));
+
+        assert!(state.locations(LocationType::Spawn).unwrap().is_empty());
+    }
+
+    #[test]
+    fn toggle_player_state_advances_to_killed() {
+        let (mut state, id) = state_with_player();
+
+        Actions::new(&mut state).handle_location(LocationAction::TogglePlayerState(id));
+
+        assert_eq!(state.player(id).unwrap().state, PlayerState::Killed);
+    }
+
+    #[test]
+    fn area_click_adds_spawn_for_selected_player() {
+        let (mut state, id) = state_with_player();
+        state.set_selected_player_id(Some(id));
+
+        Actions::new(&mut state)
+            .handle_location(LocationAction::HandleAreaClick(Point::new(5.0, 5.0)));
+
+        let spawns = state.locations(LocationType::Spawn).unwrap();
+        assert!(spawns.contains_key(&id));
+    }
+
+    #[test]
+    fn area_click_without_selection_does_nothing() {
+        let (mut state, _id) = state_with_player();
+        // プレイヤー未選択
+
+        Actions::new(&mut state)
+            .handle_location(LocationAction::HandleAreaClick(Point::new(5.0, 5.0)));
+
+        assert!(state.locations(LocationType::Spawn).unwrap().is_empty());
+    }
+}
