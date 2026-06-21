@@ -11,7 +11,7 @@ impl Actions<'_> {
     pub fn handle_eraser(&mut self, action: EraserAction) {
         match action {
             EraserAction::Toggle => {
-                let current = self.state.erase_mode();
+                let current = self.state.slices().ui().erase_mode();
                 self.state.set_erase_mode(!current);
                 self.state.set_selected_player_id(None);
             }

@@ -12,12 +12,12 @@ impl<'a> PlayerSlice<'a> {
     }
 
     /// 全プレイヤーへの参照を取得
-    pub fn players(&self) -> Option<&[Player]> {
+    pub fn players(&self) -> Option<&'a [Player]> {
         self.data.game.as_ref().map(|g| g.players.as_slice())
     }
 
     /// 指定IDのプレイヤーへの参照を取得
-    pub fn player(&self, player_id: PlayerId) -> Option<&Player> {
+    pub fn player(&self, player_id: PlayerId) -> Option<&'a Player> {
         self.players()?.iter().find(|p| p.id == player_id)
     }
 

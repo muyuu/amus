@@ -105,6 +105,8 @@ impl VoiceMemoFeature {
     pub fn render(&mut self, app_state: &AppState, resources: &mut Resources, ui: &mut egui::Ui) {
         // 1. コンテキスト情報を収集（AppStateから）
         let player_info: Vec<(String, String)> = app_state
+            .slices()
+            .player()
             .players()
             .map(|players| {
                 players
@@ -114,7 +116,7 @@ impl VoiceMemoFeature {
             })
             .unwrap_or_default();
 
-        let room_names: &[&str] = match app_state.area() {
+        let room_names: &[&str] = match app_state.slices().game().area() {
             Some(Area::Skeld) => JapaneseWords::SKELD_ROOMS,
             Some(Area::Mira) => JapaneseWords::MIRA_ROOMS,
             Some(Area::Polus) => JapaneseWords::POLUS_ROOMS,

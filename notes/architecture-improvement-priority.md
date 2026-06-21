@@ -12,9 +12,9 @@ GitHub Project に登録された 14 issue を、tier / sprint / 優先度ラベ
 | # | タイトル | Tier | ラベル | Sprint | Status |
 |---|---|---|---|---|---|
 | 132 | Model 層から egui 依存を剥がす (color.rs) | S | 最高 | 1 | **Done** (PR #146) |
-| 133 | AppData の pub を pub(in crate::state) に絞る | S | 最高 | 1 | Todo |
-| 134 | docs と実装の乖離を解消 (RefCell・Phase) | S | 高い | 1 | Todo |
-| 135 | テスト基盤の整備 (Actions/AppState ユニット) | S | 高い | 1 | **Done** (PR #147、CI は別途) |
+| 133 | AppData の pub を pub(in crate::state) に絞る | S | 最高 | 1 | **Done** (PR #148) |
+| 134 | docs と実装の乖離を解消 (RefCell・Phase) | S | 高い | 1 | **Done** (PR #151) |
+| 135 | テスト基盤の整備 (Actions/AppState ユニット) | S | 高い | 1 | **Done** (PR #147 + CI #149/#150) |
 | 136 | Slices/AppState の API 重複整理 (players clone) | A | 高い | 2 | Todo |
 | 137 | View→Actions の中央 dispatch 化 | A | 高い | 2 | Todo |
 | 138 | Feature の render シグネチャ規約化 | A | 高い | 2 | Todo |
@@ -30,21 +30,15 @@ GitHub Project に登録された 14 issue を、tier / sprint / 優先度ラベ
 
 Project の tier/sprint をベースに、依存とリスクで微調整した「次に着手する順」。
 
-### 最優先（Sprint 1 / Tier S）
+### 最優先（Sprint 1 / Tier S）— **完了**
 
-1. **#135 テスト基盤の整備** ← まず最初
-   - issue 自身が「他の Tier S/A より先に着地させる価値がある。テストが先にあれば
-     #133, #134 の変更で何が壊れたか即時に分かる」と明記。
-   - ラベルは「高い」だが、#133（最高）の安全網になるため実務的には先行させたい。
-   - リグレッション検知ゼロの現状（`#[cfg(test)]` が 0 箇所）を埋めるのが先。
+Sprint 1（#132〜#135）はすべて着地済み。あわせて fmt/clippy のツールチェイン固定と
+GitHub Actions（fast: fmt+wasm clippy / native: clippy+test）も整備した。
 
-2. **#133 AppData の pub 絞り** ← 最高ラベルの本丸
-   - 唯一の未着手「最高」。カプセル化の中核で、直接アクセス箇所の洗い出し→置換と
-     影響範囲が広い。だからこそ #135 のテストを先に敷いてから入る。
-
-3. **#134 docs 乖離の解消**
-   - 低リスクなドキュメント作業。#133 の実装変更で docs がさらに動くので、
-     #133 とセット、または直後に回すのが効率的。
+1. **#135 テスト基盤の整備** — Done（PR #147 でユニットテスト33ケース、CI は #149/#150）
+2. **#133 AppData の pub 絞り** — Done（PR #148）
+3. **#134 docs 乖離の解消** — Done（PR #151。RefCell/Interaction 記述の刷新、ROADMAP は
+   進捗を除き方針のみに）
 
 ### 次（Sprint 2 / Tier A — 層の意味付け）
 
@@ -67,7 +61,7 @@ Project の tier/sprint をベースに、依存とリスクで微調整した�
 
 ## メモ
 
-- Project のラベル順だと #133 が最高で先頭だが、#135 の安全網を先に置く方針を推奨。
-  ここだけラベル順と入れ替えている（理由は上記）。
 - Sprint 内は依存（#137→#138, #141→#143/#140）でほぼ順序が決まる。
-- #132 は PR #146 で着地済み（最新コミット）。残る Tier S は #133/#134/#135 の 3 件。
+- **Sprint 1（Tier S, #132〜#135）は全件完了**。次の着手は Sprint 2 の起点 **#137（中央 dispatch 化）**。
+  #136（Slices/AppState の読み取りアクセサ重複）は #134 の dead_code 整理時に一部表面化し、
+  テスト専用に残った AppState 直アクセサに `#[allow(dead_code)]` + #136 コメントを付けて送ってある。

@@ -1,4 +1,4 @@
-use crate::models::{Area, Game, Wave};
+use crate::models::{Game, Wave};
 
 use super::AppState;
 
@@ -44,19 +44,12 @@ impl AppState {
     pub fn select_wave(&mut self, index: usize) {
         self.data.current_wave_index = index;
     }
-
-    pub fn game(&self) -> Option<&Game> {
-        self.data.game.as_ref()
-    }
-
-    pub fn area(&self) -> Option<Area> {
-        self.game().map(|game| game.area.clone())
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::Area;
 
     #[test]
     fn start_new_game_opens_setup_dialog() {
@@ -72,15 +65,15 @@ mod tests {
     fn create_game_from_setup_builds_game_and_closes_dialog() {
         let mut state = AppState::new();
         state.start_new_game();
-        let expected_players = state.setup_state().player_count;
+        let expected_players = state.slices().setup().player_count();
 
         state.create_game_from_setup();
 
-        let game = state.game().expect("ゲームが生成される");
+        let game = state.slices().game().game().expect("ゲームが生成される");
         assert_eq!(game.players.len(), expected_players);
         // create_game_from_setup は固定で 20 wave 作る
         assert_eq!(game.waves.len(), 20);
-        assert_eq!(state.current_wave_index(), 0);
+        assert_eq!(state.slices().wave().current_wave_index(), 0);
         assert!(!state.show_setup_dialog());
     }
 
@@ -89,13 +82,13 @@ mod tests {
         let mut state = AppState::new();
         state.set_selected_area(Area::Polus);
         state.create_game_from_setup();
-        assert!(state.game().is_some());
+        assert!(state.slices().game().game().is_some());
 
         state.reset_game();
 
-        assert!(state.game().is_none());
+        assert!(state.slices().game().game().is_none());
         // setup_state は保持される
-        assert_eq!(state.setup_state().selected_area, Area::Polus);
+        assert_eq!(state.slices().setup().selected_area(), &Area::Polus);
     }
 
     #[test]
@@ -105,7 +98,7 @@ mod tests {
 
         state.select_wave(3);
 
-        assert_eq!(state.current_wave_index(), 3);
+        assert_eq!(state.slices().wave().current_wave_index(), 3);
     }
 
     #[test]

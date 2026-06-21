@@ -12,7 +12,7 @@ impl<'a> GameSlice<'a> {
     }
 
     /// 現在のゲームへの参照を取得
-    pub fn game(&self) -> Option<&Game> {
+    pub fn game(&self) -> Option<&'a Game> {
         self.data.game.as_ref()
     }
 
@@ -22,7 +22,7 @@ impl<'a> GameSlice<'a> {
     }
 
     /// 現在のエリアへの参照を取得
-    pub fn area(&self) -> Option<&Area> {
+    pub fn area(&self) -> Option<&'a Area> {
         self.data.game.as_ref().map(|g| &g.area)
     }
 }

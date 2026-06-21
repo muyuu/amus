@@ -38,7 +38,8 @@ impl Actions<'_> {
             }
             LocationAction::StopDragging(location_type, player_id) => {
                 // ドラッグ中の位置と一致する場合のみドラッグ状態を解除
-                if let Some(dragging) = self.state.dragging_location() {
+                let dragging = self.state.slices().ui().dragging_location();
+                if let Some(dragging) = dragging {
                     if dragging.location_type == location_type && dragging.player_id == player_id {
                         self.state.set_dragging_location(None);
                     }
@@ -51,20 +52,25 @@ impl Actions<'_> {
                 self.state.force_update_player_color(player_id, color);
             }
             LocationAction::HandleAreaClick(point) => {
-                if self.state.dragging_location().is_some() {
+                if self.state.slices().ui().dragging_location().is_some() {
                     return;
                 }
 
-                let selected_player_id = match self.state.selected_player_id() {
+                let selected_player_id = match self.state.slices().player().selected_player_id() {
                     Some(id) => id,
                     None => return,
                 };
 
                 // 出現位置がすでに設定されている場合は何もしない
-                if let Ok(wave) = self.state.current_wave() {
-                    if wave.spawn_locations.contains_key(&selected_player_id) {
-                        return;
-                    }
+                let already_set = self
+                    .state
+                    .slices()
+                    .wave()
+                    .current_wave()
+                    .map(|wave| wave.spawn_locations.contains_key(&selected_player_id))
+                    .unwrap_or(false);
+                if already_set {
+                    return;
                 }
 
                 self.state
@@ -86,7 +92,7 @@ mod tests {
     fn state_with_player() -> (AppState, PlayerId) {
         let mut state = AppState::new();
         state.create_game_from_setup();
-        let id = state.players().unwrap()[0].id;
+        let id = state.slices().player().players().unwrap()[0].id;
         (state, id)
     }
 
@@ -100,7 +106,8 @@ mod tests {
             Point::new(3.0, 4.0),
         ));
 
-        let spawns = state.locations(LocationType::Spawn).unwrap();
+        let slices = state.slices();
+        let spawns = slices.wave().locations(LocationType::Spawn).unwrap();
         let point = spawns.get(&id).expect("出現位置が登録される");
         assert_eq!((point.x, point.y), (3.0, 4.0));
     }
@@ -117,7 +124,12 @@ mod tests {
         Actions::new(&mut state)
             .handle_location(LocationAction::DeleteLocation(LocationType::Spawn, id));
 
-        assert!(state.locations(LocationType::Spawn).unwrap().is_empty());
+        assert!(state
+            .slices()
+            .wave()
+            .locations(LocationType::Spawn)
+            .unwrap()
+            .is_empty());
     }
 
     #[test]
@@ -126,7 +138,10 @@ mod tests {
 
         Actions::new(&mut state).handle_location(LocationAction::TogglePlayerState(id));
 
-        assert_eq!(state.player(id).unwrap().state, PlayerState::Killed);
+        assert_eq!(
+            state.slices().player().player(id).unwrap().state,
+            PlayerState::Killed
+        );
     }
 
     #[test]
@@ -137,7 +152,8 @@ mod tests {
         Actions::new(&mut state)
             .handle_location(LocationAction::HandleAreaClick(Point::new(5.0, 5.0)));
 
-        let spawns = state.locations(LocationType::Spawn).unwrap();
+        let slices = state.slices();
+        let spawns = slices.wave().locations(LocationType::Spawn).unwrap();
         assert!(spawns.contains_key(&id));
     }
 
@@ -149,6 +165,11 @@ mod tests {
         Actions::new(&mut state)
             .handle_location(LocationAction::HandleAreaClick(Point::new(5.0, 5.0)));
 
-        assert!(state.locations(LocationType::Spawn).unwrap().is_empty());
+        assert!(state
+            .slices()
+            .wave()
+            .locations(LocationType::Spawn)
+            .unwrap()
+            .is_empty());
     }
 }

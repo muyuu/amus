@@ -13,7 +13,7 @@ impl<'a> SetupSlice<'a> {
     }
 
     /// 選択中のエリア
-    pub fn selected_area(&self) -> &Area {
+    pub fn selected_area(&self) -> &'a Area {
         &self.data.setup_state.selected_area
     }
 
@@ -23,7 +23,7 @@ impl<'a> SetupSlice<'a> {
     }
 
     /// セットアップ中のプレイヤー一覧
-    pub fn players(&self) -> &[Player] {
+    pub fn players(&self) -> &'a [Player] {
         &self.data.setup_state.players
     }
 }
