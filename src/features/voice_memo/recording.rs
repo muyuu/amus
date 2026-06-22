@@ -122,7 +122,10 @@ impl VoiceMemoFeature {
                     let duration_secs = samples.len() as f32 / 16000.0;
                     log_debug!(
                         "VoiceMemo",
-                        &format!("録音停止: 発話が短すぎるためスキップ ({:.1}秒)", duration_secs)
+                        &format!(
+                            "録音停止: 発話が短すぎるためスキップ ({:.1}秒)",
+                            duration_secs
+                        )
                     );
                 }
             } else {

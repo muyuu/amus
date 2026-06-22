@@ -89,56 +89,53 @@ impl VoiceRecorder {
         let stream = match self.sample_format {
             SampleFormat::I16 => {
                 let buffer = Arc::clone(&self.buffer);
-                self.device
-                    .build_input_stream(
-                        &self.config,
-                        move |data: &[i16], _: &cpal::InputCallbackInfo| {
-                            let mut buffer = buffer.lock().unwrap();
-                            for chunk in data.chunks(channels) {
-                                if let Some(&sample) = chunk.first() {
-                                    // i16 を f32 に変換 (-1.0 ~ 1.0)
-                                    buffer.push(sample as f32 / i16::MAX as f32);
-                                }
+                self.device.build_input_stream(
+                    &self.config,
+                    move |data: &[i16], _: &cpal::InputCallbackInfo| {
+                        let mut buffer = buffer.lock().unwrap();
+                        for chunk in data.chunks(channels) {
+                            if let Some(&sample) = chunk.first() {
+                                // i16 を f32 に変換 (-1.0 ~ 1.0)
+                                buffer.push(sample as f32 / i16::MAX as f32);
                             }
-                        },
-                        err_fn,
-                        None,
-                    )?
+                        }
+                    },
+                    err_fn,
+                    None,
+                )?
             }
             SampleFormat::I32 => {
                 let buffer = Arc::clone(&self.buffer);
-                self.device
-                    .build_input_stream(
-                        &self.config,
-                        move |data: &[i32], _: &cpal::InputCallbackInfo| {
-                            let mut buffer = buffer.lock().unwrap();
-                            for chunk in data.chunks(channels) {
-                                if let Some(&sample) = chunk.first() {
-                                    // i32 を f32 に変換 (-1.0 ~ 1.0)
-                                    buffer.push(sample as f32 / i32::MAX as f32);
-                                }
+                self.device.build_input_stream(
+                    &self.config,
+                    move |data: &[i32], _: &cpal::InputCallbackInfo| {
+                        let mut buffer = buffer.lock().unwrap();
+                        for chunk in data.chunks(channels) {
+                            if let Some(&sample) = chunk.first() {
+                                // i32 を f32 に変換 (-1.0 ~ 1.0)
+                                buffer.push(sample as f32 / i32::MAX as f32);
                             }
-                        },
-                        err_fn,
-                        None,
-                    )?
+                        }
+                    },
+                    err_fn,
+                    None,
+                )?
             }
             SampleFormat::F32 => {
                 let buffer = Arc::clone(&self.buffer);
-                self.device
-                    .build_input_stream(
-                        &self.config,
-                        move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                            let mut buffer = buffer.lock().unwrap();
-                            for chunk in data.chunks(channels) {
-                                if let Some(&sample) = chunk.first() {
-                                    buffer.push(sample);
-                                }
+                self.device.build_input_stream(
+                    &self.config,
+                    move |data: &[f32], _: &cpal::InputCallbackInfo| {
+                        let mut buffer = buffer.lock().unwrap();
+                        for chunk in data.chunks(channels) {
+                            if let Some(&sample) = chunk.first() {
+                                buffer.push(sample);
                             }
-                        },
-                        err_fn,
-                        None,
-                    )?
+                        }
+                    },
+                    err_fn,
+                    None,
+                )?
             }
             _ => {
                 return Err(RecorderError::UnsupportedFormat(self.sample_format));
