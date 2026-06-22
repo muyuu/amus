@@ -99,3 +99,42 @@
 - `Actions` は `state/actions/` にドメイン分割で残す。
 - 横断的な記録 / replay / undo が必要になったら `handle_actions` にフックを挟む
   （undo/redo は別途、Action の可逆化 or スナップショットが必要）。
+
+---
+
+## 0003. エラーは産出元ドメインごとに型付けする（横断メガ enum を作らない）
+
+- 状態: 採用
+- 日付: 2026-06-22
+- 関連: #141
+
+### 背景
+
+各所が `Result<_, String>` を返しており、失敗理由が文字列に潰れて呼び手が分岐できない。
+thiserror で型付けするにあたり、(a) クレート全体を束ねる単一の `AmusError` を作るか、
+(b) ドメインごとに型を置くか、(c) `String` のまま残す境界をどこに引くか、を検討した。
+
+### 決定
+
+**産出元のドメインごとに独立したエラー型**を、その型を生むモジュールの近くに置く。
+
+- `state`: `ColorError`（色変更の重複）
+- `storage`: `StorageError`（serialize / deserialize、key と source を保持）
+- リソース（ネイティブ）: `DownloadError` / `RecorderError` / `TranscribeError` /
+  `TranscriberThreadError`
+
+### 理由
+
+- **消費側は全て Display 経由**（`eprintln!` / `log_error!` / 表示用フィールド）で、
+  文字列内容による分岐はない。横断メガ enum にすると全モジュールが互いの依存クレート
+  （cpal / whisper_rs / ureq 等）のエラー型を抱き込み、結合が広がるだけで利点がない。
+- ドメインごとの型は失敗理由を呼び手が型で識別でき、`#[from]` で変換も簡潔になる。
+
+### 帰結
+
+- 表示専用の集約フィールド（`VoiceMemoState::error`、`TranscribeResult::error`）は
+  ヘテロなエラーを束ねる**メッセージのキャッシュ**なので `String` のまま。境界で
+  `e.to_string()` に変換する（これは伝搬する `Result` ではない）。
+- **エラーを誰も使っていない箇所は typed error にせず、より正直なシグネチャにする**:
+  `current_wave_mut` は `Option<&mut Wave>`、常に成功する `stop_recording` は `()` を返す。
+  「`Result<_, String>` を機械的に typed error へ」ではなく、その値が本当に失敗を表すかで選ぶ。
