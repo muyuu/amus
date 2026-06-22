@@ -4,9 +4,21 @@
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, SampleFormat, Stream, StreamConfig};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Instant;
 use thiserror::Error;
+
+/// poison したロックも回復して使う。
+///
+/// 録音バッファと開始時刻はオーディオコールバックスレッドと共有する。
+/// コールバックが panic してロックが poison しても、途中までの録音データは
+/// そのまま使い続けて差し支えなく、ここで panic させてアプリ全体を巻き込む
+/// 方が害が大きい。よって poison は無視して継続する。
+fn lock_recover<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    mutex
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
 
 /// 音声録音リソースの操作が失敗した理由。
 #[derive(Debug, Error)]
@@ -73,13 +85,13 @@ impl VoiceRecorder {
     pub fn start_recording(&mut self) -> Result<(), RecorderError> {
         // バッファをクリア
         {
-            let mut buffer = self.buffer.lock().unwrap();
+            let mut buffer = lock_recover(&self.buffer);
             buffer.clear();
         }
 
         // 開始時刻を記録
         {
-            let mut start_time = self.start_time.lock().unwrap();
+            let mut start_time = lock_recover(&self.start_time);
             *start_time = Some(Instant::now());
         }
 
@@ -92,7 +104,7 @@ impl VoiceRecorder {
                 self.device.build_input_stream(
                     &self.config,
                     move |data: &[i16], _: &cpal::InputCallbackInfo| {
-                        let mut buffer = buffer.lock().unwrap();
+                        let mut buffer = lock_recover(&buffer);
                         for chunk in data.chunks(channels) {
                             if let Some(&sample) = chunk.first() {
                                 // i16 を f32 に変換 (-1.0 ~ 1.0)
@@ -109,7 +121,7 @@ impl VoiceRecorder {
                 self.device.build_input_stream(
                     &self.config,
                     move |data: &[i32], _: &cpal::InputCallbackInfo| {
-                        let mut buffer = buffer.lock().unwrap();
+                        let mut buffer = lock_recover(&buffer);
                         for chunk in data.chunks(channels) {
                             if let Some(&sample) = chunk.first() {
                                 // i32 を f32 に変換 (-1.0 ~ 1.0)
@@ -126,7 +138,7 @@ impl VoiceRecorder {
                 self.device.build_input_stream(
                     &self.config,
                     move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                        let mut buffer = buffer.lock().unwrap();
+                        let mut buffer = lock_recover(&buffer);
                         for chunk in data.chunks(channels) {
                             if let Some(&sample) = chunk.first() {
                                 buffer.push(sample);
@@ -154,12 +166,12 @@ impl VoiceRecorder {
         self.stream = None;
 
         let samples = {
-            let buffer = self.buffer.lock().unwrap();
+            let buffer = lock_recover(&self.buffer);
             buffer.clone()
         };
 
         let duration_secs = {
-            let start_time = self.start_time.lock().unwrap();
+            let start_time = lock_recover(&self.start_time);
             start_time
                 .map(|start| start.elapsed().as_secs_f32())
                 .unwrap_or(0.0)
@@ -175,7 +187,7 @@ impl VoiceRecorder {
 
     /// 現在の録音時間（秒）
     pub fn elapsed_secs(&self) -> f32 {
-        let start_time = self.start_time.lock().unwrap();
+        let start_time = lock_recover(&self.start_time);
         if let Some(start) = *start_time {
             start.elapsed().as_secs_f32()
         } else {
@@ -185,7 +197,7 @@ impl VoiceRecorder {
 
     /// 現在のサンプルバッファのサイズ（サンプル数）
     pub fn buffer_len(&self) -> usize {
-        self.buffer.lock().unwrap().len()
+        lock_recover(&self.buffer).len()
     }
 
     /// 元のサンプルレートを取得
@@ -196,7 +208,7 @@ impl VoiceRecorder {
     /// 指定位置以降のサンプルを取得（録音を停止せずに）
     /// 逐次書き起こし用。戻り値は (16kHzリサンプリング済みサンプル, 次回開始位置)
     pub fn get_samples_since(&self, start_sample: usize) -> (Vec<f32>, usize) {
-        let buffer = self.buffer.lock().unwrap();
+        let buffer = lock_recover(&self.buffer);
         if start_sample >= buffer.len() {
             return (Vec::new(), start_sample);
         }
@@ -258,8 +270,25 @@ impl VoiceRecorder {
     }
 }
 
-impl Default for VoiceRecorder {
-    fn default() -> Self {
-        Self::new().expect("VoiceRecorderの初期化に失敗")
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Arc;
+
+    #[test]
+    fn lock_recover_returns_inner_after_poison() {
+        let m = Arc::new(Mutex::new(vec![1.0f32, 2.0]));
+
+        // 別スレッドがロック保持中に panic し、mutex を poison させる
+        let m2 = Arc::clone(&m);
+        let _ = std::thread::spawn(move || {
+            let _guard = m2.lock().unwrap();
+            panic!("poison");
+        })
+        .join();
+
+        // poison していても panic せず中身を読める
+        let guard = lock_recover(&m);
+        assert_eq!(&*guard, &[1.0, 2.0]);
     }
 }
