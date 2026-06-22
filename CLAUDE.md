@@ -16,6 +16,13 @@ trunk serve  # 開発サーバー
 trunk build --release  # 本番ビルド
 ```
 
+### push 前ゲート（git pre-push フック）
+
+`mise run init`（worktree/clone 初期化）が `core.hooksPath` を `.githooks` に向け、push 前に
+`mise run pre-push`（fmt 検査 + native/wasm clippy + test）を実行するようにする。CI は PR で
+fmt と wasm clippy しか回さない（native clippy・test は main への push 時のみ）ため、テストと
+native clippy の回帰防止はこのフックで担保する。緊急時は `git push --no-verify` でスキップ可。
+
 ## アーキテクチャ
 
 詳細は [docs/](./docs/) を参照。

@@ -1,3 +1,10 @@
 [init]
 description = "開発環境の初期設定を行う"
-depends = ["install-all"]
+depends = ["install-all", "install-git-hooks"]
+
+["install-git-hooks"]
+# core.hooksPath を .githooks に向け、バージョン管理した pre-push フックを有効化する。
+# clone / worktree 作成のたびに必要なので init に含める。
+description = "git フックを .githooks に向ける（push 前にテスト等を実行）"
+run = "git config core.hooksPath .githooks"
+hide = true
