@@ -1,6 +1,7 @@
 pub mod actions;
 pub mod app_data;
 pub mod app_state;
+pub mod error;
 pub mod slices;
 pub mod storage;
 pub mod storage_keys;

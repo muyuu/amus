@@ -1,4 +1,5 @@
 use crate::models::{Color, Player, PlayerId, PlayerState, Role};
+use crate::state::error::ColorError;
 
 use super::AppState;
 
@@ -102,7 +103,7 @@ impl AppState {
 
     #[allow(dead_code)]
     /// 色の変更を試みる（重複している場合は変更を拒否）
-    pub fn try_update_player_color(&mut self, id: PlayerId, color: Color) -> Result<(), String> {
+    pub fn try_update_player_color(&mut self, id: PlayerId, color: Color) -> Result<(), ColorError> {
         // 既存プレイヤーとの色重複チェック
         let is_duplicate = self
             .data
@@ -112,7 +113,7 @@ impl AppState {
             .unwrap_or(false);
 
         if is_duplicate {
-            return Err(format!("色 {} は既に使用されています", color.name()));
+            return Err(ColorError::DuplicateColor(color.name().to_string()));
         }
 
         // 重複がない場合は更新
@@ -282,7 +283,7 @@ mod tests {
 
         let result = state.try_update_player_color(id, other_color.clone());
 
-        assert!(result.is_err());
+        assert!(matches!(result, Err(ColorError::DuplicateColor(_))));
         // 拒否されたので色は変わらない
         assert_ne!(
             state.slices().player().player(id).unwrap().color,

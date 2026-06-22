@@ -4,27 +4,24 @@ use super::AppState;
 
 // ウェーブとルート管理関連
 impl AppState {
-    /// 現在の wave への可変参照を取得
-    pub(super) fn current_wave_mut(&mut self) -> Result<&mut Wave, String> {
+    /// 現在の wave への可変参照を取得（game 未作成・wave 未選択なら `None`）
+    pub(super) fn current_wave_mut(&mut self) -> Option<&mut Wave> {
         let wave_index = self.data.current_wave_index;
-        let game = self.data.game.as_mut().ok_or("Game not found")?;
+        let game = self.data.game.as_mut()?;
         game.get_wave_mut(wave_index)
-            .ok_or_else(|| "Wave not found".to_string())
     }
 
     pub fn push_route(&mut self, route: Route) {
-        let wave = match self.current_wave_mut() {
-            Ok(wave) => wave,
-            _ => return,
+        let Some(wave) = self.current_wave_mut() else {
+            return;
         };
 
         wave.routes.push(route);
     }
 
     pub fn add_point_to_last_route(&mut self, point: Point) {
-        let wave = match self.current_wave_mut() {
-            Ok(wave) => wave,
-            _ => return,
+        let Some(wave) = self.current_wave_mut() else {
+            return;
         };
 
         let last_route = match wave.routes.last_mut() {
