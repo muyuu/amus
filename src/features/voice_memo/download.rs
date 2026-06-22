@@ -73,7 +73,7 @@ impl VoiceMemoFeature {
                             self.state.is_downloading = false;
                             self.state.download_progress = None;
                             self.download_rx = None;
-                            self.state.error = Some(e);
+                            self.state.error = Some(e.to_string());
                         }
                         Err(_) => {
                             self.state.is_downloading = false;

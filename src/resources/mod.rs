@@ -25,7 +25,7 @@ pub mod voice_recorder;
 pub mod whisper_transcriber;
 
 #[cfg(not(target_arch = "wasm32"))]
-pub use file_downloader::{download_file, DownloadProgress};
+pub use file_downloader::{download_file, DownloadError, DownloadProgress};
 #[cfg(not(target_arch = "wasm32"))]
 pub use transcriber_thread::{TranscribeRequest, TranscriberThread};
 #[cfg(not(target_arch = "wasm32"))]

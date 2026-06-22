@@ -24,7 +24,7 @@ use crate::i18n::keys as K;
 use crate::i18n::words::ja::JapaneseWords;
 use crate::log_error;
 use crate::models::Area;
-use crate::resources::{DownloadProgress, Resources, TranscriberThread};
+use crate::resources::{DownloadError, DownloadProgress, Resources, TranscriberThread};
 use crate::state::Slices;
 
 /// 音声メモのアクション
@@ -46,7 +46,7 @@ pub struct VoiceMemoFeature {
     /// ダウンロード進捗受信用
     download_rx: Option<std::sync::mpsc::Receiver<DownloadProgress>>,
     /// ダウンロードスレッドハンドル
-    download_handle: Option<std::thread::JoinHandle<Result<(), String>>>,
+    download_handle: Option<std::thread::JoinHandle<Result<(), DownloadError>>>,
     /// 認識用コンテキスト（プレイヤー名など）
     context: Option<String>,
     /// バックグラウンド書き起こしスレッド

@@ -5,8 +5,16 @@
 use chrono::Local;
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::thread::{self, JoinHandle};
+use thiserror::Error;
 
 use super::whisper_transcriber::{get_model_path, model_exists, TranscriptionSegment};
+
+/// 書き起こしスレッドの起動が失敗した理由。
+#[derive(Debug, Error)]
+pub enum TranscriberThreadError {
+    #[error("Whisper モデルが見つかりません: {0}")]
+    ModelNotFound(String),
+}
 
 fn now() -> String {
     Local::now().format("%H:%M:%S").to_string()
@@ -44,9 +52,9 @@ pub struct TranscriberThread {
 
 impl TranscriberThread {
     /// 新しいTranscriberThreadを作成
-    pub fn new() -> Result<Self, String> {
+    pub fn new() -> Result<Self, TranscriberThreadError> {
         if !model_exists() {
-            return Err("Whisperモデルが見つかりません".to_string());
+            return Err(TranscriberThreadError::ModelNotFound(get_model_path()));
         }
 
         let (request_tx, request_rx) = mpsc::channel::<TranscribeRequest>();
@@ -141,7 +149,7 @@ impl TranscriberThread {
                             TranscribeResult {
                                 segments: Vec::new(),
                                 round_index: req.round_index,
-                                error: Some(e),
+                                error: Some(e.to_string()),
                             }
                         }
                     };

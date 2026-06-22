@@ -6,6 +6,24 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, SampleFormat, Stream, StreamConfig};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
+use thiserror::Error;
+
+/// 音声録音リソースの操作が失敗した理由。
+#[derive(Debug, Error)]
+pub enum RecorderError {
+    #[error("マイクが見つかりません")]
+    NoInputDevice,
+    #[error("入力設定の取得に失敗: {0}")]
+    Config(#[from] cpal::DefaultStreamConfigError),
+    #[error("未対応のサンプルフォーマット: {0:?}")]
+    UnsupportedFormat(SampleFormat),
+    #[error("録音ストリームの作成に失敗: {0}")]
+    BuildStream(#[from] cpal::BuildStreamError),
+    #[error("録音開始に失敗: {0}")]
+    Play(#[from] cpal::PlayStreamError),
+    #[error("WAV の保存に失敗: {0}")]
+    Wav(#[from] hound::Error),
+}
 
 /// 音声録音を管理
 pub struct VoiceRecorder {
@@ -23,15 +41,13 @@ pub struct VoiceRecorder {
 
 impl VoiceRecorder {
     /// 新しいVoiceRecorderを作成
-    pub fn new() -> Result<Self, String> {
+    pub fn new() -> Result<Self, RecorderError> {
         let host = cpal::default_host();
         let device = host
             .default_input_device()
-            .ok_or_else(|| "マイクが見つかりません".to_string())?;
+            .ok_or(RecorderError::NoInputDevice)?;
 
-        let supported_config = device
-            .default_input_config()
-            .map_err(|e| format!("入力設定の取得に失敗: {}", e))?;
+        let supported_config = device.default_input_config()?;
 
         let sample_format = supported_config.sample_format();
         let sample_rate = supported_config.sample_rate();
@@ -54,7 +70,7 @@ impl VoiceRecorder {
     }
 
     /// 録音を開始
-    pub fn start_recording(&mut self) -> Result<(), String> {
+    pub fn start_recording(&mut self) -> Result<(), RecorderError> {
         // バッファをクリア
         {
             let mut buffer = self.buffer.lock().unwrap();
@@ -87,8 +103,7 @@ impl VoiceRecorder {
                         },
                         err_fn,
                         None,
-                    )
-                    .map_err(|e| format!("ストリーム作成に失敗 (i16): {}", e))?
+                    )?
             }
             SampleFormat::I32 => {
                 let buffer = Arc::clone(&self.buffer);
@@ -106,8 +121,7 @@ impl VoiceRecorder {
                         },
                         err_fn,
                         None,
-                    )
-                    .map_err(|e| format!("ストリーム作成に失敗 (i32): {}", e))?
+                    )?
             }
             SampleFormat::F32 => {
                 let buffer = Arc::clone(&self.buffer);
@@ -124,27 +138,21 @@ impl VoiceRecorder {
                         },
                         err_fn,
                         None,
-                    )
-                    .map_err(|e| format!("ストリーム作成に失敗 (f32): {}", e))?
+                    )?
             }
             _ => {
-                return Err(format!(
-                    "未対応のサンプルフォーマット: {:?}",
-                    self.sample_format
-                ));
+                return Err(RecorderError::UnsupportedFormat(self.sample_format));
             }
         };
 
-        stream
-            .play()
-            .map_err(|e| format!("録音開始に失敗: {}", e))?;
+        stream.play()?;
 
         self.stream = Some(stream);
         Ok(())
     }
 
     /// 録音を停止する
-    pub fn stop_recording(&mut self) -> Result<(), String> {
+    pub fn stop_recording(&mut self) {
         // ストリームを停止
         self.stream = None;
 
@@ -166,8 +174,6 @@ impl VoiceRecorder {
             duration_secs,
             self.sample_rate
         );
-
-        Ok(())
     }
 
     /// 現在の録音時間（秒）
@@ -235,7 +241,7 @@ impl VoiceRecorder {
 
     /// 録音データをWAVファイルとして保存（デバッグ用）
     #[allow(dead_code)]
-    pub fn save_to_wav(&self, samples: &[f32], path: &str) -> Result<(), String> {
+    pub fn save_to_wav(&self, samples: &[f32], path: &str) -> Result<(), RecorderError> {
         let spec = hound::WavSpec {
             channels: 1,
             sample_rate: 16000,
@@ -243,18 +249,13 @@ impl VoiceRecorder {
             sample_format: hound::SampleFormat::Float,
         };
 
-        let mut writer =
-            hound::WavWriter::create(path, spec).map_err(|e| format!("WAV作成に失敗: {}", e))?;
+        let mut writer = hound::WavWriter::create(path, spec)?;
 
         for &sample in samples {
-            writer
-                .write_sample(sample)
-                .map_err(|e| format!("サンプル書き込みに失敗: {}", e))?;
+            writer.write_sample(sample)?;
         }
 
-        writer
-            .finalize()
-            .map_err(|e| format!("WAV保存に失敗: {}", e))?;
+        writer.finalize()?;
 
         Ok(())
     }
