@@ -331,11 +331,24 @@ fn handle_actions(&mut self, actions: Vec<AppAction>) {
 ## 命名規則
 
 - **Model**: PascalCase（例: `Game`, `Player`, `Wave`）
-- **Feature**: `<FeatureName>Feature`（例: `LocationFeature`）
+- **Feature**: `<FeatureName>Feature`（例: `LocationFeature`）。単数形は常に「1 つの機能」を指す。
 - **View**: `<FeatureName>View`（例: `LocationView`）
 - **Slice**: `<Domain>Slice`（例: `PlayerSlice`, `WaveSlice`）
 - **Action**: `<Domain>Action`（例: `PlayerAction`, `LocationAction`）
 - **State**: `AppState`, `AppData`, `SetupState`
+
+### 単数 Feature と集約 `StatefulFeatures`
+
+Feature には状態を持つものと持たないものがある。
+
+- **stateless Feature**: フレームをまたぐ状態を持たない。unit struct `<Name>Feature`
+  （例: `LocationFeature`）として定義し、`render` を静的に呼ぶだけ。インスタンスは持たない。
+- **stateful Feature**: フレームをまたいで状態を保持する（例: `voice_memo` の録音・書き起こし状態）。
+  インスタンスを `StatefulFeatures`（`src/features/mod.rs`）に集約し、`AmusApp` が所有する。
+
+複数形の型は `StatefulFeatures` の 1 つだけで、「状態を持つ Feature インスタンスの集約」を意味する。
+単数 `<Name>Feature` と取り違えないよう、集約側は `Features` のような汎称ではなく
+`StatefulFeatures` と役割を名前に出す。
 
 ## 禁止事項
 

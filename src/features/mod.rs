@@ -18,17 +18,18 @@ use crate::resources::Resources;
 #[cfg(not(target_arch = "wasm32"))]
 use voice_memo::VoiceMemoFeature;
 
-/// インスタンスを持つ Feature の集約
+/// 状態（インスタンス）を持つ Feature の集約。
 ///
-/// 状態を持つ Feature をまとめて管理する。
-/// AmusApp から MainView に渡して使用する。
+/// stateless な Feature は unit struct（`XxxFeature`）で `render` を静的に呼ぶだけだが、
+/// フレームをまたいで状態を保持する Feature はインスタンスをここに集約し、`AmusApp` が
+/// 所有して `MainView` に渡す。
 #[derive(Default)]
-pub struct Features {
+pub struct StatefulFeatures {
     #[cfg(not(target_arch = "wasm32"))]
     pub voice_memo: VoiceMemoFeature,
 }
 
-impl Features {
+impl StatefulFeatures {
     #[cfg(not(target_arch = "wasm32"))]
     pub fn new(resources: &Resources) -> Self {
         Self {
