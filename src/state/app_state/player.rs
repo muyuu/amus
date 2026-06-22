@@ -103,7 +103,11 @@ impl AppState {
 
     #[allow(dead_code)]
     /// 色の変更を試みる（重複している場合は変更を拒否）
-    pub fn try_update_player_color(&mut self, id: PlayerId, color: Color) -> Result<(), ColorError> {
+    pub fn try_update_player_color(
+        &mut self,
+        id: PlayerId,
+        color: Color,
+    ) -> Result<(), ColorError> {
         // 既存プレイヤーとの色重複チェック
         let is_duplicate = self
             .data
