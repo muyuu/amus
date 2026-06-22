@@ -16,4 +16,7 @@ impl StorageKeys {
 
     /// 消しゴムモードの状態
     pub const ERASE_MODE: &'static str = "erase_mode";
+
+    /// UI 拡大率（None = ネイティブ DPI 追従）
+    pub const UI_SCALE: &'static str = "ui_scale";
 }

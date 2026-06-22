@@ -5,6 +5,12 @@ pub struct AppConstants;
 impl AppConstants {
     pub const DEFAULT_FONT_SIZE: f32 = 16.0;
 
+    /// UI 拡大率（pixels_per_point）のユーザー指定可能な範囲と刻み。
+    /// 範囲外の値は設定時にクランプされる。
+    pub const UI_SCALE_MIN: f32 = 0.5;
+    pub const UI_SCALE_MAX: f32 = 3.0;
+    pub const UI_SCALE_STEP: f32 = 0.25;
+
     /// ウィンドウ
     pub const WINDOW_BG_COLOR_DARK: Color32 = Color32::from_rgb(0, 0, 0);
     #[allow(dead_code)]

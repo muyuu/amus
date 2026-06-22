@@ -44,6 +44,11 @@ impl AppState {
             self.data.erase_mode = erase_mode;
         }
 
+        // UI 拡大率（保存値は Option<f32>: None = 自動）
+        if let Ok(Some(ui_scale)) = AppStorage::get::<Option<f32>>(storage, StorageKeys::UI_SCALE) {
+            self.data.ui_scale = ui_scale;
+        }
+
         Ok(())
     }
 
@@ -75,6 +80,7 @@ impl AppState {
                 &self.data.show_debug_view,
             )?;
             AppStorage::set(Some(s), StorageKeys::ERASE_MODE, &self.data.erase_mode)?;
+            AppStorage::set(Some(s), StorageKeys::UI_SCALE, &self.data.ui_scale)?;
 
             Ok(())
         })
@@ -160,6 +166,7 @@ mod tests {
         src.create_game_from_setup();
         src.select_wave(4);
         src.set_erase_mode(true);
+        src.set_ui_scale(2.0);
         let player_count = src.slices().player().players().unwrap().len();
 
         src.save_to_storage(Some(&mut storage)).unwrap();
@@ -170,6 +177,7 @@ mod tests {
 
         assert_eq!(dst.slices().wave().current_wave_index(), 4);
         assert!(dst.slices().ui().erase_mode());
+        assert_eq!(dst.ui_scale(), Some(2.0));
         assert_eq!(dst.slices().setup().selected_area(), &Area::Polus);
         let slices = dst.slices();
         let game = slices.game().game().expect("ゲームが復元される");

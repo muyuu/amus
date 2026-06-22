@@ -65,7 +65,12 @@ impl eframe::App for AmusApp {
     }
 
     fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
-        ctx.set_pixels_per_point(1.5);
+        // ユーザー指定があればその倍率、なければネイティブ DPI に追従する。
+        let ppp = self
+            .state
+            .ui_scale()
+            .unwrap_or_else(|| ctx.native_pixels_per_point().unwrap_or(1.0));
+        ctx.set_pixels_per_point(ppp);
 
         // セットアップダイアログ表示中はそれだけを描画。
         // setup_dialog は ui を受けるので、透明な CentralPanel で ui を用意する
@@ -155,6 +160,10 @@ impl AmusApp {
         let mut toggle_setup = false;
         #[cfg(debug_assertions)]
         let mut toggle_debug = false;
+        // UI 拡大率の操作（右から left_to_right で並ぶため、視覚順とは逆に積まれる）
+        let mut scale_inc = false;
+        let mut scale_dec = false;
+        let mut scale_auto = false;
 
         TopBottomPanel::top(PanelIds::MENU)
             .resizable(false)
@@ -176,6 +185,24 @@ impl AmusApp {
                         if ui.button("🐛 デバッグ").clicked() {
                             toggle_debug = true;
                         }
+
+                        // UI 拡大率コントロール（現在の実効倍率を % 表示し ±/auto で操作）
+                        ui.separator();
+                        if ui
+                            .small_button("auto")
+                            .on_hover_text("DPI に追従")
+                            .clicked()
+                        {
+                            scale_auto = true;
+                        }
+                        if ui.small_button("＋").clicked() {
+                            scale_inc = true;
+                        }
+                        ui.label(format!("{:.0}%", ui.ctx().pixels_per_point() * 100.0));
+                        if ui.small_button("−").clicked() {
+                            scale_dec = true;
+                        }
+                        ui.label("🔍");
                     });
                 });
             });
@@ -186,6 +213,19 @@ impl AmusApp {
         #[cfg(debug_assertions)]
         if toggle_debug {
             self.state.toggle_debug_view();
+        }
+        // 現在の実効倍率を基準に増減（None=自動状態からでも自然に明示倍率へ移行する）
+        let current_ppp = ctx.pixels_per_point();
+        if scale_inc {
+            self.state
+                .set_ui_scale(current_ppp + AppConstants::UI_SCALE_STEP);
+        }
+        if scale_dec {
+            self.state
+                .set_ui_scale(current_ppp - AppConstants::UI_SCALE_STEP);
+        }
+        if scale_auto {
+            self.state.reset_ui_scale();
         }
     }
 
