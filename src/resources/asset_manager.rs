@@ -2,6 +2,8 @@ use egui::*;
 #[cfg(not(debug_assertions))]
 use include_dir::{include_dir, Dir};
 use std::collections::HashMap;
+// Arc はネイティブのウィンドウアイコン読み込み（load_icon）でのみ使う。
+#[cfg(not(target_arch = "wasm32"))]
 use std::sync::Arc;
 
 use crate::models::Area;
@@ -72,6 +74,8 @@ impl AssetManager {
         manager
     }
 
+    // ネイティブ起動時の事前初期化。wasm は初回 get で遅延初期化する。
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn initialize(ctx: &Context) {
         Self::get(ctx);
     }
@@ -202,12 +206,14 @@ impl AssetManager {
         self.player_images.get("eraser")
     }
 
-    /// アイコンを静的に読み込み（main.rs等で使用）
+    /// ウィンドウアイコンを読み込む（ネイティブのウィンドウ生成時に使う）。
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn load_icon_static() -> Option<Arc<egui::IconData>> {
         Self::load_icon()
     }
 
     /// アイコンファイルを読み込み
+    #[cfg(not(target_arch = "wasm32"))]
     fn load_icon() -> Option<Arc<egui::IconData>> {
         let icon_path = assets_path!("icons/icon.ico");
         let icon_bytes = Self::load_file_bytes(icon_path).ok()?;

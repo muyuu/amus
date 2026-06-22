@@ -96,6 +96,8 @@ impl Color {
         self.name().to_lowercase()
     }
 
+    // 現状は voice_memo（ネイティブ専用）の認識コンテキストだけが使う。
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn name_ja(&self) -> &'static str {
         match self {
             Color::Red => "赤",

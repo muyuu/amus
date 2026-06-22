@@ -2,17 +2,19 @@
 // components 配下は mod.rs が再エクスポート配線・<name>.rs が実装本体という構成を意図的に採る
 #![allow(clippy::module_inception)]
 
-pub mod app;
-pub mod app_action;
-pub mod common;
-pub mod components;
-pub mod constants;
-pub mod features;
-pub mod i18n;
-pub mod log;
-pub mod models;
-pub mod resources;
-pub mod state;
+// wasm の公開 API は `start()` のみ。各モジュールは crate 内部利用に閉じる
+// （外部に晒さないことで API 表面を狭め、内部リファクタを自由にする）。
+mod app;
+mod app_action;
+mod common;
+mod components;
+mod constants;
+mod features;
+mod i18n;
+mod log;
+mod models;
+mod resources;
+mod state;
 
 use crate::log::Log;
 
