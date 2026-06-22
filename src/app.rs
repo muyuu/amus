@@ -5,7 +5,7 @@ use crate::constants::{AppConstants, PanelIds};
 use crate::features::main::MainView;
 use crate::features::player_info::PlayerInfoFeature;
 use crate::features::setup_dialog::SetupDialogFeature;
-use crate::features::Features;
+use crate::features::StatefulFeatures;
 use crate::i18n::keys;
 use crate::resources::Resources;
 use crate::state::{Actions, AppState};
@@ -15,16 +15,16 @@ pub struct AmusApp {
     // resources を読むのは native 専用の voice_memo（① update / ③ handle）のみ
     #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     resources: Resources,
-    features: Features,
+    features: StatefulFeatures,
 }
 
 impl Default for AmusApp {
     fn default() -> Self {
         let resources = Resources::new();
         #[cfg(not(target_arch = "wasm32"))]
-        let features = Features::new(&resources);
+        let features = StatefulFeatures::new(&resources);
         #[cfg(target_arch = "wasm32")]
-        let features = Features::new();
+        let features = StatefulFeatures::new();
 
         Self {
             state: AppState::new(),
@@ -38,9 +38,9 @@ impl AmusApp {
     pub fn new(_cc: &eframe::CreationContext<'_>, state: AppState) -> Self {
         let resources = Resources::new();
         #[cfg(not(target_arch = "wasm32"))]
-        let features = Features::new(&resources);
+        let features = StatefulFeatures::new(&resources);
         #[cfg(target_arch = "wasm32")]
-        let features = Features::new();
+        let features = StatefulFeatures::new();
 
         let mut app = Self {
             state,

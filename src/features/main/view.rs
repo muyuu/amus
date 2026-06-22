@@ -13,14 +13,14 @@ use crate::features::window::lights::LightsFeature;
 use crate::features::window::o2::O2Feature;
 use crate::features::window::reactor::ReactorFeature;
 use crate::features::window::turn::TurnFeature;
-use crate::features::Features;
+use crate::features::StatefulFeatures;
 use crate::state::Slices;
 use egui::*;
 
 pub struct MainView;
 
 impl MainView {
-    pub fn render(slices: &Slices, features: &mut Features, ui: &mut Ui) -> Vec<AppAction> {
+    pub fn render(slices: &Slices, features: &mut StatefulFeatures, ui: &mut Ui) -> Vec<AppAction> {
         // ゲームがない場合はウェルカムメッセージを表示して早期リターン
         if !slices.game().has_game() {
             return WelcomeFeature::render(slices, ui);
@@ -34,7 +34,11 @@ impl MainView {
         Self::render_main(slices, features, ui)
     }
 
-    fn render_main(slices: &Slices, features: &mut Features, ui: &mut Ui) -> Vec<AppAction> {
+    fn render_main(
+        slices: &Slices,
+        features: &mut StatefulFeatures,
+        ui: &mut Ui,
+    ) -> Vec<AppAction> {
         let mut actions = aspect_ratio_centered(ui, MainConstants::VIEW_RATIO, |ui| {
             // メイン領域の描画領域レスポンスを取得
             let response = ui.allocate_response(ui.available_size(), Sense::click_and_drag());
@@ -55,7 +59,11 @@ impl MainView {
 
     // 各種機能ウィンドウの描画
     #[allow(unused_variables)]
-    fn render_windows(slices: &Slices, features: &mut Features, ui: &mut Ui) -> Vec<AppAction> {
+    fn render_windows(
+        slices: &Slices,
+        features: &mut StatefulFeatures,
+        ui: &mut Ui,
+    ) -> Vec<AppAction> {
         let mut actions = Vec::new();
         actions.extend(TurnFeature::render(slices, ui));
         actions.extend(CommsFeature::render(slices, ui));
