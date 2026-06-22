@@ -4,6 +4,18 @@
 
 use std::io::{Read, Write};
 use std::path::Path;
+use thiserror::Error;
+
+/// ファイルダウンロードが失敗した理由。
+#[derive(Debug, Error)]
+pub enum DownloadError {
+    /// HTTP リクエストまたは応答の受信に失敗した。
+    #[error("ダウンロードのリクエストに失敗: {0}")]
+    Request(#[from] ureq::Error),
+    /// 保存先のファイル・ディレクトリ操作に失敗した。
+    #[error("ファイル操作に失敗: {0}")]
+    Io(#[from] std::io::Error),
+}
 
 /// ダウンロード進捗
 #[derive(Debug, Clone)]
@@ -31,22 +43,18 @@ impl DownloadProgress {
 /// * `dest_path` - 保存先パス
 /// * `progress_tx` - 進捗を送信するチャネル
 ///
-/// # Returns
-/// 成功時は `Ok(())`、失敗時はエラーメッセージ
 pub fn download_file(
     url: &str,
     dest_path: &str,
     progress_tx: std::sync::mpsc::Sender<DownloadProgress>,
-) -> Result<(), String> {
+) -> Result<(), DownloadError> {
     // ディレクトリを作成
     if let Some(parent) = Path::new(dest_path).parent() {
-        std::fs::create_dir_all(parent).map_err(|e| format!("ディレクトリ作成に失敗: {}", e))?;
+        std::fs::create_dir_all(parent)?;
     }
 
     // ダウンロード開始
-    let response = ureq::get(url)
-        .call()
-        .map_err(|e| format!("ダウンロード開始に失敗: {}", e))?;
+    let response = ureq::get(url).call()?;
 
     let total_bytes = response
         .headers()
@@ -56,24 +64,20 @@ pub fn download_file(
 
     // 一時ファイルに書き込み
     let temp_path = format!("{}.download", dest_path);
-    let mut file =
-        std::fs::File::create(&temp_path).map_err(|e| format!("ファイル作成に失敗: {}", e))?;
+    let mut file = std::fs::File::create(&temp_path)?;
 
     let mut reader = response.into_body().into_reader();
     let mut buffer = [0u8; 8192];
     let mut downloaded_bytes = 0u64;
 
     loop {
-        let bytes_read = reader
-            .read(&mut buffer)
-            .map_err(|e| format!("読み込みエラー: {}", e))?;
+        let bytes_read = reader.read(&mut buffer)?;
 
         if bytes_read == 0 {
             break;
         }
 
-        file.write_all(&buffer[..bytes_read])
-            .map_err(|e| format!("書き込みエラー: {}", e))?;
+        file.write_all(&buffer[..bytes_read])?;
 
         downloaded_bytes += bytes_read as u64;
 
@@ -85,7 +89,7 @@ pub fn download_file(
     }
 
     // 一時ファイルをリネーム
-    std::fs::rename(&temp_path, dest_path).map_err(|e| format!("ファイル移動に失敗: {}", e))?;
+    std::fs::rename(&temp_path, dest_path)?;
 
     Ok(())
 }

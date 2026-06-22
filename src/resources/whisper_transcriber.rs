@@ -2,7 +2,19 @@
 //!
 //! whisper.cpp を使用して音声データをテキストに変換する。
 
+use thiserror::Error;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
+
+/// Whisper による書き起こしが失敗した理由。
+#[derive(Debug, Error)]
+pub enum TranscribeError {
+    #[error("Whisper モデルの読み込みに失敗: {0}")]
+    LoadModel(whisper_rs::WhisperError),
+    #[error("Whisper 状態の作成に失敗: {0}")]
+    CreateState(whisper_rs::WhisperError),
+    #[error("書き起こしに失敗: {0}")]
+    Run(whisper_rs::WhisperError),
+}
 
 /// 書き起こし結果のセグメント
 #[derive(Debug, Clone)]
@@ -54,9 +66,9 @@ pub struct WhisperTranscriber {
 impl WhisperTranscriber {
     /// 新しいWhisperTranscriberを作成
     /// model_path: Whisperモデルファイルへのパス（.bin）
-    pub fn new(model_path: &str) -> Result<Self, String> {
+    pub fn new(model_path: &str) -> Result<Self, TranscribeError> {
         let ctx = WhisperContext::new_with_params(model_path, WhisperContextParameters::default())
-            .map_err(|e| format!("Whisperモデルの読み込みに失敗: {}", e))?;
+            .map_err(TranscribeError::LoadModel)?;
 
         Ok(Self { ctx })
     }
@@ -69,7 +81,7 @@ impl WhisperTranscriber {
         &self,
         samples: &[f32],
         context: Option<&str>,
-    ) -> Result<Vec<TranscriptionSegment>, String> {
+    ) -> Result<Vec<TranscriptionSegment>, TranscribeError> {
         // 短すぎるサンプルはスキップ（0.5秒未満）
         if samples.len() < 8000 {
             return Ok(Vec::new());
@@ -94,11 +106,9 @@ impl WhisperTranscriber {
         let mut state = self
             .ctx
             .create_state()
-            .map_err(|e| format!("Whisper状態の作成に失敗: {}", e))?;
+            .map_err(TranscribeError::CreateState)?;
 
-        if let Err(e) = state.full(params, samples) {
-            return Err(format!("書き起こしに失敗: {}", e));
-        }
+        state.full(params, samples).map_err(TranscribeError::Run)?;
 
         // テキストを取得
         let mut segments = Vec::new();

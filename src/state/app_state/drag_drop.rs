@@ -13,9 +13,8 @@ impl AppState {
     }
 
     pub fn add_location(&mut self, location_type: LocationType, player_id: PlayerId, point: Point) {
-        let wave = match self.current_wave_mut() {
-            Ok(wave) => wave,
-            _ => return,
+        let Some(wave) = self.current_wave_mut() else {
+            return;
         };
 
         match location_type {
@@ -25,9 +24,8 @@ impl AppState {
     }
 
     pub fn remove_location(&mut self, location_type: LocationType, player_id: PlayerId) {
-        let wave = match self.current_wave_mut() {
-            Ok(wave) => wave,
-            _ => return,
+        let Some(wave) = self.current_wave_mut() else {
+            return;
         };
 
         match location_type {

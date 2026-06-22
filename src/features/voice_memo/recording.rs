@@ -38,7 +38,7 @@ impl VoiceMemoFeature {
                 }
                 Err(e) => {
                     log_error!("VoiceMemo", &format!("録音開始エラー: {}", e));
-                    self.state.error = Some(e);
+                    self.state.error = Some(e.to_string());
                 }
             }
         }
@@ -99,50 +99,41 @@ impl VoiceMemoFeature {
             };
 
             // 録音を停止
-            match recorder.stop_recording() {
-                Ok(()) => {
-                    self.state.is_recording = false;
+            recorder.stop_recording();
+            self.state.is_recording = false;
 
-                    // 16kHzでの最小サンプル数
-                    let min_speech_samples = (16000.0 * MIN_SPEECH_SECS) as usize;
+            // 16kHzでの最小サンプル数
+            let min_speech_samples = (16000.0 * MIN_SPEECH_SECS) as usize;
 
-                    // 発話中だった場合は残りのサンプルを送信
-                    if let Some((samples, next_pos)) = remaining {
-                        if samples.len() >= min_speech_samples && self.transcriber_thread.is_some()
-                        {
-                            let duration_secs = samples.len() as f32 / 16000.0;
-                            log_debug!(
-                                "VoiceMemo",
-                                &format!(
-                                    "録音停止: 最終発話チャンク送信 ({:.1}秒), pending={}",
-                                    duration_secs,
-                                    self.state.pending_chunks + 1
-                                )
-                            );
-                            self.send_transcription_request(samples, next_pos);
-                        } else {
-                            let duration_secs = samples.len() as f32 / 16000.0;
-                            log_debug!(
-                                "VoiceMemo",
-                                &format!(
-                                    "録音停止: 発話が短すぎるためスキップ ({:.1}秒)",
-                                    duration_secs
-                                )
-                            );
-                        }
-                    } else {
-                        log_debug!("VoiceMemo", "録音停止: 発話中ではなかった");
-                    }
-
-                    // VAD状態をリセット
-                    self.reset_vad_state();
+            // 発話中だった場合は残りのサンプルを送信
+            if let Some((samples, next_pos)) = remaining {
+                if samples.len() >= min_speech_samples && self.transcriber_thread.is_some() {
+                    let duration_secs = samples.len() as f32 / 16000.0;
+                    log_debug!(
+                        "VoiceMemo",
+                        &format!(
+                            "録音停止: 最終発話チャンク送信 ({:.1}秒), pending={}",
+                            duration_secs,
+                            self.state.pending_chunks + 1
+                        )
+                    );
+                    self.send_transcription_request(samples, next_pos);
+                } else {
+                    let duration_secs = samples.len() as f32 / 16000.0;
+                    log_debug!(
+                        "VoiceMemo",
+                        &format!(
+                            "録音停止: 発話が短すぎるためスキップ ({:.1}秒)",
+                            duration_secs
+                        )
+                    );
                 }
-                Err(e) => {
-                    log_error!("VoiceMemo", &format!("録音停止エラー: {}", e));
-                    self.state.is_recording = false;
-                    self.state.error = Some(e);
-                }
+            } else {
+                log_debug!("VoiceMemo", "録音停止: 発話中ではなかった");
             }
+
+            // VAD状態をリセット
+            self.reset_vad_state();
         }
     }
 }

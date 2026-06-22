@@ -1,6 +1,6 @@
 use crate::log_debug;
 use crate::models::{Game, SetupState};
-use crate::state::storage::AppStorage;
+use crate::state::storage::{AppStorage, StorageError};
 use crate::state::storage_keys::StorageKeys;
 
 use super::AppState;
@@ -11,7 +11,7 @@ impl AppState {
     pub fn load_from_storage(
         &mut self,
         storage: Option<&dyn eframe::Storage>,
-    ) -> Result<(), String> {
+    ) -> Result<(), StorageError> {
         // セットアップ状態を復元
         if let Ok(Some(setup_state)) =
             AppStorage::get::<SetupState>(storage, StorageKeys::SETUP_STATE)
@@ -48,7 +48,10 @@ impl AppState {
     }
 
     /// アプリケーション状態をストレージに保存
-    pub fn save_to_storage(&self, storage: Option<&mut dyn eframe::Storage>) -> Result<(), String> {
+    pub fn save_to_storage(
+        &self,
+        storage: Option<&mut dyn eframe::Storage>,
+    ) -> Result<(), StorageError> {
         AppStorage::save_multiple(storage, |s| {
             // セットアップ状態を保存
             AppStorage::set(Some(s), StorageKeys::SETUP_STATE, &self.data.setup_state)?;
@@ -83,7 +86,7 @@ impl AppState {
         &self,
         storage: Option<&dyn eframe::Storage>,
         key: &str,
-    ) -> Result<Option<T>, String>
+    ) -> Result<Option<T>, StorageError>
     where
         T: for<'de> serde::Deserialize<'de>,
     {
@@ -97,7 +100,7 @@ impl AppState {
         storage: Option<&mut dyn eframe::Storage>,
         key: &str,
         value: &T,
-    ) -> Result<(), String>
+    ) -> Result<(), StorageError>
     where
         T: serde::Serialize,
     {
@@ -109,7 +112,7 @@ impl AppState {
     pub fn clear_game_data(
         &mut self,
         storage: Option<&mut dyn eframe::Storage>,
-    ) -> Result<(), String> {
+    ) -> Result<(), StorageError> {
         AppStorage::save_multiple(storage, |s| {
             // ゲーム関連のデータを削除
             s.set_string(StorageKeys::GAME, "".to_string());
