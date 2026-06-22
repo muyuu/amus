@@ -51,6 +51,8 @@ impl LogLevel {
         }
     }
 
+    // ネイティブのカラー付きログ整形（format_native）専用。wasm では使わない。
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn as_str(&self) -> &'static str {
         match self {
             LogLevel::Error => "ERROR",

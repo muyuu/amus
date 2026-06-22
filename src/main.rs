@@ -15,10 +15,10 @@ mod resources;
 mod state;
 
 use crate::i18n::keys::*;
+use crate::log::Log;
 use app::AmusApp;
 use eframe::egui;
 use egui::*;
-use memongus_wasm::log::Log;
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result<()> {
