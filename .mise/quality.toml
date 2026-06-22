@@ -31,3 +31,9 @@ run = "cargo test"
 [verify]
 description = "コミット前のコード品質調整（フォーマット + 静的解析）"
 depends = ["fmt", "lint"]
+
+["pre-push"]
+# .githooks/pre-push から呼ばれる push 前ゲート。
+# CI が PR で見ない native clippy・test を含め、マージゲート相当をローカルで通す。
+description = "push 前ゲート: フォーマット検査 + 静的解析(native/wasm) + テスト"
+depends = ["fmt-check", "lint-ci", "test"]

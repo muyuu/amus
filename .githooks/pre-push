@@ -1,0 +1,6 @@
+#!/bin/sh
+# push 前のローカルゲート。マージ前に通したい検査（fmt / clippy(native+wasm) / test）を実行する。
+# CI は PR で fmt と wasm clippy しか回さない（native clippy・test は main への push 時のみ）ため、
+# テストと native clippy の回帰防止をここで担保する。
+# 緊急時は `git push --no-verify` でスキップできる。
+exec mise run pre-push
