@@ -26,7 +26,7 @@ impl<'a> Slices<'a> {
     }
 
     /// 翻訳されたテキストを取得
-    pub fn t(&self, key: &str) -> String {
+    pub fn t(&self, key: crate::i18n::keys::TextKey) -> String {
         self.data.translator.t(key).to_string()
     }
 

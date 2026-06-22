@@ -3,51 +3,72 @@ pub mod ja;
 pub mod keys;
 pub mod words;
 
-use std::collections::HashMap;
+use keys::TextKey;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Language {
     #[default]
     Japanese,
+    // 対応言語。言語切り替え UI から選択されるまでコード上は構築されない。
+    #[allow(dead_code)]
     English,
 }
 
 pub struct Translator {
     current_language: Language,
-    translations: HashMap<Language, HashMap<&'static str, String>>,
+    /// 言語ごとの翻訳テーブル。`TextKey as usize` でインデックスする。
+    /// 起動時に一度だけ構築し、`t` は配列参照だけで済ませる（毎フレームの
+    /// ハッシュ・確保を避ける）。
+    japanese: Vec<String>,
+    english: Vec<String>,
 }
 
 impl Translator {
     pub fn new(language: Language) -> Self {
-        let mut translations = HashMap::new();
-
-        // 各言語の翻訳辞書を読み込み
-        translations.insert(Language::Japanese, ja::get_translations());
-        translations.insert(Language::English, en::get_translations());
-
         Self {
             current_language: language,
-            translations,
+            japanese: build_table(ja::translate),
+            english: build_table(en::translate),
         }
     }
 
-    pub fn t<'a>(&'a self, key: &str) -> &'a str {
-        if let Some(dict) = self.translations.get(&self.current_language) {
-            if let Some(translation) = dict.get(key) {
-                return translation;
-            }
-        }
+    pub fn t(&self, key: TextKey) -> &str {
+        &self.table()[key as usize]
+    }
 
-        // フォールバック: 日本語で試す
-        if self.current_language != Language::Japanese {
-            if let Some(dict) = self.translations.get(&Language::Japanese) {
-                if let Some(translation) = dict.get(key) {
-                    return translation;
-                }
-            }
+    fn table(&self) -> &[String] {
+        match self.current_language {
+            Language::Japanese => &self.japanese,
+            Language::English => &self.english,
         }
+    }
+}
 
-        // 最終フォールバック: キーをそのまま返す（これは問題があるので修正が必要）
-        "Missing translation"
+/// 全キーを宣言順に変換し、`TextKey as usize` で引ける配列を作る。
+fn build_table(translate: fn(TextKey) -> String) -> Vec<String> {
+    TextKey::ALL.iter().map(|&key| translate(key)).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::keys::TextKey;
+    use super::{Language, Translator};
+
+    #[test]
+    fn t_resolves_per_language() {
+        let ja = Translator::new(Language::Japanese);
+        let en = Translator::new(Language::English);
+        // 同じキーが言語ごとに別の文字列へ解決される
+        assert_eq!(ja.t(TextKey::SetupCancel), "キャンセル");
+        assert_eq!(en.t(TextKey::SetupCancel), "Cancel");
+    }
+
+    #[test]
+    fn table_covers_every_key() {
+        // ビルド済みテーブルが全キー分の要素を持つ（index 漏れがない）
+        let ja = Translator::new(Language::Japanese);
+        for &key in TextKey::ALL {
+            assert!(!ja.t(key).is_empty(), "未翻訳のキーがある: {:?}", key);
+        }
     }
 }

@@ -5,6 +5,7 @@ mod storage;
 mod ui;
 mod wave;
 
+use crate::i18n::keys::TextKey;
 use crate::state::app_data::AppData;
 use crate::state::slices::Slices;
 
@@ -28,7 +29,7 @@ impl AppState {
         Slices::new(&self.data)
     }
 
-    pub fn t(&self, key: &str) -> String {
+    pub fn t(&self, key: TextKey) -> String {
         self.data.translator.t(key).to_string()
     }
 }
