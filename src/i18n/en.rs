@@ -1,166 +1,95 @@
-use super::keys::*;
+use super::keys::TextKey;
 use super::words::en::EnglishWords as W;
-use std::collections::HashMap;
 
-pub fn get_translations() -> HashMap<&'static str, String> {
-    let mut translations = HashMap::new();
-
-    // アプリケーション
-    translations.insert(APP_TITLE, W::APP_TITLE.to_string());
-
-    // メニュー (using word dictionary)
-    translations.insert(MENU_FILE, W::FILE.to_string());
-    translations.insert(MENU_NEW_GAME, format!("{} {}", W::NEW, W::GAME));
-    translations.insert(MENU_LOAD_GAME, format!("{} {}", W::LOAD, W::GAME));
-    translations.insert(MENU_SAVE_GAME, format!("{} {}", W::SAVE, W::GAME));
-    translations.insert(MENU_LANGUAGE, W::LANGUAGE.to_string());
-
-    // サイドバー (using word dictionary)
-    translations.insert(
-        SIDEBAR_TURN_MANAGEMENT,
-        format!("{} {}", W::TURN, W::MANAGEMENT),
-    );
-    translations.insert(
-        SIDEBAR_ADD_NEW_TURN,
-        format!("{} {} {}", W::ADD, W::NEW, W::TURN),
-    );
-    translations.insert(SIDEBAR_PLAYERS, W::PLAYER.to_string());
-    translations.insert(
-        SIDEBAR_START_GAME_PROMPT,
-        format!(
+/// キーを現在言語の文字列に変換する。
+/// `TextKey` 全件を網羅し、コンパイル時に翻訳漏れを防ぐ。
+pub fn translate(key: TextKey) -> String {
+    use TextKey::*;
+    match key {
+        AppTitle => W::APP_TITLE.to_string(),
+        MenuFile => W::FILE.to_string(),
+        MenuNewGame => format!("{} {}", W::NEW, W::GAME),
+        MenuLoadGame => format!("{} {}", W::LOAD, W::GAME),
+        MenuSaveGame => format!("{} {}", W::SAVE, W::GAME),
+        MenuLanguage => W::LANGUAGE.to_string(),
+        SidebarTurnManagement => format!("{} {}", W::TURN, W::MANAGEMENT),
+        SidebarAddNewTurn => format!("{} {} {}", W::ADD, W::NEW, W::TURN),
+        SidebarPlayers => W::PLAYER.to_string(),
+        SidebarStartGamePrompt => format!(
             "Please {} a new {}",
             W::START.to_lowercase(),
             W::GAME.to_lowercase()
         ),
-    );
-    translations.insert(SIDEBAR_TURN_PREFIX, W::TURN.to_string());
-    translations.insert(SIDEBAR_CURRENT_TURN_PREFIX, format!("▶ {}", W::TURN));
-
-    // セットアップダイアログ (using word dictionary)
-    translations.insert(SETUP_TITLE, format!("{} {}", W::GAME, W::SETTINGS));
-    translations.insert(
-        SETUP_AREA_SELECTION,
-        format!("{} {}", W::AREA, W::SELECTION),
-    );
-    translations.insert(
-        SETUP_PLAYER_SETTINGS,
-        format!("{} {}", W::PLAYER, W::SETTINGS),
-    );
-    translations.insert(SETUP_PLAYER_COUNT, format!("{} {}:", W::PLAYER, W::COUNT));
-    translations.insert(SETUP_PLAYER_CONFIG, format!("{} {}:", W::PLAYER, W::CONFIG));
-    translations.insert(
-        SETUP_CONFIG_NOTE,
-        "(In development: Default settings available)".to_string(),
-    );
-    translations.insert(SETUP_PLAYER_NAME, W::NAME.to_string());
-    translations.insert(SETUP_PLAYER_COLOR, W::COLOR.to_string());
-    translations.insert(SETUP_START_GAME, format!("{} {}", W::START, W::GAME));
-    translations.insert(SETUP_CANCEL, W::CANCEL.to_string());
-
-    // メインコンテンツ (using word dictionary)
-    translations.insert(MAIN_DRAWING_MODE, format!("{} {}:", W::DRAWING, W::MODE));
-    translations.insert(MAIN_DRAWING_NONE, W::NONE.to_string());
-    translations.insert(
-        MAIN_DRAWING_CLICK_LINE,
-        format!("{} to {}", W::CLICK, W::LINE),
-    );
-    translations.insert(MAIN_DRAWING_FREEHAND, W::FREEHAND.to_string());
-    translations.insert(
-        MAIN_DISCUSSION_INFO,
-        format!("{} {} {}", W::DISCUSSION, W::TURN, W::INFORMATION),
-    );
-    translations.insert(MAIN_KILLED_PLAYER, format!("{} {}:", W::KILLED, W::PLAYER));
-    translations.insert(
-        MAIN_KILL_LOCATION,
-        format!("Kill {} (Testimony):", W::LOCATION),
-    );
-    translations.insert(MAIN_LOCATION_UNSET, W::UNSET.to_string());
-    translations.insert(
-        MAIN_SET_LOCATION_BTN,
-        format!("{} on map to {}", W::CLICK, W::SET.to_lowercase()),
-    );
-    translations.insert(
-        MAIN_LOCATION_NOTE,
-        "(In development: Right-click on map planned)".to_string(),
-    );
-    translations.insert(MAIN_NOTES, format!("{}:", W::NOTES));
-    translations.insert(MAIN_NO_SELECTION, W::NONE.to_string());
-    translations.insert(MAIN_SELECT_PROMPT, "Please select".to_string());
-    translations.insert(MAIN_STATUS_ALIVE, W::ALIVE.to_string());
-    translations.insert(MAIN_STATUS_DEAD, W::DEAD.to_string());
-    translations.insert(MAIN_WELCOME_TITLE, W::APP_TITLE.to_string());
-    translations.insert(
-        MAIN_WELCOME_MESSAGE,
-        format!(
+        SidebarTurnPrefix => W::TURN.to_string(),
+        SidebarCurrentTurnPrefix => format!("▶ {}", W::TURN),
+        SetupTitle => format!("{} {}", W::GAME, W::SETTINGS),
+        SetupAreaSelection => format!("{} {}", W::AREA, W::SELECTION),
+        SetupPlayerSettings => format!("{} {}", W::PLAYER, W::SETTINGS),
+        SetupPlayerCount => format!("{} {}:", W::PLAYER, W::COUNT),
+        SetupPlayerConfig => format!("{} {}:", W::PLAYER, W::CONFIG),
+        SetupConfigNote => "(In development: Default settings available)".to_string(),
+        SetupPlayerName => W::NAME.to_string(),
+        SetupPlayerColor => W::COLOR.to_string(),
+        SetupStartGame => format!("{} {}", W::START, W::GAME),
+        SetupCancel => W::CANCEL.to_string(),
+        MainDrawingMode => format!("{} {}:", W::DRAWING, W::MODE),
+        MainDrawingNone => W::NONE.to_string(),
+        MainDrawingClickLine => format!("{} to {}", W::CLICK, W::LINE),
+        MainDrawingFreehand => W::FREEHAND.to_string(),
+        MainDiscussionInfo => format!("{} {} {}", W::DISCUSSION, W::TURN, W::INFORMATION),
+        MainKilledPlayer => format!("{} {}:", W::KILLED, W::PLAYER),
+        MainKillLocation => format!("Kill {} (Testimony):", W::LOCATION),
+        MainLocationUnset => W::UNSET.to_string(),
+        MainSetLocationBtn => format!("{} on map to {}", W::CLICK, W::SET.to_lowercase()),
+        MainLocationNote => "(In development: Right-click on map planned)".to_string(),
+        MainNotes => format!("{}:", W::NOTES),
+        MainNoSelection => W::NONE.to_string(),
+        MainSelectPrompt => "Please select".to_string(),
+        MainStatusAlive => W::ALIVE.to_string(),
+        MainStatusDead => W::DEAD.to_string(),
+        MainWelcomeTitle => W::APP_TITLE.to_string(),
+        MainWelcomeMessage => format!(
             "Please {} a new {}",
             W::START.to_lowercase(),
             W::GAME.to_lowercase()
         ),
-    );
-
-    translations.insert(PLAYER_INFO_BUTTON_DONE, "Done".to_string());
-    translations.insert(PLAYER_INFO_BUTTON_NOT_DONE, "Meeting".to_string());
-
-    // Eraser
-    translations.insert(ERASER_BUTTON, W::ERASER.to_string());
-
-    // サボタージュ
-    translations.insert(SABOTAGE, W::SABOTAGE.to_string());
-    translations.insert(SABOTAGE_COMMS, W::SABOTAGE_COMMS.to_string());
-    translations.insert(SABOTAGE_LIGHTS, W::SABOTAGE_LIGHTS.to_string());
-    translations.insert(SABOTAGE_REACTOR, W::SABOTAGE_REACTOR.to_string());
-    translations.insert(SABOTAGE_O2, W::SABOTAGE_O2.to_string());
-    translations.insert(SABOTAGE_DOORS, W::SABOTAGE_DOORS.to_string());
-
-    // 音声メモ
-    translations.insert(VOICE_MEMO_TITLE, W::VOICE_MEMO.to_string());
-    translations.insert(
-        VOICE_MEMO_MODEL_DOWNLOADING,
-        format!("⏳ {} {}...", W::DOWNLOADING, W::MODEL.to_lowercase()),
-    );
-    translations.insert(
-        VOICE_MEMO_MODEL_NOT_FOUND,
-        format!("⚠ {} not found", W::WHISPER_MODEL),
-    );
-    translations.insert(
-        VOICE_MEMO_MODEL_REQUIRED,
-        format!(
+        PlayerInfoButtonDone => "Done".to_string(),
+        PlayerInfoButtonNotDone => "Meeting".to_string(),
+        EraserButton => W::ERASER.to_string(),
+        Sabotage => W::SABOTAGE.to_string(),
+        SabotageComms => W::SABOTAGE_COMMS.to_string(),
+        SabotageLights => W::SABOTAGE_LIGHTS.to_string(),
+        SabotageReactor => W::SABOTAGE_REACTOR.to_string(),
+        SabotageO2 => W::SABOTAGE_O2.to_string(),
+        SabotageDoors => W::SABOTAGE_DOORS.to_string(),
+        VoiceMemoTitle => W::VOICE_MEMO.to_string(),
+        VoiceMemoModelDownloading => {
+            format!("⏳ {} {}...", W::DOWNLOADING, W::MODEL.to_lowercase())
+        }
+        VoiceMemoModelNotFound => format!("⚠ {} not found", W::WHISPER_MODEL),
+        VoiceMemoModelRequired => format!(
             "{} requires {} {}",
             W::VOICE_RECOGNITION,
             W::MODEL_REQUIRED_SIZE,
             W::MODEL.to_lowercase()
         ),
-    );
-    translations.insert(
-        VOICE_MEMO_DOWNLOAD_MODEL,
-        format!("📥 {} {}", W::DOWNLOAD, W::MODEL.to_lowercase()),
-    );
-    translations.insert(
-        VOICE_MEMO_MIC_UNAVAILABLE,
-        format!("⚠ {} unavailable", W::MIC),
-    );
-    translations.insert(VOICE_MEMO_END, W::END.to_string());
-    translations.insert(VOICE_MEMO_REC, "● REC".to_string());
-    translations.insert(VOICE_MEMO_STOP, format!("⏹ {}", W::STOP));
-    translations.insert(
-        VOICE_MEMO_TRANSCRIBING,
-        format!("⏳ {}...", W::TRANSCRIBING),
-    );
-    translations.insert(VOICE_MEMO_RECORD, format!("🎤 {}", W::RECORD));
-    translations.insert(VOICE_MEMO_START_TURN, format!("▶ {} {}", W::START, W::TURN));
-    translations.insert(VOICE_MEMO_CLEAR, format!("🗑 {}", W::CLEAR));
-    translations.insert(VOICE_MEMO_ERROR, W::ERROR.to_string());
-    translations.insert(
-        VOICE_MEMO_START_PROMPT,
-        format!(
+        VoiceMemoDownloadModel => format!("📥 {} {}", W::DOWNLOAD, W::MODEL.to_lowercase()),
+        VoiceMemoMicUnavailable => format!("⚠ {} unavailable", W::MIC),
+        VoiceMemoEnd => W::END.to_string(),
+        VoiceMemoRec => "● REC".to_string(),
+        VoiceMemoStop => format!("⏹ {}", W::STOP),
+        VoiceMemoTranscribing => format!("⏳ {}...", W::TRANSCRIBING),
+        VoiceMemoRecord => format!("🎤 {}", W::RECORD),
+        VoiceMemoStartTurn => format!("▶ {} {}", W::START, W::TURN),
+        VoiceMemoClear => format!("🗑 {}", W::CLEAR),
+        VoiceMemoError => W::ERROR.to_string(),
+        VoiceMemoStartPrompt => format!(
             "Please {} a {}",
             W::START.to_lowercase(),
             W::TURN.to_lowercase()
         ),
-    );
-    translations.insert(VOICE_MEMO_RECORD_HINT, W::RECORD_BUTTON_HINT.to_string());
-    translations.insert(VOICE_MEMO_MEMO_COUNT, W::NOTES.to_string());
-    translations.insert(VOICE_MEMO_TURN_TIME, format!("{} {}", W::TURN, W::TIME));
-
-    translations
+        VoiceMemoRecordHint => W::RECORD_BUTTON_HINT.to_string(),
+        VoiceMemoMemoCount => W::NOTES.to_string(),
+        VoiceMemoTurnTime => format!("{} {}", W::TURN, W::TIME),
+    }
 }

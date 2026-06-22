@@ -1,86 +1,94 @@
-// 翻訳キー定数
-// この定数を使用することで、タイポエラーを防止し、IDEの補完機能を活用できます
+//! 翻訳キー。
+//!
+//! `TextKey` の列挙子は宣言順の連番（`as usize` で 0..COUNT）で、翻訳テーブル配列の
+//! インデックスとして使う（`super::Translator` 参照）。呼び出し側は従来どおり
+//! `keys::APP_TITLE` 等の定数名で参照する（型は `&str` から `TextKey` に変わった）。
 
-// アプリケーション
-pub const APP_TITLE: &str = "app.title";
+/// キー一覧を 1 箇所で宣言し、enum・全件配列・定数名を同時に生成する。
+/// `定数名 => 列挙子名` を 1 行ずつ並べる。
+macro_rules! text_keys {
+    ($($const_name:ident => $variant:ident),+ $(,)?) => {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        pub enum TextKey {
+            $($variant),+
+        }
 
-// メニュー
-pub const MENU_FILE: &str = "menu.file";
-pub const MENU_NEW_GAME: &str = "menu.new_game";
-pub const MENU_LOAD_GAME: &str = "menu.load_game";
-pub const MENU_SAVE_GAME: &str = "menu.save_game";
-pub const MENU_LANGUAGE: &str = "menu.language";
+        impl TextKey {
+            /// 全キーを宣言順（= `as usize` の順）に並べた配列。テーブル構築に使う。
+            pub const ALL: &'static [TextKey] = &[$(TextKey::$variant),+];
+        }
 
-// サイドバー
-pub const SIDEBAR_TURN_MANAGEMENT: &str = "sidebar.turn_management";
-pub const SIDEBAR_ADD_NEW_TURN: &str = "sidebar.add_new_turn";
-pub const SIDEBAR_PLAYERS: &str = "sidebar.players";
-pub const SIDEBAR_START_GAME_PROMPT: &str = "sidebar.start_game_prompt";
-pub const SIDEBAR_TURN_PREFIX: &str = "sidebar.turn_prefix";
-pub const SIDEBAR_CURRENT_TURN_PREFIX: &str = "sidebar.current_turn_prefix";
+        // キーの全集合を網羅する catalog。表示側に未配線のキーも含むため
+        // 個々の定数は未使用でも許容する。
+        $(#[allow(dead_code)] pub const $const_name: TextKey = TextKey::$variant;)+
+    };
+}
 
-// セットアップダイアログ
-pub const SETUP_TITLE: &str = "setup.title";
-pub const SETUP_AREA_SELECTION: &str = "setup.area_selection";
-pub const SETUP_PLAYER_SETTINGS: &str = "setup.player_settings";
-pub const SETUP_PLAYER_COUNT: &str = "setup.player_count";
-pub const SETUP_PLAYER_CONFIG: &str = "setup.player_config";
-pub const SETUP_CONFIG_NOTE: &str = "setup.config_note";
-pub const SETUP_PLAYER_NAME: &str = "setup.player_name";
-pub const SETUP_PLAYER_COLOR: &str = "setup.player_color";
-pub const SETUP_START_GAME: &str = "setup.start_game";
-pub const SETUP_CANCEL: &str = "setup.cancel";
-
-// メインコンテンツ
-pub const MAIN_DRAWING_MODE: &str = "main.drawing_mode";
-pub const MAIN_DRAWING_NONE: &str = "main.drawing_none";
-pub const MAIN_DRAWING_CLICK_LINE: &str = "main.drawing_click_line";
-pub const MAIN_DRAWING_FREEHAND: &str = "main.drawing_freehand";
-pub const MAIN_DISCUSSION_INFO: &str = "main.discussion_info";
-pub const MAIN_KILLED_PLAYER: &str = "main.killed_player";
-pub const MAIN_KILL_LOCATION: &str = "main.kill_location";
-pub const MAIN_LOCATION_UNSET: &str = "main.location_unset";
-pub const MAIN_SET_LOCATION_BTN: &str = "main.set_location_btn";
-pub const MAIN_LOCATION_NOTE: &str = "main.location_note";
-pub const MAIN_NOTES: &str = "main.notes";
-pub const MAIN_NO_SELECTION: &str = "main.no_selection";
-pub const MAIN_SELECT_PROMPT: &str = "main.select_prompt";
-pub const MAIN_STATUS_ALIVE: &str = "main.status_alive";
-pub const MAIN_STATUS_DEAD: &str = "main.status_dead";
-pub const MAIN_WELCOME_TITLE: &str = "main.welcome_title";
-pub const MAIN_WELCOME_MESSAGE: &str = "main.welcome_message";
-
-// ユーザー一覧
-pub const PLAYER_INFO_BUTTON_DONE: &str = "player_info.button_done";
-pub const PLAYER_INFO_BUTTON_NOT_DONE: &str = "player_info.button_not_done";
-
-// 消しゴムボタン
-pub const ERASER_BUTTON: &str = "eraser.button";
-
-// サボタージュ
-pub const SABOTAGE: &str = "sabotage";
-pub const SABOTAGE_COMMS: &str = "sabotage.comms";
-pub const SABOTAGE_LIGHTS: &str = "sabotage.lights";
-pub const SABOTAGE_REACTOR: &str = "sabotage.meltdown_reactor";
-pub const SABOTAGE_O2: &str = "sabotage.o2_depletion";
-pub const SABOTAGE_DOORS: &str = "sabotage.doors";
-
-// 音声メモ
-pub const VOICE_MEMO_TITLE: &str = "voice_memo.title";
-pub const VOICE_MEMO_MODEL_DOWNLOADING: &str = "voice_memo.model_downloading";
-pub const VOICE_MEMO_MODEL_NOT_FOUND: &str = "voice_memo.model_not_found";
-pub const VOICE_MEMO_MODEL_REQUIRED: &str = "voice_memo.model_required";
-pub const VOICE_MEMO_DOWNLOAD_MODEL: &str = "voice_memo.download_model";
-pub const VOICE_MEMO_MIC_UNAVAILABLE: &str = "voice_memo.mic_unavailable";
-pub const VOICE_MEMO_END: &str = "voice_memo.end";
-pub const VOICE_MEMO_REC: &str = "voice_memo.rec";
-pub const VOICE_MEMO_STOP: &str = "voice_memo.stop";
-pub const VOICE_MEMO_TRANSCRIBING: &str = "voice_memo.transcribing";
-pub const VOICE_MEMO_RECORD: &str = "voice_memo.record";
-pub const VOICE_MEMO_START_TURN: &str = "voice_memo.start_turn";
-pub const VOICE_MEMO_CLEAR: &str = "voice_memo.clear";
-pub const VOICE_MEMO_ERROR: &str = "voice_memo.error";
-pub const VOICE_MEMO_START_PROMPT: &str = "voice_memo.start_prompt";
-pub const VOICE_MEMO_RECORD_HINT: &str = "voice_memo.record_hint";
-pub const VOICE_MEMO_MEMO_COUNT: &str = "voice_memo.memo_count";
-pub const VOICE_MEMO_TURN_TIME: &str = "voice_memo.turn_time";
+text_keys! {
+    APP_TITLE => AppTitle,
+    MENU_FILE => MenuFile,
+    MENU_NEW_GAME => MenuNewGame,
+    MENU_LOAD_GAME => MenuLoadGame,
+    MENU_SAVE_GAME => MenuSaveGame,
+    MENU_LANGUAGE => MenuLanguage,
+    SIDEBAR_TURN_MANAGEMENT => SidebarTurnManagement,
+    SIDEBAR_ADD_NEW_TURN => SidebarAddNewTurn,
+    SIDEBAR_PLAYERS => SidebarPlayers,
+    SIDEBAR_START_GAME_PROMPT => SidebarStartGamePrompt,
+    SIDEBAR_TURN_PREFIX => SidebarTurnPrefix,
+    SIDEBAR_CURRENT_TURN_PREFIX => SidebarCurrentTurnPrefix,
+    SETUP_TITLE => SetupTitle,
+    SETUP_AREA_SELECTION => SetupAreaSelection,
+    SETUP_PLAYER_SETTINGS => SetupPlayerSettings,
+    SETUP_PLAYER_COUNT => SetupPlayerCount,
+    SETUP_PLAYER_CONFIG => SetupPlayerConfig,
+    SETUP_CONFIG_NOTE => SetupConfigNote,
+    SETUP_PLAYER_NAME => SetupPlayerName,
+    SETUP_PLAYER_COLOR => SetupPlayerColor,
+    SETUP_START_GAME => SetupStartGame,
+    SETUP_CANCEL => SetupCancel,
+    MAIN_DRAWING_MODE => MainDrawingMode,
+    MAIN_DRAWING_NONE => MainDrawingNone,
+    MAIN_DRAWING_CLICK_LINE => MainDrawingClickLine,
+    MAIN_DRAWING_FREEHAND => MainDrawingFreehand,
+    MAIN_DISCUSSION_INFO => MainDiscussionInfo,
+    MAIN_KILLED_PLAYER => MainKilledPlayer,
+    MAIN_KILL_LOCATION => MainKillLocation,
+    MAIN_LOCATION_UNSET => MainLocationUnset,
+    MAIN_SET_LOCATION_BTN => MainSetLocationBtn,
+    MAIN_LOCATION_NOTE => MainLocationNote,
+    MAIN_NOTES => MainNotes,
+    MAIN_NO_SELECTION => MainNoSelection,
+    MAIN_SELECT_PROMPT => MainSelectPrompt,
+    MAIN_STATUS_ALIVE => MainStatusAlive,
+    MAIN_STATUS_DEAD => MainStatusDead,
+    MAIN_WELCOME_TITLE => MainWelcomeTitle,
+    MAIN_WELCOME_MESSAGE => MainWelcomeMessage,
+    PLAYER_INFO_BUTTON_DONE => PlayerInfoButtonDone,
+    PLAYER_INFO_BUTTON_NOT_DONE => PlayerInfoButtonNotDone,
+    ERASER_BUTTON => EraserButton,
+    SABOTAGE => Sabotage,
+    SABOTAGE_COMMS => SabotageComms,
+    SABOTAGE_LIGHTS => SabotageLights,
+    SABOTAGE_REACTOR => SabotageReactor,
+    SABOTAGE_O2 => SabotageO2,
+    SABOTAGE_DOORS => SabotageDoors,
+    VOICE_MEMO_TITLE => VoiceMemoTitle,
+    VOICE_MEMO_MODEL_DOWNLOADING => VoiceMemoModelDownloading,
+    VOICE_MEMO_MODEL_NOT_FOUND => VoiceMemoModelNotFound,
+    VOICE_MEMO_MODEL_REQUIRED => VoiceMemoModelRequired,
+    VOICE_MEMO_DOWNLOAD_MODEL => VoiceMemoDownloadModel,
+    VOICE_MEMO_MIC_UNAVAILABLE => VoiceMemoMicUnavailable,
+    VOICE_MEMO_END => VoiceMemoEnd,
+    VOICE_MEMO_REC => VoiceMemoRec,
+    VOICE_MEMO_STOP => VoiceMemoStop,
+    VOICE_MEMO_TRANSCRIBING => VoiceMemoTranscribing,
+    VOICE_MEMO_RECORD => VoiceMemoRecord,
+    VOICE_MEMO_START_TURN => VoiceMemoStartTurn,
+    VOICE_MEMO_CLEAR => VoiceMemoClear,
+    VOICE_MEMO_ERROR => VoiceMemoError,
+    VOICE_MEMO_START_PROMPT => VoiceMemoStartPrompt,
+    VOICE_MEMO_RECORD_HINT => VoiceMemoRecordHint,
+    VOICE_MEMO_MEMO_COUNT => VoiceMemoMemoCount,
+    VOICE_MEMO_TURN_TIME => VoiceMemoTurnTime,
+}
