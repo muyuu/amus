@@ -41,7 +41,7 @@ jobs:
               uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
               with:
                 path: ~/.rustup
-                key: ${{ runner.os }}-rustup-${{ hashFiles('.tool-versions', '.mise.toml') }}
+                key: ${{ runner.os }}-rustup-${{ hashFiles('rust-toolchain.toml', 'mise.toml', '.mise/dependencies.toml') }}
 
             - name: Rustツールチェイン・ターゲットのインストール
               if: steps.cache-rustup.outputs.cache-hit != 'true'
@@ -53,7 +53,7 @@ jobs:
               uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
               with:
                 path: ~/.cargo/bin
-                key: ${{ runner.os }}-cargobin-${{ hashFiles('.tool-versions', '.mise.toml', '.mise/dependencies.toml') }}
+                key: ${{ runner.os }}-cargobin-${{ hashFiles('rust-toolchain.toml', 'mise.toml', '.mise/dependencies.toml') }}
 
             - name: Rustビルドツールのインストール
               if: steps.cache-cargobin.outputs.cache-hit != 'true'
