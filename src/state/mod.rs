@@ -8,7 +8,7 @@ pub mod storage_keys;
 
 pub use actions::{
     Actions, EraserAction, GameAction, LocationAction, PlayerAction, PlayerInfoAction,
-    RouteDrawingAction, SetupAction, WindowAction,
+    RouteDrawingAction, SetupAction, WaveAction,
 };
 pub use app_state::AppState;
 pub use slices::Slices;

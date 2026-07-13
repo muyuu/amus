@@ -7,7 +7,7 @@
 use crate::features::voice_memo::VoiceMemoAction;
 use crate::state::{
     EraserAction, GameAction, LocationAction, PlayerAction, PlayerInfoAction, RouteDrawingAction,
-    SetupAction, WindowAction,
+    SetupAction, WaveAction,
 };
 
 /// 各ドメインの Action を束ねるアプリ全体のアクション。
@@ -19,7 +19,7 @@ pub enum AppAction {
     RouteDrawing(RouteDrawingAction),
     Eraser(EraserAction),
     Setup(SetupAction),
-    Window(WindowAction),
+    Wave(WaveAction),
     #[cfg(not(target_arch = "wasm32"))]
     VoiceMemo(VoiceMemoAction),
 }
