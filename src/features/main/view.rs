@@ -8,12 +8,10 @@ use crate::features::map::MapFeature;
 use crate::features::player_list::PlayerListFeature;
 use crate::features::route_drawing::RouteDrawingFeature;
 use crate::features::welcome::WelcomeFeature;
-use crate::features::window::comms::CommsFeature;
-use crate::features::window::lights::LightsFeature;
-use crate::features::window::o2::O2Feature;
-use crate::features::window::reactor::ReactorFeature;
+use crate::features::window::sabotage::SabotageFeature;
 use crate::features::window::turn::TurnFeature;
 use crate::features::StatefulFeatures;
+use crate::models::Sabotage;
 use crate::state::Slices;
 use egui::*;
 
@@ -66,10 +64,9 @@ impl MainView {
     ) -> Vec<AppAction> {
         let mut actions = Vec::new();
         actions.extend(TurnFeature::render(slices, ui));
-        actions.extend(CommsFeature::render(slices, ui));
-        actions.extend(LightsFeature::render(slices, ui));
-        actions.extend(O2Feature::render(slices, ui));
-        actions.extend(ReactorFeature::render(slices, ui));
+        for kind in Sabotage::ALL {
+            actions.extend(SabotageFeature::render(slices, ui, kind));
+        }
 
         #[cfg(not(target_arch = "wasm32"))]
         actions.extend(features.voice_memo.render(slices, ui));

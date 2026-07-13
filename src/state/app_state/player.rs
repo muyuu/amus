@@ -1,4 +1,4 @@
-use crate::models::{Color, Player, PlayerId, PlayerState, Role};
+use crate::models::{Color, Player, PlayerId, PlayerState, Role, Sabotage};
 use crate::state::error::ColorError;
 
 use super::AppState;
@@ -197,27 +197,12 @@ impl AppState {
         }
     }
 
-    pub fn toggle_comms(&mut self, id: PlayerId) {
+    /// 指定プレイヤーのサボタージュ解決状態をトグルする。
+    pub fn toggle_sabotage(&mut self, kind: Sabotage, id: PlayerId) {
         if let Some(player) = self.player_mut(id) {
-            player.resolved_comms = !player.resolved_comms;
-        }
-    }
-
-    pub fn toggle_lights(&mut self, id: PlayerId) {
-        if let Some(player) = self.player_mut(id) {
-            player.resolved_lights = !player.resolved_lights;
-        }
-    }
-
-    pub fn toggle_o2(&mut self, id: PlayerId) {
-        if let Some(player) = self.player_mut(id) {
-            player.resolved_o2 = !player.resolved_o2;
-        }
-    }
-
-    pub fn toggle_reactor(&mut self, id: PlayerId) {
-        if let Some(player) = self.player_mut(id) {
-            player.resolved_reactor = !player.resolved_reactor;
+            if !player.resolved.remove(&kind) {
+                player.resolved.insert(kind);
+            }
         }
     }
 }
@@ -259,6 +244,31 @@ mod tests {
             state.slices().player().player(id).unwrap().state,
             PlayerState::Alive
         );
+    }
+
+    #[test]
+    fn toggle_sabotage_affects_only_the_given_kind() {
+        let (mut state, id) = game_with_players();
+        assert!(!state
+            .slices()
+            .player()
+            .player(id)
+            .unwrap()
+            .is_resolved(Sabotage::Comms));
+
+        state.toggle_sabotage(Sabotage::Comms, id);
+        let player = state.slices().player().player(id).unwrap().clone();
+        assert!(player.is_resolved(Sabotage::Comms));
+        // 他種別は影響を受けない
+        assert!(!player.is_resolved(Sabotage::Lights));
+
+        state.toggle_sabotage(Sabotage::Comms, id);
+        assert!(!state
+            .slices()
+            .player()
+            .player(id)
+            .unwrap()
+            .is_resolved(Sabotage::Comms));
     }
 
     #[test]
