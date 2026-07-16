@@ -95,7 +95,10 @@ fn setup_custom_fonts(ctx: &Context) {
         let path = std::path::Path::new(font_path);
         if path.exists() {
             if let Ok(font_data) = std::fs::read(path) {
-                println!("日本語フォントを読み込みました: {}", font_path);
+                crate::log_info!(
+                    "Font",
+                    format!("日本語フォントを読み込みました: {}", font_path)
+                );
                 fonts.font_data.insert(
                     "japanese".to_owned(),
                     FontData::from_owned(font_data).into(),
@@ -123,14 +126,19 @@ fn setup_custom_fonts(ctx: &Context) {
                 japanese_font_found = true;
                 break;
             } else {
-                eprintln!("フォントファイルの読み込みに失敗しました: {}", font_path);
+                crate::log_error!(
+                    "Font",
+                    format!("フォントファイルの読み込みに失敗しました: {}", font_path)
+                );
             }
         }
     }
 
     if !japanese_font_found {
-        eprintln!("警告: 日本語フォントが見つかりませんでした。日本語が正しく表示されない可能性があります。");
-        eprintln!("利用可能なフォントパスを確認してください。");
+        crate::log_warn!(
+            "Font",
+            "日本語フォントが見つかりませんでした。日本語が正しく表示されない可能性があります。利用可能なフォントパスを確認してください。"
+        );
     }
 
     ctx.set_fonts(fonts);

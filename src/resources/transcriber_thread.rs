@@ -2,22 +2,18 @@
 //!
 //! Whisper書き起こしを専用スレッドで実行し、UIをブロックしない。
 
-use chrono::Local;
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::thread::{self, JoinHandle};
 use thiserror::Error;
 
 use super::whisper_transcriber::{get_model_path, model_exists, TranscriptionSegment};
+use crate::{log_debug, log_error};
 
 /// 書き起こしスレッドの起動が失敗した理由。
 #[derive(Debug, Error)]
 pub enum TranscriberThreadError {
     #[error("Whisper モデルが見つかりません: {0}")]
     ModelNotFound(String),
-}
-
-fn now() -> String {
-    Local::now().format("%H:%M:%S").to_string()
 }
 
 /// 書き起こしリクエスト
@@ -103,12 +99,12 @@ impl TranscriberThread {
         let transcriber = match WhisperTranscriber::new(&get_model_path()) {
             Ok(t) => t,
             Err(e) => {
-                eprintln!("{} [TranscriberThread] Whisper初期化エラー: {}", now(), e);
+                log_error!("TranscriberThread", format!("Whisper初期化エラー: {}", e));
                 return;
             }
         };
 
-        eprintln!("{} [TranscriberThread] 書き起こしスレッド開始", now());
+        log_debug!("TranscriberThread", "書き起こしスレッド開始");
 
         loop {
             // リクエストを待機（ブロッキング）
@@ -116,13 +112,12 @@ impl TranscriberThread {
                 Ok(req) => {
                     let samples_len = req.samples.len();
                     let duration_secs = samples_len as f32 / 16000.0;
-                    eprintln!(
-                        "{} [TranscriberThread] 書き起こし開始: {:.1}秒分 ({}サンプル), offset={:.1}s, round={}",
-                        now(),
-                        duration_secs,
-                        samples_len,
-                        req.offset_secs,
-                        req.round_index
+                    log_debug!(
+                        "TranscriberThread",
+                        format!(
+                            "書き起こし開始: {:.1}秒分 ({}サンプル), offset={:.1}s, round={}",
+                            duration_secs, samples_len, req.offset_secs, req.round_index
+                        )
                     );
 
                     let result = match transcriber.transcribe(&req.samples, req.context.as_deref())
@@ -132,14 +127,11 @@ impl TranscriberThread {
                             for seg in &mut segments {
                                 seg.timestamp_secs += req.offset_secs;
                             }
-                            // 結果のテキストも表示
-                            let texts: Vec<&str> =
-                                segments.iter().map(|s| s.text.as_str()).collect();
-                            eprintln!(
-                                "{} [TranscriberThread] 書き起こし完了: {}セグメント {:?}",
-                                now(),
-                                segments.len(),
-                                texts
+                            // 書き起こし全文は発話内容そのものなのでログに残さない（プライバシー）。
+                            // 件数のみ記録する。
+                            log_debug!(
+                                "TranscriberThread",
+                                format!("書き起こし完了: {}セグメント", segments.len())
                             );
                             TranscribeResult {
                                 segments,
@@ -148,7 +140,7 @@ impl TranscriberThread {
                             }
                         }
                         Err(e) => {
-                            eprintln!("{} [TranscriberThread] 書き起こしエラー: {}", now(), e);
+                            log_error!("TranscriberThread", format!("書き起こしエラー: {}", e));
                             TranscribeResult {
                                 segments: Vec::new(),
                                 round_index: req.round_index,
@@ -161,7 +153,7 @@ impl TranscriberThread {
                 }
                 Err(_) => {
                     // チャネルが閉じられた
-                    eprintln!("{} [TranscriberThread] 書き起こしスレッド終了", now());
+                    log_debug!("TranscriberThread", "書き起こしスレッド終了");
                     break;
                 }
             }

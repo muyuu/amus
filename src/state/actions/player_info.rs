@@ -1,4 +1,5 @@
 use super::Actions;
+use crate::log_error;
 use crate::models::color::Color;
 use crate::models::player::PlayerId;
 
@@ -38,7 +39,7 @@ impl Actions<'_> {
             }
             PlayerInfoAction::ChangeColor(player_id, color) => {
                 if let Err(e) = self.state.try_update_player_color(player_id, color) {
-                    eprintln!("色の変更に失敗: {}", e);
+                    log_error!("PlayerInfo", format!("色の変更に失敗: {}", e));
                 }
             }
         }

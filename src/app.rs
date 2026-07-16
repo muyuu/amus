@@ -7,6 +7,7 @@ use crate::features::player_info::PlayerInfoFeature;
 use crate::features::setup_dialog::SetupDialogFeature;
 use crate::features::StatefulFeatures;
 use crate::i18n::keys;
+use crate::log_error;
 use crate::resources::Resources;
 use crate::state::{Actions, AppState};
 
@@ -60,7 +61,7 @@ impl AmusApp {
 impl eframe::App for AmusApp {
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         if let Err(e) = self.state.save_to_storage(Some(storage)) {
-            eprintln!("Failed to save to storage: {}", e);
+            log_error!("AppState", format!("ストレージへの保存に失敗: {}", e));
         }
     }
 

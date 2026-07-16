@@ -6,7 +6,7 @@ use egui::Ui;
 pub struct WelcomeView;
 
 impl WelcomeView {
-    pub fn render(ui: &mut Ui, slices: &Slices<'_>) -> Vec<GameAction> {
+    pub fn render(slices: &Slices<'_>, ui: &mut Ui) -> Vec<GameAction> {
         let mut actions = Vec::new();
 
         let texts = WelcomeTexts::get(slices);

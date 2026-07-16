@@ -61,7 +61,7 @@ impl Resources {
         match VoiceRecorder::new() {
             Ok(r) => Some(r),
             Err(e) => {
-                eprintln!("VoiceRecorder初期化エラー: {}", e);
+                crate::log_error!("Resources", format!("VoiceRecorder初期化エラー: {}", e));
                 None
             }
         }
@@ -73,7 +73,10 @@ impl Resources {
             match WhisperTranscriber::new(&get_model_path()) {
                 Ok(t) => Some(t),
                 Err(e) => {
-                    eprintln!("WhisperTranscriber初期化エラー: {}", e);
+                    crate::log_error!(
+                        "Resources",
+                        format!("WhisperTranscriber初期化エラー: {}", e)
+                    );
                     None
                 }
             }
