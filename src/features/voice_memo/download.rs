@@ -21,7 +21,12 @@ impl VoiceMemoFeature {
         let url = get_model_download_url().to_string();
         let dest_path = get_model_path();
 
-        let handle = std::thread::spawn(move || download_file(&url, &dest_path, tx));
+        // 前回終了時に立てたフラグが残っていることはないが、開始時に必ず倒す
+        self.download_cancel
+            .store(false, std::sync::atomic::Ordering::Relaxed);
+        let cancel = std::sync::Arc::clone(&self.download_cancel);
+
+        let handle = std::thread::spawn(move || download_file(&url, &dest_path, tx, cancel));
         self.download_handle = Some(handle);
 
         // ダウンロード完了後に Resources の whisper_transcriber を初期化する必要がある

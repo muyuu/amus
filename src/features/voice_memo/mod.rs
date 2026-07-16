@@ -47,6 +47,8 @@ pub struct VoiceMemoFeature {
     download_rx: Option<std::sync::mpsc::Receiver<DownloadProgress>>,
     /// ダウンロードスレッドハンドル
     download_handle: Option<std::thread::JoinHandle<Result<(), DownloadError>>>,
+    /// ダウンロード中断フラグ（アプリ終了時に立てる）
+    download_cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
     /// 認識用コンテキスト（プレイヤー名など）
     context: Option<String>,
     /// バックグラウンド書き起こしスレッド
@@ -92,6 +94,7 @@ impl VoiceMemoFeature {
             state,
             download_rx: None,
             download_handle: None,
+            download_cancel: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             context: None,
             transcriber_thread,
             speech_start_sample: 0,
@@ -215,6 +218,28 @@ impl VoiceMemoFeature {
         self.update_download_progress(resources);
     }
 
+    /// アプリ終了時の後始末（`eframe::App::on_exit` から呼ぶ）。
+    /// 録音ストリームを止め、ダウンロードを中断・join し、書き起こしスレッドを終了・join する。
+    pub fn shutdown(&mut self, resources: &mut Resources) {
+        // 録音ストリームを停止（最終チャンクの書き起こしは行わない）
+        if self.state.is_recording {
+            if let Some(recorder) = &mut resources.voice_recorder {
+                recorder.stop_recording();
+            }
+            self.state.is_recording = false;
+        }
+
+        // ダウンロード中なら中断して join（次の読み込みチャンクで抜けるためすぐ終わる）
+        self.download_cancel
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+        if let Some(handle) = self.download_handle.take() {
+            let _ = handle.join();
+        }
+
+        // 書き起こしスレッドを終了・join（TranscriberThread の Drop が join する）
+        self.transcriber_thread = None;
+    }
+
     /// Action の適用（中央 dispatch の③）。
     pub fn handle_action(&mut self, resources: &mut Resources, action: VoiceMemoAction) {
         match action {
@@ -235,6 +260,7 @@ impl Default for VoiceMemoFeature {
             state: VoiceMemoState::default(),
             download_rx: None,
             download_handle: None,
+            download_cancel: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             context: None,
             transcriber_thread: None,
             speech_start_sample: 0,

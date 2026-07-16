@@ -64,6 +64,12 @@ impl eframe::App for AmusApp {
         }
     }
 
+    /// 終了時（save の後）に録音・ダウンロード・書き起こしスレッドを確実に止める。
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        #[cfg(not(target_arch = "wasm32"))]
+        self.features.voice_memo.shutdown(&mut self.resources);
+    }
+
     fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
         // ユーザー指定があればその倍率、なければネイティブ DPI に追従する。
         let ppp = self
