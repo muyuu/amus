@@ -112,9 +112,12 @@ impl VoiceRecorder {
         let sample_rate = supported_config.sample_rate();
         let config: StreamConfig = supported_config.into();
 
-        eprintln!(
-            "VoiceRecorder: sample_format={:?}, sample_rate={}, channels={}",
-            sample_format, sample_rate, config.channels
+        crate::log_debug!(
+            "VoiceRecorder",
+            format!(
+                "sample_format={:?}, sample_rate={}, channels={}",
+                sample_format, sample_rate, config.channels
+            )
         );
 
         Ok(Self {
@@ -143,7 +146,9 @@ impl VoiceRecorder {
         }
 
         let channels = self.config.channels as usize;
-        let err_fn = |err| eprintln!("録音エラー: {}", err);
+        let err_fn = |err| {
+            crate::log_error!("VoiceRecorder", format!("録音エラー: {}", err));
+        };
 
         let stream = match self.sample_format {
             SampleFormat::I16 => {
@@ -221,9 +226,12 @@ impl VoiceRecorder {
                 .unwrap_or(0.0)
         };
 
-        eprintln!(
-            "録音停止: {}サンプル取得, 録音時間={:.1}秒, 元サンプルレート={}",
-            total_samples, duration_secs, self.sample_rate
+        crate::log_debug!(
+            "VoiceRecorder",
+            format!(
+                "録音停止: {}サンプル取得, 録音時間={:.1}秒, 元サンプルレート={}",
+                total_samples, duration_secs, self.sample_rate
+            )
         );
     }
 

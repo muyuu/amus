@@ -9,7 +9,7 @@ pub struct WelcomeFeature;
 
 impl WelcomeFeature {
     pub fn render(slices: &Slices, ui: &mut Ui) -> Vec<AppAction> {
-        WelcomeView::render(ui, slices)
+        WelcomeView::render(slices, ui)
             .into_iter()
             .map(AppAction::Game)
             .collect()

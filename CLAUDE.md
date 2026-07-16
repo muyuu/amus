@@ -16,6 +16,16 @@ trunk serve  # 開発サーバー
 trunk build --release  # 本番ビルド
 ```
 
+### ネイティブビルドの前提
+
+`voice_memo`（音声録音・Whisper 書き起こし）が cpal / whisper-rs を使うため、ネイティブビルドには
+追加の前提がある。
+
+- **Linux**: cpal がオーディオに ALSA を使うため `libasound2-dev` が必要（例: `apt install libasound2-dev`）。
+- **whisper-rs のビルドは重い**（C/C++ の whisper.cpp をコンパイルするため初回は数分かかる）。CI では
+  キャッシュミス時にここがスパイクする。
+- macOS / Windows は追加パッケージ不要。WASM ビルドに音声機能は含まれない（`voice_memo` はネイティブ専用）。
+
 ### push 前ゲート（git pre-push フック）
 
 `mise run init`（worktree/clone 初期化）が `core.hooksPath` を `.githooks` に向け、push 前に
@@ -60,13 +70,18 @@ View層がegui（`ui: &mut Ui`）と直接結合している。詳細な方針�
 
 ```
 src/
-├── app.rs           # エントリーポイント
-├── state/           # AppState, AppData
+├── main.rs          # ネイティブのエントリーポイント
+├── lib.rs           # WASM のエントリーポイント
+├── app.rs           # eframe::App 実装（update → render → handle_actions）
+├── app_action.rs    # 各ドメイン Action を束ねる AppAction
+├── constants.rs     # 定数
+├── state/           # AppState, AppData, Slices, Actions
 ├── models/          # データ構造
 ├── features/        # 機能単位モジュール (Feature + View)
 ├── components/      # 再利用UIコンポーネント
-├── assets/          # 画像リソース管理
+├── resources/       # ハードウェア依存リソース（画像・録音・書き起こし）
 ├── i18n/            # 多言語対応
+├── log/             # ロギング（native=env_logger / wasm=console）
 └── common/          # 共通ユーティリティ
 ```
 
