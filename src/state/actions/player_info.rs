@@ -31,7 +31,7 @@ impl Actions<'_> {
             }
             PlayerInfoAction::ToggleDoneButton(player_id) => {
                 let done_button = match self.state.slices().player().player(player_id) {
-                    Some(p) => p.done_button,
+                    Some(p) => p.progress.done_button,
                     None => return,
                 };
                 self.state.update_player_button(player_id, !done_button);
@@ -70,11 +70,27 @@ mod tests {
     #[test]
     fn toggle_done_button_flips_flag() {
         let (mut state, id) = state_with_player();
-        assert!(!state.slices().player().player(id).unwrap().done_button);
+        assert!(
+            !state
+                .slices()
+                .player()
+                .player(id)
+                .unwrap()
+                .progress
+                .done_button
+        );
 
         Actions::new(&mut state).handle_player_info(PlayerInfoAction::ToggleDoneButton(id));
 
-        assert!(state.slices().player().player(id).unwrap().done_button);
+        assert!(
+            state
+                .slices()
+                .player()
+                .player(id)
+                .unwrap()
+                .progress
+                .done_button
+        );
     }
 
     #[test]

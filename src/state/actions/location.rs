@@ -139,7 +139,7 @@ mod tests {
         Actions::new(&mut state).handle_location(LocationAction::TogglePlayerState(id));
 
         assert_eq!(
-            state.slices().player().player(id).unwrap().state,
+            state.slices().player().player(id).unwrap().progress.state,
             PlayerState::Killed
         );
     }

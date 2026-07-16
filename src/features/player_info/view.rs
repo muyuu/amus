@@ -58,7 +58,7 @@ impl PlayerInfoView {
         player: &Player,
         texts: &PlayerInfoText,
     ) -> Option<PlayerInfoAction> {
-        if player.done_button {
+        if player.progress.done_button {
             if ui.button(&texts.button_done).clicked() {
                 return Some(PlayerInfoAction::ToggleDoneButton(player.id));
             }

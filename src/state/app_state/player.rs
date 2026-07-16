@@ -9,12 +9,12 @@ impl AppState {
         if let Some(game) = self.data.game.as_mut() {
             game.players.iter_mut().for_each(|p| {
                 if p.id == player_id {
-                    let next = match p.state {
+                    let next = match p.progress.state {
                         PlayerState::Alive => PlayerState::Killed,
                         PlayerState::Killed => PlayerState::Ejected,
                         PlayerState::Ejected => PlayerState::Alive,
                     };
-                    p.state = next;
+                    p.progress.state = next;
                 }
             });
         }
@@ -191,7 +191,7 @@ impl AppState {
         if let Some(game) = &mut self.data.game {
             game.players.iter_mut().for_each(|p| {
                 if p.id == id {
-                    p.done_button = done;
+                    p.progress.done_button = done;
                 }
             });
         }
@@ -200,8 +200,8 @@ impl AppState {
     /// 指定プレイヤーのサボタージュ解決状態をトグルする。
     pub fn toggle_sabotage(&mut self, kind: Sabotage, id: PlayerId) {
         if let Some(player) = self.player_mut(id) {
-            if !player.resolved.remove(&kind) {
-                player.resolved.insert(kind);
+            if !player.progress.resolved.remove(&kind) {
+                player.progress.resolved.insert(kind);
             }
         }
     }
@@ -223,25 +223,25 @@ mod tests {
     fn toggle_player_state_cycles_alive_killed_ejected() {
         let (mut state, id) = game_with_players();
         assert_eq!(
-            state.slices().player().player(id).unwrap().state,
+            state.slices().player().player(id).unwrap().progress.state,
             PlayerState::Alive
         );
 
         state.toggle_player_state(id);
         assert_eq!(
-            state.slices().player().player(id).unwrap().state,
+            state.slices().player().player(id).unwrap().progress.state,
             PlayerState::Killed
         );
 
         state.toggle_player_state(id);
         assert_eq!(
-            state.slices().player().player(id).unwrap().state,
+            state.slices().player().player(id).unwrap().progress.state,
             PlayerState::Ejected
         );
 
         state.toggle_player_state(id);
         assert_eq!(
-            state.slices().player().player(id).unwrap().state,
+            state.slices().player().player(id).unwrap().progress.state,
             PlayerState::Alive
         );
     }
