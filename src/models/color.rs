@@ -97,7 +97,7 @@ impl Color {
     }
 
     // 現状は voice_memo（ネイティブ専用）の認識コンテキストだけが使う。
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
     pub fn name_ja(&self) -> &'static str {
         match self {
             Color::Red => "赤",

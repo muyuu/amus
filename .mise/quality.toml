@@ -28,6 +28,12 @@ depends = ["lint-native", "lint-wasm"]
 description = "テストを実行する"
 run = "cargo test"
 
+[test-light]
+# voice_memo（cpal / whisper.cpp）を切り離した軽量テスト。state/i18n の回帰確認用。
+# whisper.cpp をビルドしないため高速で、PR CI の軽量ゲートとローカルの高速反復に使う。
+description = "軽量テスト: voice_memo を除いて実行する（--no-default-features）"
+run = "cargo test --no-default-features"
+
 [verify]
 description = "コミット前のコード品質調整（フォーマット + 静的解析）"
 depends = ["fmt", "lint"]

@@ -52,6 +52,53 @@ jobs:
             - name: 静的解析（wasm、警告はエラー扱い）
               run: mise run lint-wasm
 
+    # 軽量テスト: voice_memo（cpal / whisper.cpp）を切り離して state/i18n のテストを回す。
+    # whisper.cpp をビルドしないため高速で、毎 push（PR 含む）で実行する。
+    # 注: private Free プランでは必須チェック（マージブロック）は設定できないため advisory。
+    test:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: チェックアウト
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+            # winit / wgpu (Linux) に必要な最小限のみ。voice_memo を切るため
+            # libasound2-dev / cmake / clang（whisper.cpp）は入れない。
+            - name: システムライブラリのインストール
+              run: |
+                sudo apt-get update
+                sudo apt-get install -y --no-install-recommends \
+                  libudev-dev libxkbcommon-dev
+
+            - name: mise のセットアップ
+              uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # v3.5.1
+              env:
+                MISE_NODE_VERIFY: "false"
+
+            - name: Rust依存パッケージ・ビルド成果物のキャッシュ
+              uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+              with:
+                path: |
+                  ~/.cargo/registry
+                  ~/.cargo/git
+                  target
+                key: ${{ runner.os }}-cargo-test-light-${{ hashFiles('**/Cargo.lock') }}
+                restore-keys: |
+                  ${{ runner.os }}-cargo-test-light-
+
+            - name: Rustツールチェインのキャッシュ
+              uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+              with:
+                path: ~/.rustup
+                key: ${{ runner.os }}-rustup-${{ hashFiles('rust-toolchain.toml', 'mise.toml', '.mise/dependencies.toml') }}
+
+            # toolchain / component のダウンロードは稀に一時失敗するためリトライする
+            - name: Rustツールチェイン・ターゲットのインストール
+              run: for i in 1 2 3; do mise run install-rust-toolchain && break || sleep 10; done
+
+            - name: 軽量テスト（voice_memo 除外）
+              run: mise run test-light
+
     # 重い検査: native は cpal(ALSA) / whisper-rs(whisper.cpp) をビルドするため
     # system library が必要で時間もかかる。main への push 時のみ実行する。
     native:

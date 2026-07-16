@@ -68,7 +68,7 @@ impl MainView {
             actions.extend(SabotageFeature::render(slices, ui, kind));
         }
 
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
         actions.extend(features.voice_memo.render(slices, ui));
 
         actions

@@ -7,15 +7,16 @@ pub mod player_info;
 pub mod player_list;
 pub mod route_drawing;
 pub mod setup_dialog;
-// voice_memo は録音・Whisper 書き起こし（cpal / whisper-rs）を使うネイティブ専用機能
-#[cfg(not(target_arch = "wasm32"))]
+// voice_memo は録音・Whisper 書き起こし（cpal / whisper-rs）を使うネイティブ専用機能。
+// 重い native 依存を切り離せるよう voice_memo feature（default on）で opt-out 可能。
+#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub mod voice_memo;
 pub mod welcome;
 pub mod window;
 
 #[cfg(not(target_arch = "wasm32"))]
 use crate::resources::Resources;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 use voice_memo::VoiceMemoFeature;
 
 /// 状態（インスタンス）を持つ Feature の集約。
@@ -25,15 +26,16 @@ use voice_memo::VoiceMemoFeature;
 /// 所有して `MainView` に渡す。
 #[derive(Default)]
 pub struct StatefulFeatures {
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
     pub voice_memo: VoiceMemoFeature,
 }
 
 impl StatefulFeatures {
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn new(resources: &Resources) -> Self {
+    pub fn new(_resources: &Resources) -> Self {
         Self {
-            voice_memo: VoiceMemoFeature::new(resources),
+            #[cfg(feature = "voice_memo")]
+            voice_memo: VoiceMemoFeature::new(_resources),
         }
     }
 

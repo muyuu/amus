@@ -14,6 +14,12 @@ name = "memongus_wasm"
 path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
+[features]
+default = ["voice_memo"]
+# 音声録音・Whisper 書き起こし（ネイティブ専用）。重い native 依存（cpal / whisper.cpp 等）を
+# 抱えるため、テストを軽量化したいときは --no-default-features で切り離せる。
+voice_memo = ["dep:cpal", "dep:hound", "dep:whisper-rs", "dep:dirs-next", "dep:ureq"]
+
 [dependencies]
 # GUI framework - egui is recommended for this use case
 # Alternatives: gpui, bevy, iced
@@ -58,13 +64,13 @@ wgpu = { version = "27", features = ["metal"] }
 [target.'cfg(not(any(windows, unix, target_os = "macos")))'.dependencies]
 eframe = { version = "0.33", features = ["glow"] }
 
-# Native only: Audio recording and transcription
+# Native only: Audio recording and transcription（voice_memo feature で opt-in）
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-cpal = "0.17"
-hound = "3.5"
-whisper-rs = "0.15"
-dirs-next = "2.0"
-ureq = "3"
+cpal = { version = "0.17", optional = true }
+hound = { version = "3.5", optional = true }
+whisper-rs = { version = "0.15", optional = true }
+dirs-next = { version = "2.0", optional = true }
+ureq = { version = "3", optional = true }
 
 # wasm
 [target.'cfg(target_arch = "wasm32")'.dependencies]

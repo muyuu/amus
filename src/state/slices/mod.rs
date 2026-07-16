@@ -32,7 +32,7 @@ impl<'a> Slices<'a> {
 
     /// 翻訳器への参照（同じ翻訳器で複数回 `t` を引きたい場合に使う）
     // 現状は voice_memo（ネイティブ専用）だけが使う。
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
     pub fn translator(&self) -> &'a crate::i18n::Translator {
         &self.data.translator
     }
