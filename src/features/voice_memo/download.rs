@@ -2,7 +2,8 @@
 
 use super::VoiceMemoFeature;
 use crate::resources::{
-    download_file, get_model_download_url, get_model_path, Resources, TranscriberThread,
+    download_file, get_model_download_url, get_model_max_download_bytes, get_model_path,
+    get_model_sha256, IntegrityCheck, Resources, TranscriberThread,
 };
 use crate::{log_debug, log_error};
 
@@ -26,7 +27,13 @@ impl VoiceMemoFeature {
             .store(false, std::sync::atomic::Ordering::Relaxed);
         let cancel = std::sync::Arc::clone(&self.download_cancel);
 
-        let handle = std::thread::spawn(move || download_file(&url, &dest_path, tx, cancel));
+        let handle = std::thread::spawn(move || {
+            let check = IntegrityCheck {
+                max_bytes: Some(get_model_max_download_bytes()),
+                sha256_hex: Some(get_model_sha256()),
+            };
+            download_file(&url, &dest_path, tx, cancel, &check)
+        });
         self.download_handle = Some(handle);
 
         // ダウンロード完了後に Resources の whisper_transcriber を初期化する必要がある

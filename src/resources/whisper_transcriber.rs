@@ -49,9 +49,23 @@ pub fn model_exists() -> bool {
 }
 
 /// モデルのダウンロードURL
+///
+/// 上流の差し替えに追従しないよう `main` ではなく特定コミット（revision）に固定する。
 pub fn get_model_download_url() -> &'static str {
-    // Whisper small model (約466MB) - 精度重視
-    "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin"
+    // Whisper small model (約466MB) - 精度重視。revision 固定。
+    "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-small.bin"
+}
+
+/// ダウンロードしたモデルの期待 SHA-256（16進小文字）。
+/// DL 完了後・配置前にこの値と照合し、不一致なら破棄する。
+pub fn get_model_sha256() -> &'static str {
+    "1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b"
+}
+
+/// 書き込みを打ち切る上限バイト数（期待サイズ 487,601,967 + 余裕）。
+/// Content-Length を信頼せず、暴走ダウンロードを防ぐための上限。
+pub fn get_model_max_download_bytes() -> u64 {
+    487_601_967 + 4 * 1024 * 1024
 }
 
 // =============================================================================
