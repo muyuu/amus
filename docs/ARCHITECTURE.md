@@ -208,7 +208,7 @@ impl PlayerListFeature {
 | `setup_dialog` | ゲーム設定ダイアログ |
 | `voice_memo` | 音声メモの録音・書き起こし（ネイティブのみ） |
 | `welcome` | ウェルカム画面 |
-| `window` | ターン選択や各タスク窓（`comms` / `lights` / `o2` / `reactor` / `turn`） |
+| `window` | ターン選択（`turn`）とサボタージュ窓（`sabotage`。種別は `Sabotage` enum で扱い単一 View に統合） |
 
 ## その他のモジュール
 
