@@ -71,24 +71,35 @@ actions.handle_player(PlayerAction::Select(player_id));
 - ❌ `update_xxx()` - 状態更新
 - ❌ ビジネスロジック全般
 
+永続属性（id/role/color/name）と、1 ゲーム中の進行状態（生死・ボタン・サボタージュ解決）は
+別構造体に分ける。進行状態は `PlayerProgress` にまとめ、`Player` は `progress` 1 フィールドで持つ。
+
 ```rust
 // Model: データ構造とシンプルなヘルパー
 pub struct Player {
     pub id: PlayerId,
-    pub state: PlayerState,
+    pub role: Role,
+    pub color: Color,
     pub name: String,
-    // ...
+    pub progress: PlayerProgress, // 1 ゲーム中の進行状態
+}
+
+pub struct PlayerProgress {
+    pub state: PlayerState,
+    pub death: Option<usize>,
+    pub done_button: bool,
+    pub resolved: HashSet<Sabotage>, // 解決済みのサボタージュ種別
 }
 
 impl Player {
     // ✅ コンストラクタはOK
     pub fn new(role: Role, color: Color, name: String) -> Self {
-        Self { /* ... */ }
+        Self { /* progress: PlayerProgress::default() */ }
     }
 
-    // ✅ 純粋な判定メソッドはOK
+    // ✅ 純粋な判定メソッドはOK（進行状態は progress へ委譲）
     pub fn is_dead(&self) -> bool {
-        self.state == PlayerState::Killed
+        self.progress.state == PlayerState::Killed
     }
 
     // ❌ 状態遷移はNG（AppStateに移動）
@@ -345,17 +356,16 @@ impl Player {
             role,
             color,
             name,
-            state: PlayerState::Alive,
-            // ...
+            progress: PlayerProgress::default(),
         }
     }
 
     pub fn is_dead(&self) -> bool {
-        self.state == PlayerState::Killed
+        self.progress.state == PlayerState::Killed
     }
 
     pub fn is_ejected(&self) -> bool {
-        self.state == PlayerState::Ejected
+        self.progress.state == PlayerState::Ejected
     }
 }
 ```

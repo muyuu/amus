@@ -177,3 +177,103 @@ thiserror で型付けするにあたり、(a) クレート全体を束ねる単
   （blanket `allow(dead_code)` で覆い隠さない）。
 - 個別の `pub(crate)`/`pub(super)` 絞りは、可視性をさらに文書化したい局所でのみ随時行う
   （`AppData` の `pub(in crate::state)` のように）。全面置換は目的化しない。
+
+---
+
+## 0005. サボタージュ種別を enum 化し、解決状態を集合で持つ
+
+- 状態: 採用
+- 日付: 2026-07-16
+- 関連: #166
+
+### 背景
+
+「サボタージュ種別（comms / lights / o2 / reactor）」という単一のデータ軸が、feature
+ディレクトリ単位で 6 レイヤー（view / mod / constants / Player の 4 bool / AppState の
+`toggle_*` 4 メソッド / `WindowAction` の 4 バリアント）に横展開・コピペされていた。
+差分は GridId・タイトルキー・パネル位置だけで、種別を 1 つ足すたびに横断的な複製が要る。
+
+### 決定
+
+`Sabotage` enum を導入し、種別ごとの差分（`title_key` / `grid_id` / `panel_offset_x` /
+`ALL`）を enum の 1 箇所に集約する。Player の解決状態は `resolved: HashSet<Sabotage>` で持つ。
+
+### 理由
+
+- 「解決済みサボタージュの集合」を素直に表現でき、`contains` / `insert` / `remove` で
+  判定・トグルが書ける。種別追加は enum への 1 バリアント追加に閉じ、view / action /
+  state のコピペが不要になる。
+- View は `Sabotage::ALL` を回して単一 `SabotageWindowView::render(.., kind)` を呼ぶだけ。
+
+### 却下した案
+
+- **`[bool; N]` 固定配列**: メモリは最小だが index と enum の対応を別途保つ必要があり、
+  「解決済み集合」という意味が表に出ない。可読性を優先し集合表現を採った。
+
+### 帰結
+
+- `Player` は serde で永続化されるため、旧保存データ（4 bool 形式）の進行中ゲームは
+  deserialize に失敗して復元されない（`load_from_storage` が握り潰すためクラッシュはしない）。
+  ローカル用途につき許容した。
+
+---
+
+## 0006. Action のドメイン軸を Slices 軸に揃え、`WindowAction` を廃止する
+
+- 状態: 採用
+- 日付: 2026-07-16
+- 関連: #170
+
+### 背景
+
+Slices は state 軸（game / player / setup / ui / wave）で分かれているが、Actions は feature 軸で、
+`WindowAction` が player の resolved 操作（`ToggleSabotage`）と wave 操作（`SelectWave`）を
+1 enum に同居させていた。Slices 側に `window` が無いことからも window は state ドメインでなく
+UI グルーピングであり、Action enum 名から「どの state を触るか」が読めなかった。
+
+### 決定
+
+Action のドメイン軸を Slices 軸に揃える。`ToggleSabotage` を `PlayerAction` へ、`SelectWave` を
+新設 `WaveAction::Select` へ移し、`WindowAction` / `AppAction::Window` を廃止する。
+
+### 理由
+
+- Action enum 名が「どの state を触るか」を表し、`handle_actions` の dispatch の見通しが上がる。
+- UI 上のウィンドウという括りは view 側（`features/window/`）のディレクトリで表現すれば足り、
+  Action 層に持ち込む必要はない。
+
+### 帰結
+
+- Action の軸は Slices と 1:1 対応に近づく（game / player / wave / …）。UI グルーピングと
+  state ドメインを混同しない。
+
+---
+
+## 0007. Player の進行状態を `PlayerProgress` に分離する
+
+- 状態: 採用
+- 日付: 2026-07-16
+- 関連: #171
+
+### 背景
+
+`Player` が永続属性（id / role / color / name）と、1 ゲーム中の進行状態（生死・死亡ターン・
+ボタン・サボタージュ解決）を同一構造体に平坦化しており、記録項目が増えるたびに Player の
+トップレベルが膨張する起点になっていた。
+
+### 決定
+
+進行状態を `PlayerProgress { state, death, done_button, resolved }` にまとめ、`Player` は
+`progress` 1 フィールドで持つ。`is_dead` / `is_ejected` / `is_resolved` は `progress` へ委譲する。
+
+### 理由
+
+- 永続属性と 1 ゲーム限りの進行状態が型で分かれ、進行項目の増減が `PlayerProgress` に閉じる。
+- 委譲メソッドを Player に残すことで呼び出し側は不変（`player.is_dead()` のまま）。
+
+### 却下した案
+
+- **setup 用 / game 用で型分離（SetupPlayer / GamePlayer）**: setup / game 間の同期境界は
+  最も明示的になるが、`setup_state` / `create_game_from_setup` / プレイヤー同期の各所に
+  変更が波及して差分が大きい。今回は内包案（setup 用 Player は `progress` を default のまま持つ）
+  を採り、型分離は将来 #169（両コレクション同期の集約）と併せて再検討する余地を残した。
