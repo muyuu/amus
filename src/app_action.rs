@@ -3,7 +3,7 @@
 //! 各 Feature の View は `Vec<AppAction>` を返すだけにし、`AmusApp::handle_actions` が
 //! 1 箇所で dispatch する（中央 dispatch）。詳細は docs/decisions.md 0001 を参照。
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 use crate::features::voice_memo::VoiceMemoAction;
 use crate::state::{
     EraserAction, GameAction, LocationAction, PlayerAction, PlayerInfoAction, RouteDrawingAction,
@@ -20,6 +20,6 @@ pub enum AppAction {
     Eraser(EraserAction),
     Setup(SetupAction),
     Wave(WaveAction),
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
     VoiceMemo(VoiceMemoAction),
 }

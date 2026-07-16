@@ -15,22 +15,22 @@ pub mod asset_manager;
 pub use asset_manager::AssetManager;
 
 // 音声メモ関連リソース（ネイティブのみ）
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub mod file_downloader;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub mod transcriber_thread;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub mod voice_recorder;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub mod whisper_transcriber;
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub use file_downloader::{download_file, DownloadError, DownloadProgress};
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub use transcriber_thread::{TranscribeRequest, TranscriberThread};
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub use voice_recorder::VoiceRecorder;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub use whisper_transcriber::{
     get_model_download_url, get_model_path, model_exists, WhisperTranscriber,
 };
@@ -40,23 +40,23 @@ pub use whisper_transcriber::{
 /// シリアライズ不可のハードウェア依存リソースを保持する。
 /// Feature から必要に応じて参照される。
 pub struct Resources {
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
     pub voice_recorder: Option<VoiceRecorder>,
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
     pub whisper_transcriber: Option<WhisperTranscriber>,
 }
 
 impl Resources {
     pub fn new() -> Self {
         Self {
-            #[cfg(not(target_arch = "wasm32"))]
+            #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
             voice_recorder: Self::init_voice_recorder(),
-            #[cfg(not(target_arch = "wasm32"))]
+            #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
             whisper_transcriber: Self::init_whisper_transcriber(),
         }
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
     fn init_voice_recorder() -> Option<VoiceRecorder> {
         match VoiceRecorder::new() {
             Ok(r) => Some(r),
@@ -67,7 +67,7 @@ impl Resources {
         }
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
     fn init_whisper_transcriber() -> Option<WhisperTranscriber> {
         if model_exists() {
             match WhisperTranscriber::new(&get_model_path()) {

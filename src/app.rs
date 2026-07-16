@@ -13,8 +13,12 @@ use crate::state::{Actions, AppState};
 
 pub struct AmusApp {
     state: AppState,
-    // resources を読むのは native 専用の voice_memo（① update / ③ handle）のみ
-    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
+    // resources を読むのは native 専用の voice_memo（① update / ③ handle）のみ。
+    // wasm、または voice_memo feature を切った native では未使用になる。
+    #[cfg_attr(
+        not(all(not(target_arch = "wasm32"), feature = "voice_memo")),
+        allow(dead_code)
+    )]
     resources: Resources,
     features: StatefulFeatures,
 }
@@ -67,7 +71,7 @@ impl eframe::App for AmusApp {
 
     /// 終了時（save の後）に録音・ダウンロード・書き起こしスレッドを確実に止める。
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
         self.features.voice_memo.shutdown(&mut self.resources);
     }
 
@@ -95,7 +99,7 @@ impl eframe::App for AmusApp {
         }
 
         // ① リアルタイム更新（リソース系のステートフル feature）
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
         self.features.voice_memo.update(&self.resources, ctx);
 
         // 上部のメニュー（アプリシェル）
@@ -154,7 +158,7 @@ impl AmusApp {
                 AppAction::Eraser(a) => Actions::new(&mut self.state).handle_eraser(a),
                 AppAction::Setup(a) => Actions::new(&mut self.state).handle_setup(a),
                 AppAction::Wave(a) => Actions::new(&mut self.state).handle_wave(a),
-                #[cfg(not(target_arch = "wasm32"))]
+                #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
                 AppAction::VoiceMemo(a) => self
                     .features
                     .voice_memo
