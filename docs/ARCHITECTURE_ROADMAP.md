@@ -7,37 +7,21 @@
 > 進捗管理（どの項目を着手済み/未着手か）はこのドキュメントではなく、プロジェクト管理側で行う。
 > ここには「あるべき姿」と、それを選ぶ理由・検討事項だけを書く。
 
-> 中央 dispatch（`update → render → handle_actions` の 3 段、`AppAction` への統合）は導入済み。
-> 経緯は [decisions.md](./decisions.md) 0001、現状は [ARCHITECTURE.md](./ARCHITECTURE.md) を参照。
+## 現在オープンな方向性
 
-## 目指す姿
+現時点で未解決のアーキテクチャ方針はない。過去に検討した項目はいずれも決着済みで、
+経緯は [decisions.md](./decisions.md) を参照:
 
-1. **UIフレームワークの分離** — View層を egui 以外へも載せ替えられるようにする
+- **中央 dispatch（`update → render → handle_actions`）**: 導入済み（ADR 0001）。
+- **Actions 層の位置づけ**: 「段取り層」として残すと決定（ADR 0002）。
+- **UI フレームワークの分離（egui 依存の抽象化）**: 追わないと決定（ADR 0008）。
+  egui は即時モードで、抽象化しても乗り換え候補（保持モード/elm 的）へのコストは下がらず、
+  投機的な間接層が負債になるため。
 
-## 課題と方針
-
-### 1. View層の egui 依存
-
-現状、View は `ui: &mut Ui` を直接受け取って描画しており、egui の型に結合している。
-
-```rust
-impl LocationView {
-    pub fn render(slices: &Slices<'_>, ui: &mut Ui) -> LocationResult { ... }
-}
-```
-
-**方針**: View が受け取る描画インターフェースを抽象化（Adapter 化）し、`ui: &mut Ui` をトレイト越しに扱えるようにする。
-これにより egui 固有の型を View から切り離し、別バックエンドへの載せ替えを可能にする。
-
-`fluffy` / `golem` のようなクロスプラットフォーム前提のプロジェクトではないが、UIフレームワークの選定変更コストを下げる狙い。
-
-### 2. Actions 層の位置づけの見直し
-
-`Slices`（読み取り）と `Actions`（書き込み）で読み書きを分離している。
-中央 dispatch を導入した結果、ドメイン handler の薄いラッパが目立つ場合がある。
-`Actions` を独立した層として残すか、`handle_actions` に畳むかを改めて判断する。
+新たな方向性が生まれたらここに追記し、決着したら decisions.md に ADR として移す。
 
 ## 関連ドキュメント
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - 現在のアーキテクチャ
 - [STATE_MANAGEMENT.md](./STATE_MANAGEMENT.md) - 現在の状態管理パターン
+- [decisions.md](./decisions.md) - 設計判断記録（ADR）
