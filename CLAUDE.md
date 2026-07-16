@@ -8,12 +8,16 @@ Rust + egui + WebAssembly で構築。
 ## ビルド・実行
 
 ```bash
-# ネイティブ実行
-cargo run
+# 初期化（依存インストール + git フック設定）。clone / worktree 作成時に一度
+mise run init
 
-# WASM ビルド
-trunk serve  # 開発サーバー
-trunk build --release  # 本番ビルド
+# ネイティブ実行
+cargo run            # または mise run start
+mise run dev         # ファイル監視 + 自動リロード
+
+# WASM（wasm-pack で web/pkg にビルドし、miniserve で配信）
+mise run build-wasm
+mise run serve       # http://localhost:8080
 ```
 
 ### ネイティブビルドの前提

@@ -16,7 +16,7 @@ description = "CI用: native ターゲットを警告エラー扱いで静的解
 run = "cargo clippy --all-targets -- -D warnings"
 
 [lint-wasm]
-# wasm 成果物は lib（trunk がビルド）。native 専用の bin を wasm 用にビルドさせないため lib に絞る。
+# wasm 成果物は lib（wasm-pack がビルド）。native 専用の bin を wasm 用にビルドさせないため lib に絞る。
 description = "CI用: wasm ターゲット(lib)を警告エラー扱いで静的解析する"
 run = "cargo clippy --target wasm32-unknown-unknown --lib -- -D warnings"
 
