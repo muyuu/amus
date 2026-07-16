@@ -4,6 +4,8 @@
 
 use std::io::{Read, Write};
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use thiserror::Error;
 
 /// ファイルダウンロードが失敗した理由。
@@ -42,11 +44,15 @@ impl DownloadProgress {
 /// * `url` - ダウンロードURL
 /// * `dest_path` - 保存先パス
 /// * `progress_tx` - 進捗を送信するチャネル
+/// * `cancel` - true になったら中断する（アプリ終了時など）
 ///
+/// 中断された場合は `.download` 一時ファイルを削除して `Ok(())` を返す
+/// （保存先はリネームされないため未完了のまま残らない）。
 pub fn download_file(
     url: &str,
     dest_path: &str,
     progress_tx: std::sync::mpsc::Sender<DownloadProgress>,
+    cancel: Arc<AtomicBool>,
 ) -> Result<(), DownloadError> {
     // ディレクトリを作成
     if let Some(parent) = Path::new(dest_path).parent() {
@@ -71,6 +77,13 @@ pub fn download_file(
     let mut downloaded_bytes = 0u64;
 
     loop {
+        if cancel.load(Ordering::Relaxed) {
+            // 中断: 開いているファイルを閉じてから一時ファイルを掃除する
+            drop(file);
+            let _ = std::fs::remove_file(&temp_path);
+            return Ok(());
+        }
+
         let bytes_read = reader.read(&mut buffer)?;
 
         if bytes_read == 0 {

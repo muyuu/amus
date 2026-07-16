@@ -45,9 +45,10 @@ pub struct TranscribeResult {
 
 /// バックグラウンド書き起こしスレッド
 pub struct TranscriberThread {
-    request_tx: Sender<TranscribeRequest>,
+    /// 送信側。drop で `recv` を終了させたいので `Option` で持ち、`Drop` で先に落とす。
+    request_tx: Option<Sender<TranscribeRequest>>,
     result_rx: Receiver<TranscribeResult>,
-    _thread_handle: JoinHandle<()>,
+    thread_handle: Option<JoinHandle<()>>,
 }
 
 impl TranscriberThread {
@@ -65,15 +66,17 @@ impl TranscriberThread {
         });
 
         Ok(Self {
-            request_tx,
+            request_tx: Some(request_tx),
             result_rx,
-            _thread_handle: thread_handle,
+            thread_handle: Some(thread_handle),
         })
     }
 
     /// 書き起こしリクエストを送信
     pub fn request(&self, req: TranscribeRequest) {
-        let _ = self.request_tx.send(req);
+        if let Some(tx) = &self.request_tx {
+            let _ = tx.send(req);
+        }
     }
 
     /// 結果をポーリング（非ブロッキング）
@@ -162,6 +165,17 @@ impl TranscriberThread {
                     break;
                 }
             }
+        }
+    }
+}
+
+impl Drop for TranscriberThread {
+    /// 送信側を先に落として `recv` を終了させ、スレッドの完了を待ってから抜ける。
+    /// 書き起こし中に drop された場合は、そのチャンクの完了まで join でブロックする。
+    fn drop(&mut self) {
+        self.request_tx.take(); // Sender を drop → transcriber_loop の recv が Err → 終了
+        if let Some(handle) = self.thread_handle.take() {
+            let _ = handle.join();
         }
     }
 }
