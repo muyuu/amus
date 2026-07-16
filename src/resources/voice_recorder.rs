@@ -20,6 +20,53 @@ fn lock_recover<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
+/// 録音サンプルを、確定送出済みの先頭領域を破棄しつつ保持するバッファ。
+///
+/// 呼び出し側は VAD の保持位置（`speech_start_sample` など）を **絶対インデックス**
+/// として扱う。先頭を破棄しても絶対インデックスは変えないため、`base`（破棄済み
+/// サンプル数 = `samples[0]` の絶対位置）を保持し、内部で相対位置へ換算する。
+/// これにより長時間録音でバッファが単調増加するのを防ぐ。
+#[derive(Default)]
+struct RecordingBuffer {
+    samples: Vec<f32>,
+    /// 破棄済みサンプル数（= `samples[0]` の絶対インデックス）。
+    base: usize,
+}
+
+impl RecordingBuffer {
+    fn clear(&mut self) {
+        self.samples.clear();
+        self.base = 0;
+    }
+
+    fn push(&mut self, sample: f32) {
+        self.samples.push(sample);
+    }
+
+    /// 絶対長（破棄分を含む、これまでに録音した総サンプル数）。
+    fn len_abs(&self) -> usize {
+        self.base + self.samples.len()
+    }
+
+    /// `abs_start` 以降のサンプルのコピーと、次回開始位置（絶対）を返す。
+    /// 既に破棄済みの領域を跨ぐ場合は残っている分だけを返す。
+    fn samples_since(&self, abs_start: usize) -> (Vec<f32>, usize) {
+        let end = self.len_abs();
+        if abs_start >= end {
+            return (Vec::new(), abs_start);
+        }
+        let rel = abs_start.saturating_sub(self.base);
+        (self.samples[rel..].to_vec(), end)
+    }
+
+    /// `abs_index` より前の確定領域を破棄する（絶対インデックスは不変）。
+    fn discard_before(&mut self, abs_index: usize) {
+        let rel = abs_index.saturating_sub(self.base).min(self.samples.len());
+        self.samples.drain(..rel);
+        self.base += rel;
+    }
+}
+
 /// 音声録音リソースの操作が失敗した理由。
 #[derive(Debug, Error)]
 pub enum RecorderError {
@@ -44,7 +91,7 @@ pub struct VoiceRecorder {
     sample_format: SampleFormat,
     sample_rate: u32,
     /// 録音中の音声データバッファ
-    buffer: Arc<Mutex<Vec<f32>>>,
+    buffer: Arc<Mutex<RecordingBuffer>>,
     /// 録音開始時刻
     start_time: Arc<Mutex<Option<Instant>>>,
     /// 録音ストリーム
@@ -75,7 +122,7 @@ impl VoiceRecorder {
             config,
             sample_format,
             sample_rate,
-            buffer: Arc::new(Mutex::new(Vec::new())),
+            buffer: Arc::new(Mutex::new(RecordingBuffer::default())),
             start_time: Arc::new(Mutex::new(None)),
             stream: None,
         })
@@ -165,10 +212,7 @@ impl VoiceRecorder {
         // ストリームを停止
         self.stream = None;
 
-        let samples = {
-            let buffer = lock_recover(&self.buffer);
-            buffer.clone()
-        };
+        let total_samples = lock_recover(&self.buffer).len_abs();
 
         let duration_secs = {
             let start_time = lock_recover(&self.start_time);
@@ -179,9 +223,7 @@ impl VoiceRecorder {
 
         eprintln!(
             "録音停止: {}サンプル取得, 録音時間={:.1}秒, 元サンプルレート={}",
-            samples.len(),
-            duration_secs,
-            self.sample_rate
+            total_samples, duration_secs, self.sample_rate
         );
     }
 
@@ -195,9 +237,9 @@ impl VoiceRecorder {
         }
     }
 
-    /// 現在のサンプルバッファのサイズ（サンプル数）
+    /// これまでに録音した総サンプル数（破棄済みを含む絶対長）
     pub fn buffer_len(&self) -> usize {
-        lock_recover(&self.buffer).len()
+        lock_recover(&self.buffer).len_abs()
     }
 
     /// 元のサンプルレートを取得
@@ -205,21 +247,23 @@ impl VoiceRecorder {
         self.sample_rate
     }
 
-    /// 指定位置以降のサンプルを取得（録音を停止せずに）
-    /// 逐次書き起こし用。戻り値は (16kHzリサンプリング済みサンプル, 次回開始位置)
+    /// 指定位置（絶対インデックス）以降のサンプルを取得（録音を停止せずに）。
+    /// 逐次書き起こし用。戻り値は (16kHzリサンプリング済みサンプル, 次回開始位置)。
     pub fn get_samples_since(&self, start_sample: usize) -> (Vec<f32>, usize) {
-        let buffer = lock_recover(&self.buffer);
-        if start_sample >= buffer.len() {
-            return (Vec::new(), start_sample);
-        }
-
-        let samples = buffer[start_sample..].to_vec();
-        let next_position = buffer.len();
-        drop(buffer); // ロックを解放
+        let (samples, next_position) = {
+            let buffer = lock_recover(&self.buffer);
+            buffer.samples_since(start_sample)
+        };
 
         // 16kHzにリサンプリング
         let resampled = self.resample_to_16k(&samples);
         (resampled, next_position)
+    }
+
+    /// `keep_from`（絶対インデックス）より前の確定送出済み領域を破棄する。
+    /// 録音を止めずにバッファの単調増加を抑える。絶対インデックスは変わらない。
+    pub fn discard_before(&self, keep_from: usize) {
+        lock_recover(&self.buffer).discard_before(keep_from);
     }
 
     /// サンプルレートを16kHzにリサンプリング
@@ -274,6 +318,57 @@ impl VoiceRecorder {
 mod tests {
     use super::*;
     use std::sync::Arc;
+
+    #[test]
+    fn buffer_keeps_absolute_indices_across_discard() {
+        let mut buf = RecordingBuffer::default();
+        for i in 0..10 {
+            buf.push(i as f32);
+        }
+        assert_eq!(buf.len_abs(), 10);
+
+        // 絶対インデックス 4 以降を取得
+        let (s, next) = buf.samples_since(4);
+        assert_eq!(s, vec![4.0, 5.0, 6.0, 7.0, 8.0, 9.0]);
+        assert_eq!(next, 10);
+
+        // 先頭 4 サンプルを破棄しても絶対インデックスは不変
+        buf.discard_before(4);
+        assert_eq!(buf.len_abs(), 10);
+        assert_eq!(buf.samples.len(), 6); // 実メモリは縮む
+        let (s2, next2) = buf.samples_since(4);
+        assert_eq!(s2, vec![4.0, 5.0, 6.0, 7.0, 8.0, 9.0]);
+        assert_eq!(next2, 10);
+
+        // さらに録音が進んでも整合する
+        buf.push(10.0);
+        let (s3, _) = buf.samples_since(8);
+        assert_eq!(s3, vec![8.0, 9.0, 10.0]);
+    }
+
+    #[test]
+    fn buffer_samples_since_past_end_is_empty() {
+        let mut buf = RecordingBuffer::default();
+        buf.push(1.0);
+        buf.push(2.0);
+        let (s, next) = buf.samples_since(5);
+        assert!(s.is_empty());
+        assert_eq!(next, 5);
+    }
+
+    #[test]
+    fn buffer_discard_before_already_discarded_is_noop() {
+        let mut buf = RecordingBuffer::default();
+        for i in 0..5 {
+            buf.push(i as f32);
+        }
+        buf.discard_before(3);
+        // 既に破棄済みより前を指しても壊れない
+        buf.discard_before(1);
+        assert_eq!(buf.base, 3);
+        let (s, _) = buf.samples_since(3);
+        assert_eq!(s, vec![3.0, 4.0]);
+    }
 
     #[test]
     fn lock_recover_returns_inner_after_poison() {
