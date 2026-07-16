@@ -62,9 +62,10 @@ Feature → View
 - **View**: 描画のみ。状態を直接変更せず操作結果（Action）を返す
 - **Actions**: Viewが返した操作結果を受けてAppStateを更新
 
-### 現在の課題（検討中）
+### アーキテクチャ方針
 
-View層がegui（`ui: &mut Ui`）と直接結合している。詳細な方針は [ARCHITECTURE_ROADMAP.md](./docs/ARCHITECTURE_ROADMAP.md) を参照。
+現時点で未解決のアーキテクチャ方針はない（過去の検討は decisions.md の ADR で決着済み）。
+今後の方向性は [ARCHITECTURE_ROADMAP.md](./docs/ARCHITECTURE_ROADMAP.md) を参照。
 
 ## ディレクトリ構造
 

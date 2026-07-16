@@ -22,9 +22,8 @@
    - 実装パターンとベストプラクティス
 
 3. **[ARCHITECTURE_ROADMAP.md](./ARCHITECTURE_ROADMAP.md)**: アーキテクチャ方針（今後の方向性）
-   - UIフレームワーク分離（View の egui 依存の解消）
-   - アクション処理の中央 dispatch 化
-   - Feature の render シグネチャ規約化 / Actions 層の位置づけ見直し
+   - 現時点で未解決の方針はない。過去の検討（中央 dispatch / Actions 層 / egui 分離）は
+     いずれも decisions.md の ADR で決着済み
 
 4. **[decisions.md](./decisions.md)**: 設計判断記録（ADR）
    - 採用した設計の「なぜ」と却下した案
