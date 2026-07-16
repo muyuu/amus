@@ -83,22 +83,25 @@ impl AppState {
         }
     }
 
-    pub fn update_player_name(&mut self, id: PlayerId, name: String) {
-        // setup_stateを更新
-        self.data.setup_state.players.iter_mut().for_each(|p| {
-            if p.id == id {
-                p.name = name.clone();
-            }
-        });
+    /// 同 id のプレイヤーを setup_state と game の両コレクションで更新する。
+    ///
+    /// 「両コレクションを同 id で同期する」不変条件をここ 1 箇所に集約する。
+    /// 各操作は差分を表すクロージャだけを渡す（`f` は該当プレイヤーごとに呼ばれる）。
+    fn update_player_everywhere(&mut self, id: PlayerId, f: impl Fn(&mut Player)) {
+        self.data
+            .setup_state
+            .players
+            .iter_mut()
+            .filter(|p| p.id == id)
+            .for_each(&f);
 
-        // gameを更新
         if let Some(game) = &mut self.data.game {
-            game.players.iter_mut().for_each(|p| {
-                if p.id == id {
-                    p.name = name.clone();
-                }
-            });
+            game.players.iter_mut().filter(|p| p.id == id).for_each(&f);
         }
+    }
+
+    pub fn update_player_name(&mut self, id: PlayerId, name: String) {
+        self.update_player_everywhere(id, |p| p.name = name.clone());
     }
 
     #[allow(dead_code)]
@@ -120,28 +123,14 @@ impl AppState {
             return Err(ColorError::DuplicateColor(color.name().to_string()));
         }
 
-        // 重複がない場合は更新
-        self.data.setup_state.players.iter_mut().for_each(|p| {
-            if p.id == id {
-                p.color = color.clone();
-            }
-        });
-
-        // game が存在する場合も更新
-        if let Some(game) = &mut self.data.game {
-            game.players.iter_mut().for_each(|p| {
-                if p.id == id {
-                    p.color = color.clone();
-                }
-            });
-        }
+        self.update_player_everywhere(id, |p| p.color = color.clone());
 
         Ok(())
     }
 
     /// 色を強制的に変更する（重複している場合は他のプレイヤーと色をスワップ）
     pub fn force_update_player_color(&mut self, id: PlayerId, color: Color) {
-        // 対象の色を使っている他のプレイヤーを探す
+        // 対象の色を使っている他のプレイヤーと、対象の現在色を先に確定する
         let other_player_id = self
             .data
             .setup_state
@@ -150,7 +139,6 @@ impl AppState {
             .find(|p| p.id != id && p.color == color)
             .map(|p| p.id);
 
-        // 対象プレイヤーの現在の色を取得
         let current_color = self
             .data
             .setup_state
@@ -159,30 +147,10 @@ impl AppState {
             .find(|p| p.id == id)
             .map(|p| p.color.clone());
 
-        // setup_state と game を更新
-        self.data.setup_state.players.iter_mut().for_each(|p| {
-            if p.id == id {
-                // 対象プレイヤーの色を変更
-                p.color = color.clone();
-            } else if Some(p.id) == other_player_id {
-                // 重複していたプレイヤーの色を対象プレイヤーの元の色に変更
-                if let Some(ref swap_color) = current_color {
-                    p.color = swap_color.clone();
-                }
-            }
-        });
-
-        // game が存在する場合も更新
-        if let Some(game) = &mut self.data.game {
-            game.players.iter_mut().for_each(|p| {
-                if p.id == id {
-                    p.color = color.clone();
-                } else if Some(p.id) == other_player_id {
-                    if let Some(ref swap_color) = current_color {
-                        p.color = swap_color.clone();
-                    }
-                }
-            });
+        // 対象プレイヤーを新しい色に、重複していたプレイヤーを対象の元の色にスワップ
+        self.update_player_everywhere(id, |p| p.color = color.clone());
+        if let (Some(other_id), Some(swap_color)) = (other_player_id, current_color) {
+            self.update_player_everywhere(other_id, |p| p.color = swap_color.clone());
         }
     }
 
@@ -287,6 +255,40 @@ mod tests {
             .find(|p| p.id == id)
             .expect("setup にも同じ id が居る");
         assert_eq!(in_setup.name, "あお");
+    }
+
+    #[test]
+    fn force_update_player_color_swaps_in_both_collections() {
+        let (mut state, id) = game_with_players();
+        let other_id = state.slices().player().players().unwrap()[1].id;
+        let my_color = state.slices().player().player(id).unwrap().color.clone();
+        let other_color = state
+            .slices()
+            .player()
+            .player(other_id)
+            .unwrap()
+            .color
+            .clone();
+        assert_ne!(my_color, other_color);
+
+        // other が使っている色を強制指定 → 色がスワップされる
+        state.force_update_player_color(id, other_color.clone());
+
+        // game 側
+        assert_eq!(
+            state.slices().player().player(id).unwrap().color,
+            other_color
+        );
+        assert_eq!(
+            state.slices().player().player(other_id).unwrap().color,
+            my_color
+        );
+        // setup_state 側も同じくスワップされている
+        let slices = state.slices();
+        let setup = slices.setup().players();
+        let in_setup = |pid| setup.iter().find(|p| p.id == pid).unwrap();
+        assert_eq!(in_setup(id).color, other_color);
+        assert_eq!(in_setup(other_id).color, my_color);
     }
 
     #[test]
