@@ -12,6 +12,7 @@ mod i18n;
 mod log;
 mod models;
 mod resources;
+mod shell;
 mod state;
 
 use crate::i18n::keys::*;
@@ -49,7 +50,7 @@ fn main() -> eframe::Result<()> {
         Box::new(|cc| {
             // 日本語フォントの設定
             setup_custom_fonts(&cc.egui_ctx);
-            setup_panel_bg(&cc.egui_ctx);
+            shell::setup_panel_bg(&cc.egui_ctx);
 
             // アセットマネージャーの初期化
             resources::AssetManager::initialize(&cc.egui_ctx);
@@ -59,17 +60,7 @@ fn main() -> eframe::Result<()> {
     )
 }
 
-fn setup_panel_bg(ctx: &Context) {
-    use Style;
-
-    let mut style: Style = (*ctx.style()).clone();
-    style.visuals.panel_fill = Color32::BLACK;
-    ctx.set_style(style);
-}
-
 fn setup_custom_fonts(ctx: &Context) {
-    use FontFamily;
-
     let mut fonts = FontDefinitions::default();
 
     // 日本語フォントのパス（優先順位順）
@@ -99,30 +90,7 @@ fn setup_custom_fonts(ctx: &Context) {
                     "Font",
                     format!("日本語フォントを読み込みました: {}", font_path)
                 );
-                fonts.font_data.insert(
-                    "japanese".to_owned(),
-                    FontData::from_owned(font_data).into(),
-                );
-
-                // 既存のフォントファミリーを取得して、日本語フォントを先頭に追加
-                // プロポーショナルフォントファミリー
-                let proportional = fonts
-                    .families
-                    .get_mut(&FontFamily::Proportional)
-                    .expect("Proportional font family should exist");
-                if !proportional.contains(&"japanese".to_owned()) {
-                    proportional.insert(0, "japanese".to_owned());
-                }
-
-                // 等幅フォントファミリー
-                let monospace = fonts
-                    .families
-                    .get_mut(&FontFamily::Monospace)
-                    .expect("Monospace font family should exist");
-                if !monospace.contains(&"japanese".to_owned()) {
-                    monospace.insert(0, "japanese".to_owned());
-                }
-
+                shell::apply_japanese_font(&mut fonts, font_data);
                 japanese_font_found = true;
                 break;
             } else {
