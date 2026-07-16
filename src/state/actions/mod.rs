@@ -5,7 +5,7 @@ mod player;
 mod player_info;
 mod route_drawing;
 mod setup;
-mod window;
+mod wave;
 
 pub use eraser::EraserAction;
 pub use game::GameAction;
@@ -14,7 +14,7 @@ pub use player::PlayerAction;
 pub use player_info::PlayerInfoAction;
 pub use route_drawing::RouteDrawingAction;
 pub use setup::SetupAction;
-pub use window::WindowAction;
+pub use wave::WaveAction;
 
 use super::AppState;
 

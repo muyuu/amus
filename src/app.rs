@@ -146,7 +146,7 @@ impl AmusApp {
                 AppAction::RouteDrawing(a) => Actions::new(&mut self.state).handle_route_drawing(a),
                 AppAction::Eraser(a) => Actions::new(&mut self.state).handle_eraser(a),
                 AppAction::Setup(a) => Actions::new(&mut self.state).handle_setup(a),
-                AppAction::Window(a) => Actions::new(&mut self.state).handle_window(a),
+                AppAction::Wave(a) => Actions::new(&mut self.state).handle_wave(a),
                 #[cfg(not(target_arch = "wasm32"))]
                 AppAction::VoiceMemo(a) => self
                     .features

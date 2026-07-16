@@ -1,5 +1,6 @@
 use super::Actions;
 use crate::models::player::PlayerId;
+use crate::models::Sabotage;
 
 /// プレイヤーリストViewから発行されるアクション
 #[derive(Debug, Clone)]
@@ -10,6 +11,8 @@ pub enum PlayerAction {
     StartDrag(PlayerId),
     /// ドラッグ終了
     StopDrag,
+    /// サボタージュの解除状態をトグル
+    ToggleSabotage(Sabotage, PlayerId),
 }
 
 impl Actions<'_> {
@@ -27,6 +30,9 @@ impl Actions<'_> {
             }
             PlayerAction::StopDrag => {
                 self.state.set_dragging_player_id(None);
+            }
+            PlayerAction::ToggleSabotage(kind, id) => {
+                self.state.toggle_sabotage(kind, id);
             }
         }
     }
@@ -73,5 +79,20 @@ mod tests {
         Actions::new(&mut state).handle_player(PlayerAction::StopDrag);
 
         assert!(state.slices().ui().dragging_player_id().is_none());
+    }
+
+    #[test]
+    fn toggle_sabotage_flips_resolved() {
+        use crate::models::Sabotage;
+        let (mut state, id) = state_with_player();
+
+        Actions::new(&mut state).handle_player(PlayerAction::ToggleSabotage(Sabotage::O2, id));
+
+        assert!(state
+            .slices()
+            .player()
+            .player(id)
+            .unwrap()
+            .is_resolved(Sabotage::O2));
     }
 }

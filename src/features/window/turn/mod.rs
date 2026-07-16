@@ -2,7 +2,7 @@ mod constants;
 mod view;
 
 use crate::app_action::AppAction;
-use crate::state::{Slices, WindowAction};
+use crate::state::{Slices, WaveAction};
 use egui::Ui;
 use view::TurnView;
 
@@ -18,7 +18,7 @@ impl TurnFeature {
         let res = TurnView::render(slices, ui, waves_len);
 
         res.selected_wave_index
-            .map(|index| AppAction::Window(WindowAction::SelectWave(index)))
+            .map(|index| AppAction::Wave(WaveAction::Select(index)))
             .into_iter()
             .collect()
     }

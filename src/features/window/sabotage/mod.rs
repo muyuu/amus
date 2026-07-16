@@ -2,7 +2,7 @@ mod view;
 
 use crate::app_action::AppAction;
 use crate::models::Sabotage;
-use crate::state::{Slices, WindowAction};
+use crate::state::{PlayerAction, Slices};
 use egui::Ui;
 use view::SabotageWindowView;
 
@@ -13,7 +13,7 @@ impl SabotageFeature {
         let res = SabotageWindowView::render(slices, ui, kind);
 
         res.click_player
-            .map(|player| AppAction::Window(WindowAction::ToggleSabotage(kind, player.id)))
+            .map(|player| AppAction::Player(PlayerAction::ToggleSabotage(kind, player.id)))
             .into_iter()
             .collect()
     }
