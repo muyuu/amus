@@ -1,6 +1,7 @@
 //! 書き起こしスレッドとのやり取り（リクエスト送信・結果ポーリング）
 
 use super::{VoiceMemo, VoiceMemoFeature};
+use crate::resources::voice_recorder::SAMPLE_RATE;
 use crate::resources::TranscribeRequest;
 use crate::{log_debug, log_error};
 
@@ -51,20 +52,14 @@ impl VoiceMemoFeature {
     }
 
     /// 書き起こしリクエストを送信
-    /// `start_sample` は発話区間の先頭の絶対インデックス、`sample_rate` はその
-    /// インデックスが刻まれている元のサンプルレート。
-    pub(super) fn send_transcription_request(
-        &mut self,
-        samples: Vec<f32>,
-        start_sample: usize,
-        sample_rate: u32,
-    ) {
+    /// `start_sample` は発話区間の先頭の絶対インデックス（`SAMPLE_RATE` 基準）。
+    pub(super) fn send_transcription_request(&mut self, samples: Vec<f32>, start_sample: usize) {
         if let Some(transcriber) = &self.transcriber_thread {
             let current_round = self.state.rounds.len().saturating_sub(1);
 
             // オフセット計算: 録音開始時のラウンド経過時間 + 発話開始位置
             let chunk_start_secs =
-                self.recording_start_round_secs + (start_sample as f32 / sample_rate as f32);
+                self.recording_start_round_secs + (start_sample as f32 / SAMPLE_RATE as f32);
 
             let request = TranscribeRequest {
                 samples,

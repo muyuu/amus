@@ -2,6 +2,7 @@
 //!
 //! マイクからの音声入力を録音し、16kHz mono f32 形式で出力する。
 
+use super::resampler::Resampler;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, SampleFormat, Stream, StreamConfig};
 use std::collections::VecDeque;
@@ -9,12 +10,17 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Instant;
 use thiserror::Error;
 
+/// このレコーダが返すサンプルと、絶対インデックスの単位となるレート。
+///
+/// デバイスのレートに関わらずここへ揃える。Whisper が 16kHz を要求するのに
+/// 加え、絶対インデックスがそのまま時間（`index / SAMPLE_RATE` 秒）になる。
+pub const SAMPLE_RATE: u32 = 16000;
+
 /// 録音バッファに保持する秒数の上限。
 ///
-/// 呼び出し側が破棄を忘れても際限なく増えないための上限。ネイティブの
-/// サンプルレート・f32 のまま保持するため、48kHz では 1 秒あたり約 192KB
-/// 消費する（この上限で約 57MB）。
-const BUFFER_CAPACITY_SECS: usize = 300;
+/// 呼び出し側が破棄を忘れても際限なく増えないための上限。16kHz・i16 で保持する
+/// ため 1 秒あたり 32KB 消費する（この上限で約 58MB）。
+const BUFFER_CAPACITY_SECS: usize = 1800;
 
 /// poison したロックも回復して使う。
 ///
@@ -38,7 +44,9 @@ fn lock_recover<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
 struct RecordingBuffer {
     /// 先頭の破棄を O(1) で行うため `VecDeque`。録音コールバックから毎サンプル
     /// 呼ばれるので、`Vec` の先頭 drain（全要素の移動）は使えない。
-    samples: VecDeque<f32>,
+    ///
+    /// 長時間の保持がメモリを圧迫するため、f32 ではなく i16 で持つ。
+    samples: VecDeque<i16>,
     /// 破棄済みサンプル数（= `samples[0]` の絶対インデックス）。
     base: usize,
     /// 保持するサンプル数の上限。0 は無制限。
@@ -61,8 +69,9 @@ impl RecordingBuffer {
         self.base = 0;
     }
 
+    /// 範囲外の値は ±1.0 に丸めて格納する。
     fn push(&mut self, sample: f32) {
-        self.samples.push_back(sample);
+        self.samples.push_back(f32_to_i16(sample));
         self.enforce_capacity();
     }
 
@@ -96,7 +105,7 @@ impl RecordingBuffer {
         let start = abs_start.max(self.base);
         let rel = start - self.base;
         RecordedSlice {
-            samples: self.samples.range(rel..).copied().collect(),
+            samples: self.samples.range(rel..).copied().map(i16_to_f32).collect(),
             start,
         }
     }
@@ -107,6 +116,42 @@ impl RecordingBuffer {
         self.samples.drain(..rel);
         self.base += rel;
     }
+}
+
+/// 録音コールバックを作る。
+///
+/// デバイスから届くインターリーブされたサンプルの先頭チャンネルだけを取り、
+/// `SAMPLE_RATE` へ変換してバッファへ積む。リサンプラはチャンクをまたいで
+/// 位相を保つ必要があるため、クロージャが保持する。
+fn capture<T: Copy>(
+    buffer: Arc<Mutex<RecordingBuffer>>,
+    channels: usize,
+    device_rate: u32,
+    to_f32: fn(T) -> f32,
+) -> impl FnMut(&[T], &cpal::InputCallbackInfo) {
+    let mut resampler = Resampler::new(device_rate, SAMPLE_RATE);
+    // コールバックごとの確保を避けるため使い回す。
+    let mut mono: Vec<f32> = Vec::new();
+
+    move |data: &[T], _: &cpal::InputCallbackInfo| {
+        mono.clear();
+        mono.extend(
+            data.chunks(channels)
+                .filter_map(|frame| frame.first().map(|&s| to_f32(s))),
+        );
+
+        let mut buffer = lock_recover(&buffer);
+        resampler.process(&mono, |sample| buffer.push(sample));
+    }
+}
+
+/// -1.0〜1.0 を i16 の全域へ写す。範囲外は丸める。
+fn f32_to_i16(sample: f32) -> i16 {
+    (sample.clamp(-1.0, 1.0) * i16::MAX as f32) as i16
+}
+
+fn i16_to_f32(sample: i16) -> f32 {
+    sample as f32 / i16::MAX as f32
 }
 
 /// バッファから読み出したサンプルと、その絶対位置。
@@ -139,7 +184,8 @@ pub struct VoiceRecorder {
     device: Device,
     config: StreamConfig,
     sample_format: SampleFormat,
-    sample_rate: u32,
+    /// デバイス側のサンプルレート。リサンプラの入力レートとしてのみ使う。
+    device_sample_rate: u32,
     /// 録音中の音声データバッファ
     buffer: Arc<Mutex<RecordingBuffer>>,
     /// 録音開始時刻
@@ -159,14 +205,14 @@ impl VoiceRecorder {
         let supported_config = device.default_input_config()?;
 
         let sample_format = supported_config.sample_format();
-        let sample_rate = supported_config.sample_rate();
+        let device_sample_rate = supported_config.sample_rate();
         let config: StreamConfig = supported_config.into();
 
         crate::log_debug!(
             "VoiceRecorder",
             format!(
                 "sample_format={:?}, sample_rate={}, channels={}",
-                sample_format, sample_rate, config.channels
+                sample_format, device_sample_rate, config.channels
             )
         );
 
@@ -174,9 +220,9 @@ impl VoiceRecorder {
             device,
             config,
             sample_format,
-            sample_rate,
+            device_sample_rate,
             buffer: Arc::new(Mutex::new(RecordingBuffer::with_capacity(
-                sample_rate as usize * BUFFER_CAPACITY_SECS,
+                SAMPLE_RATE as usize * BUFFER_CAPACITY_SECS,
             ))),
             start_time: Arc::new(Mutex::new(None)),
             stream: None,
@@ -202,20 +248,15 @@ impl VoiceRecorder {
             crate::log_error!("VoiceRecorder", format!("録音エラー: {}", err));
         };
 
+        let device_rate = self.device_sample_rate;
         let stream = match self.sample_format {
             SampleFormat::I16 => {
                 let buffer = Arc::clone(&self.buffer);
                 self.device.build_input_stream(
                     &self.config,
-                    move |data: &[i16], _: &cpal::InputCallbackInfo| {
-                        let mut buffer = lock_recover(&buffer);
-                        for chunk in data.chunks(channels) {
-                            if let Some(&sample) = chunk.first() {
-                                // i16 を f32 に変換 (-1.0 ~ 1.0)
-                                buffer.push(sample as f32 / i16::MAX as f32);
-                            }
-                        }
-                    },
+                    capture(buffer, channels, device_rate, |s: i16| {
+                        s as f32 / i16::MAX as f32
+                    }),
                     err_fn,
                     None,
                 )?
@@ -224,15 +265,9 @@ impl VoiceRecorder {
                 let buffer = Arc::clone(&self.buffer);
                 self.device.build_input_stream(
                     &self.config,
-                    move |data: &[i32], _: &cpal::InputCallbackInfo| {
-                        let mut buffer = lock_recover(&buffer);
-                        for chunk in data.chunks(channels) {
-                            if let Some(&sample) = chunk.first() {
-                                // i32 を f32 に変換 (-1.0 ~ 1.0)
-                                buffer.push(sample as f32 / i32::MAX as f32);
-                            }
-                        }
-                    },
+                    capture(buffer, channels, device_rate, |s: i32| {
+                        s as f32 / i32::MAX as f32
+                    }),
                     err_fn,
                     None,
                 )?
@@ -241,14 +276,7 @@ impl VoiceRecorder {
                 let buffer = Arc::clone(&self.buffer);
                 self.device.build_input_stream(
                     &self.config,
-                    move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                        let mut buffer = lock_recover(&buffer);
-                        for chunk in data.chunks(channels) {
-                            if let Some(&sample) = chunk.first() {
-                                buffer.push(sample);
-                            }
-                        }
-                    },
+                    capture(buffer, channels, device_rate, |s: f32| s),
                     err_fn,
                     None,
                 )?
@@ -281,8 +309,8 @@ impl VoiceRecorder {
         crate::log_debug!(
             "VoiceRecorder",
             format!(
-                "録音停止: {}サンプル取得, 録音時間={:.1}秒, 元サンプルレート={}",
-                total_samples, duration_secs, self.sample_rate
+                "録音停止: {}サンプル取得, 録音時間={:.1}秒, デバイスレート={}",
+                total_samples, duration_secs, self.device_sample_rate
             )
         );
     }
@@ -302,60 +330,20 @@ impl VoiceRecorder {
         lock_recover(&self.buffer).len_abs()
     }
 
-    /// 元のサンプルレートを取得
-    pub fn sample_rate(&self) -> u32 {
-        self.sample_rate
-    }
-
     /// 指定位置（絶対インデックス）以降のサンプルを取得（録音を停止せずに）。
     ///
-    /// 逐次書き起こし用。サンプルは 16kHz にリサンプリング済み。位置は元の
-    /// サンプルレートでの絶対インデックスのまま返す。
+    /// サンプルも位置も `SAMPLE_RATE` 基準。デバイスのレートは録音時に吸収済み。
     ///
     /// 保持上限を超えて古い側が失われている場合、`RecordedSlice::start` が
     /// 要求位置より後ろになる。
     pub fn get_samples_since(&self, start_sample: usize) -> RecordedSlice {
-        let slice = {
-            let buffer = lock_recover(&self.buffer);
-            buffer.samples_since(start_sample)
-        };
-
-        RecordedSlice {
-            samples: self.resample_to_16k(&slice.samples),
-            ..slice
-        }
+        lock_recover(&self.buffer).samples_since(start_sample)
     }
 
     /// `keep_from`（絶対インデックス）より前の確定送出済み領域を破棄する。
     /// 録音を止めずにバッファの単調増加を抑える。絶対インデックスは変わらない。
     pub fn discard_before(&self, keep_from: usize) {
         lock_recover(&self.buffer).discard_before(keep_from);
-    }
-
-    /// サンプルレートを16kHzにリサンプリング
-    fn resample_to_16k(&self, samples: &[f32]) -> Vec<f32> {
-        const TARGET_RATE: u32 = 16000;
-
-        if self.sample_rate == TARGET_RATE {
-            return samples.to_vec();
-        }
-
-        // 簡易的な線形補間リサンプリング
-        let ratio = self.sample_rate as f64 / TARGET_RATE as f64;
-        let new_len = (samples.len() as f64 / ratio) as usize;
-        let mut resampled = Vec::with_capacity(new_len);
-
-        for i in 0..new_len {
-            let src_idx = i as f64 * ratio;
-            let idx_floor = src_idx.floor() as usize;
-            let idx_ceil = (idx_floor + 1).min(samples.len() - 1);
-            let frac = src_idx - idx_floor as f64;
-
-            let sample = samples[idx_floor] as f64 * (1.0 - frac) + samples[idx_ceil] as f64 * frac;
-            resampled.push(sample as f32);
-        }
-
-        resampled
     }
 
     /// 録音データをWAVファイルとして保存（デバッグ用）
@@ -385,36 +373,55 @@ mod tests {
     use super::*;
     use std::sync::Arc;
 
+    /// i16 で正確に往復する値を作る。サンプル値を識別子代わりに使うため。
+    fn s(n: i16) -> f32 {
+        n as f32 / i16::MAX as f32
+    }
+
     #[test]
     fn buffer_keeps_absolute_indices_across_discard() {
         let mut buf = RecordingBuffer::default();
-        for i in 0..10 {
-            buf.push(i as f32);
+        for i in 0..10i16 {
+            buf.push(s(i));
         }
         assert_eq!(buf.len_abs(), 10);
 
         // 絶対インデックス 4 以降を取得
         let slice = buf.samples_since(4);
-        assert_eq!(slice.samples, vec![4.0, 5.0, 6.0, 7.0, 8.0, 9.0]);
+        assert_eq!(slice.samples, vec![s(4), s(5), s(6), s(7), s(8), s(9)]);
 
         // 先頭 4 サンプルを破棄しても絶対インデックスは不変
         buf.discard_before(4);
         assert_eq!(buf.len_abs(), 10);
         assert_eq!(buf.samples.len(), 6); // 実メモリは縮む
         let slice2 = buf.samples_since(4);
-        assert_eq!(slice2.samples, vec![4.0, 5.0, 6.0, 7.0, 8.0, 9.0]);
+        assert_eq!(slice2.samples, vec![s(4), s(5), s(6), s(7), s(8), s(9)]);
 
         // さらに録音が進んでも整合する
-        buf.push(10.0);
+        buf.push(s(10));
         let slice3 = buf.samples_since(8);
-        assert_eq!(slice3.samples, vec![8.0, 9.0, 10.0]);
+        assert_eq!(slice3.samples, vec![s(8), s(9), s(10)]);
+    }
+
+    #[test]
+    fn buffer_round_trips_samples_and_clamps_out_of_range() {
+        let mut buf = RecordingBuffer::default();
+        for s in [0.0, 0.5, -0.5, 1.0, -1.0, 2.0, -2.0] {
+            buf.push(s);
+        }
+
+        let got = buf.samples_since(0).samples;
+        // 範囲内はほぼそのまま、範囲外は ±1.0 に丸められる
+        for (got, want) in got.iter().zip([0.0, 0.5, -0.5, 1.0, -1.0, 1.0, -1.0]) {
+            assert!((got - want).abs() < 1e-3, "got={got}, want={want}");
+        }
     }
 
     #[test]
     fn buffer_drops_oldest_samples_beyond_capacity() {
         let mut buf = RecordingBuffer::with_capacity(4);
-        for i in 0..6 {
-            buf.push(i as f32);
+        for i in 0..6i16 {
+            buf.push(s(i));
         }
 
         // 絶対インデックスは録音開始からの通し番号のまま
@@ -422,21 +429,21 @@ mod tests {
         // 実メモリは上限に収まり、新しい側が残る
         assert_eq!(buf.samples.len(), 4);
         let slice = buf.samples_since(2);
-        assert_eq!(slice.samples, vec![2.0, 3.0, 4.0, 5.0]);
+        assert_eq!(slice.samples, vec![s(2), s(3), s(4), s(5)]);
     }
 
     #[test]
     fn buffer_reports_actual_start_when_requested_position_was_dropped() {
         let mut buf = RecordingBuffer::with_capacity(4);
-        for i in 0..6 {
-            buf.push(i as f32);
+        for i in 0..6i16 {
+            buf.push(s(i));
         }
 
         // 絶対位置 0,1 は容量超過で失われている
         let slice = buf.samples_since(0);
 
         assert_eq!(slice.start, 2, "失われた分だけ開始位置が後ろへずれる");
-        assert_eq!(slice.samples, vec![2.0, 3.0, 4.0, 5.0]);
+        assert_eq!(slice.samples, vec![s(2), s(3), s(4), s(5)]);
     }
 
     #[test]
@@ -451,15 +458,15 @@ mod tests {
     #[test]
     fn buffer_discard_before_already_discarded_is_noop() {
         let mut buf = RecordingBuffer::default();
-        for i in 0..5 {
-            buf.push(i as f32);
+        for i in 0..5i16 {
+            buf.push(s(i));
         }
         buf.discard_before(3);
         // 既に破棄済みより前を指しても壊れない
         buf.discard_before(1);
         assert_eq!(buf.base, 3);
         let slice = buf.samples_since(3);
-        assert_eq!(slice.samples, vec![3.0, 4.0]);
+        assert_eq!(slice.samples, vec![s(3), s(4)]);
     }
 
     #[test]

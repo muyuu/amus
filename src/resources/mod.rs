@@ -18,11 +18,11 @@ pub use asset_manager::AssetManager;
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub mod file_downloader;
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+pub mod resampler;
+#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub mod transcriber_thread;
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub mod voice_recorder;
-#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-pub mod resampler;
 pub mod whisper_prompt;
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub mod whisper_transcriber;

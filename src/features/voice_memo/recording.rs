@@ -2,6 +2,7 @@
 
 use super::vad::MIN_SPEECH_SECS;
 use super::{Round, VoiceMemoFeature};
+use crate::resources::voice_recorder::SAMPLE_RATE;
 use crate::resources::Resources;
 use crate::{log_debug, log_error};
 
@@ -91,7 +92,6 @@ impl VoiceMemoFeature {
     pub(super) fn stop_recording(&mut self, resources: &mut Resources) {
         if let Some(recorder) = &mut resources.voice_recorder {
             // 発話中なら残りのサンプルを取得（停止で取得できなくなる前に）
-            let sample_rate = recorder.sample_rate();
             let remaining = if self.is_speaking {
                 Some(recorder.get_samples_since(self.speech_start_sample))
             } else {
@@ -102,14 +102,14 @@ impl VoiceMemoFeature {
             recorder.stop_recording();
             self.state.is_recording = false;
 
-            // 16kHzでの最小サンプル数
-            let min_speech_samples = (16000.0 * MIN_SPEECH_SECS) as usize;
+            // 送信に必要な最小サンプル数
+            let min_speech_samples = (SAMPLE_RATE as f32 * MIN_SPEECH_SECS) as usize;
 
             // 発話中だった場合は残りのサンプルを送信
             if let Some(slice) = remaining {
                 let samples = slice.samples;
                 if samples.len() >= min_speech_samples && self.transcriber_thread.is_some() {
-                    let duration_secs = samples.len() as f32 / 16000.0;
+                    let duration_secs = samples.len() as f32 / SAMPLE_RATE as f32;
                     log_debug!(
                         "VoiceMemo",
                         &format!(
@@ -118,9 +118,9 @@ impl VoiceMemoFeature {
                             self.state.pending_chunks + 1
                         )
                     );
-                    self.send_transcription_request(samples, slice.start, sample_rate);
+                    self.send_transcription_request(samples, slice.start);
                 } else {
-                    let duration_secs = samples.len() as f32 / 16000.0;
+                    let duration_secs = samples.len() as f32 / SAMPLE_RATE as f32;
                     log_debug!(
                         "VoiceMemo",
                         &format!(

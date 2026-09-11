@@ -59,7 +59,7 @@ pub struct VoiceMemoFeature {
     context_vocabulary: Option<prompt::Vocabulary>,
     /// バックグラウンド書き起こしスレッド
     transcriber_thread: Option<TranscriberThread>,
-    /// 発話開始位置（元サンプルレート基準）
+    /// 発話開始位置（VoiceRecorder の SAMPLE_RATE 基準の絶対インデックス）
     speech_start_sample: usize,
     /// 最後にVADチェックしたサンプル位置
     last_vad_check_sample: usize,
