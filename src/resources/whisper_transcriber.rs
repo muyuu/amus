@@ -87,6 +87,17 @@ impl WhisperTranscriber {
         Ok(Self { ctx })
     }
 
+    /// テキストがモデルのトークナイザで何トークンになるかを返す。
+    ///
+    /// 認識コンテキストを `initial_prompt` の上限に収めるために使う。
+    /// トークン分割はモデルごとに異なるため、文字数からは推定できない。
+    pub fn count_tokens(&self, text: &str) -> usize {
+        self.ctx
+            .tokenize(text, text.len() + 1)
+            .map(|tokens| tokens.len())
+            .unwrap_or(usize::MAX)
+    }
+
     /// 音声データを書き起こし
     /// samples: 16kHz, mono, f32の音声データ
     /// context: 認識精度向上のためのコンテキスト（プレイヤー名など）
