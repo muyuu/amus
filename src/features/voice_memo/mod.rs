@@ -11,6 +11,7 @@
 //! - `view`: 描画
 
 mod download;
+mod hotword;
 mod prompt;
 mod recording;
 mod transcription;
