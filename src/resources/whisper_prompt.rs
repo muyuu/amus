@@ -137,4 +137,56 @@ mod measurement {
         }
         println!();
     }
+
+    /// 語彙の表現を変えたときのトークン数を比較する。予算配分の判断材料。
+    /// 実行: cargo test --lib -- --ignored --nocapture compare_prompt
+    #[test]
+    #[ignore]
+    fn compare_prompt_variants() {
+        let ctx =
+            WhisperContext::new_with_params(get_model_path(), WhisperContextParameters::default())
+                .expect("モデルの読み込みに失敗");
+        let count = |text: &str| ctx.tokenize(text, 4096).expect("tokenizeに失敗").len();
+
+        let is_ascii_only = |s: &&str| s.chars().all(|c| c.is_ascii_alphanumeric() || c == ' ');
+
+        let maps: [(&str, &[&str]); 4] = [
+            ("Skeld", JapaneseWords::SKELD_ROOMS),
+            ("Mira", JapaneseWords::MIRA_ROOMS),
+            ("Polus", JapaneseWords::POLUS_ROOMS),
+            ("Airship", JapaneseWords::AIRSHIP_ROOMS),
+        ];
+
+        println!("\n--- 部屋名: 全部 vs 日本語のみ ---");
+        for (name, rooms) in maps {
+            let all = count(&rooms.join("、"));
+            let ja: Vec<&str> = rooms
+                .iter()
+                .copied()
+                .filter(|s| !is_ascii_only(s))
+                .collect();
+            println!(
+                "{name:<8}: 全 {all:>4} → 日本語のみ {:>4} ({}語)",
+                count(&ja.join("、")),
+                ja.len()
+            );
+        }
+
+        println!("\n--- プレイヤー名: 色付き vs 名前のみ ---");
+        for label in ["プレイヤー", "ゆう", "しろねこ2号"] {
+            let with_color = (1..=10)
+                .map(|i| format!("{label}{i}(あか)"))
+                .collect::<Vec<_>>()
+                .join("、");
+            let bare = (1..=10)
+                .map(|i| format!("{label}{i}"))
+                .collect::<Vec<_>>()
+                .join("、");
+            println!(
+                "{label:<12}: 色付き {:>4} → 名前のみ {:>4}",
+                count(&with_color),
+                count(&bare)
+            );
+        }
+    }
 }
