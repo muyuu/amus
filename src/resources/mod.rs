@@ -18,6 +18,8 @@ pub use asset_manager::AssetManager;
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub mod file_downloader;
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+pub mod hotword_thread;
+#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub mod resampler;
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub mod transcriber_thread;
@@ -30,6 +32,9 @@ pub mod whisper_transcriber;
 
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub use file_downloader::{download_file, DownloadError, DownloadProgress, IntegrityCheck};
+#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+pub use hotword_thread::{HotwordRequest, HotwordThread};
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub use transcriber_thread::{TranscribeRequest, TranscriberThread};
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
