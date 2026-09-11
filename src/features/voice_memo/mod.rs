@@ -7,7 +7,7 @@
 //! - `vad`: 発話区間検出
 //! - `transcription`: 書き起こしスレッドとのやり取り
 //! - `download`: Whisper モデルのダウンロード制御
-//! - `recording`: ラウンド・録音のライフサイクル
+//! - `recording`: ターン・録音のライフサイクル
 //! - `view`: 描画
 
 mod download;
@@ -67,8 +67,6 @@ pub struct VoiceMemoFeature {
     silence_start: Option<std::time::Instant>,
     /// 現在発話中かどうか
     is_speaking: bool,
-    /// 録音開始時のラウンド経過時間（オフセット計算用）
-    recording_start_round_secs: f32,
 }
 
 impl VoiceMemoFeature {
@@ -109,7 +107,6 @@ impl VoiceMemoFeature {
             last_vad_check_sample: 0,
             silence_start: None,
             is_speaking: false,
-            recording_start_round_secs: 0.0,
         }
     }
 
@@ -208,19 +205,24 @@ impl VoiceMemoFeature {
 
     /// リアルタイム更新（中央 dispatch の①）。タイマー・ポーリング・VAD・ダウンロード進捗。
     pub fn update(&mut self, resources: &Resources, ctx: &egui::Context) {
-        // ラウンド進行中ならタイマーを更新
-        if self.state.round_active {
-            if let Some(start) = self.state.round_start_time {
-                self.state.round_elapsed_secs = start.elapsed().as_secs_f32();
-            }
-            ctx.request_repaint();
-        }
-
-        // 録音中なら録音経過時間も更新
+        // 録音中なら経過時間を更新。ターンの経過は録音位置から求める。
         if self.state.is_recording {
             if let Some(recorder) = &resources.voice_recorder {
                 self.state.elapsed_secs = recorder.elapsed_secs();
+
+                if self.state.round_active {
+                    let round_start = self
+                        .state
+                        .rounds
+                        .last()
+                        .map(|round| round.start_sample)
+                        .unwrap_or(0);
+                    self.state.round_elapsed_secs =
+                        recorder.buffer_len().saturating_sub(round_start) as f32
+                            / crate::resources::voice_recorder::SAMPLE_RATE as f32;
+                }
             }
+            ctx.request_repaint();
         }
 
         // 語彙が変わっていれば認識コンテキストを組み直す
@@ -229,8 +231,9 @@ impl VoiceMemoFeature {
         // 書き起こし結果をポーリング
         self.poll_transcription_results();
 
-        // 録音中ならVADチェックしてチャンクを送信
-        if self.state.is_recording {
+        // ターン進行中のみVADチェックしてチャンクを送信。録音はターン外も続くが、
+        // メモはターンに属するため書き起こしはターン内に限る。
+        if self.state.round_active {
             self.check_vad_and_send(resources);
         }
 
@@ -289,7 +292,6 @@ impl Default for VoiceMemoFeature {
             last_vad_check_sample: 0,
             silence_start: None,
             is_speaking: false,
-            recording_start_round_secs: 0.0,
         }
     }
 }

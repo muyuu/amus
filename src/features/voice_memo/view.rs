@@ -1,5 +1,6 @@
 use super::{Round, VoiceMemo, VoiceMemoAction, VoiceMemoState};
 use crate::i18n::{keys as K, Translator};
+use crate::resources::voice_recorder::SAMPLE_RATE;
 use egui::{Color32, RichText, Ui};
 
 /// 音声メモのView（純粋な描画のみ）
@@ -82,7 +83,7 @@ impl VoiceMemoView {
             });
         }
 
-        // 録音コントロール
+        // 録音コントロール。録音はターンと独立で、ゲーム中は回しっぱなしにする。
         ui.horizontal(|ui| {
             if state.is_recording {
                 ui.label(
@@ -97,19 +98,16 @@ impl VoiceMemoView {
                 if ui.button(translator.t(K::VOICE_MEMO_STOP)).clicked() {
                     actions.push(VoiceMemoAction::StopRecording);
                 }
-            } else if state.is_processing {
-                ui.label(
-                    RichText::new(translator.t(K::VOICE_MEMO_TRANSCRIBING)).color(Color32::YELLOW),
-                );
-            } else if state.round_active {
-                // ターン進行中は録音ボタン
-                if ui.button(translator.t(K::VOICE_MEMO_RECORD)).clicked() {
-                    actions.push(VoiceMemoAction::StartRecording);
+
+                // 録音中でターン外ならターンを開始できる
+                if !state.round_active
+                    && ui.button(translator.t(K::VOICE_MEMO_START_TURN)).clicked()
+                {
+                    actions.push(VoiceMemoAction::StartRound);
                 }
             } else {
-                // ターン開始ボタン
-                if ui.button(translator.t(K::VOICE_MEMO_START_TURN)).clicked() {
-                    actions.push(VoiceMemoAction::StartRound);
+                if ui.button(translator.t(K::VOICE_MEMO_RECORD)).clicked() {
+                    actions.push(VoiceMemoAction::StartRecording);
                 }
 
                 if !state.rounds.is_empty()
@@ -117,6 +115,12 @@ impl VoiceMemoView {
                 {
                     actions.push(VoiceMemoAction::ClearAllRounds);
                 }
+            }
+
+            if state.is_processing {
+                ui.label(
+                    RichText::new(translator.t(K::VOICE_MEMO_TRANSCRIBING)).color(Color32::YELLOW),
+                );
             }
         });
 
@@ -155,7 +159,12 @@ impl VoiceMemoView {
         let current_round: Option<&Round> = state.rounds.get(state.selected_round);
 
         if state.rounds.is_empty() {
-            ui.label(translator.t(K::VOICE_MEMO_START_PROMPT));
+            // ターンは録音上の区間なので、まず録音を始めてもらう
+            ui.label(if state.is_recording {
+                translator.t(K::VOICE_MEMO_START_PROMPT)
+            } else {
+                translator.t(K::VOICE_MEMO_RECORD_PROMPT)
+            });
         } else if let Some(round) = current_round {
             if round.memos.is_empty() {
                 ui.label(translator.t(K::VOICE_MEMO_RECORD_HINT));
@@ -171,8 +180,10 @@ impl VoiceMemoView {
                         for memo in &round.memos {
                             Self::render_memo(ui, memo);
                         }
-                        // ターン終了時間を表示
-                        if let Some(duration) = round.duration_secs {
+                        // 確定したターンの長さを表示
+                        if let Some(duration) = round.end_sample.map(|end| {
+                            end.saturating_sub(round.start_sample) as f32 / SAMPLE_RATE as f32
+                        }) {
                             ui.separator();
                             let mins = duration as i32 / 60;
                             let secs = duration as i32 % 60;

@@ -87,6 +87,7 @@ text_keys! {
     VOICE_MEMO_START_TURN => VoiceMemoStartTurn,
     VOICE_MEMO_CLEAR => VoiceMemoClear,
     VOICE_MEMO_ERROR => VoiceMemoError,
+    VOICE_MEMO_RECORD_PROMPT => VoiceMemoRecordPrompt,
     VOICE_MEMO_START_PROMPT => VoiceMemoStartPrompt,
     VOICE_MEMO_RECORD_HINT => VoiceMemoRecordHint,
     VOICE_MEMO_MEMO_COUNT => VoiceMemoMemoCount,

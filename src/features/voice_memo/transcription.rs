@@ -53,13 +53,25 @@ impl VoiceMemoFeature {
 
     /// 書き起こしリクエストを送信
     /// `start_sample` は発話区間の先頭の絶対インデックス（`SAMPLE_RATE` 基準）。
+    ///
+    /// 進行中のターンがない場合は送らない。メモはターンに属するため。
     pub(super) fn send_transcription_request(&mut self, samples: Vec<f32>, start_sample: usize) {
+        if !self.state.round_active {
+            return;
+        }
+
         if let Some(transcriber) = &self.transcriber_thread {
             let current_round = self.state.rounds.len().saturating_sub(1);
+            let round_start = self
+                .state
+                .rounds
+                .last()
+                .map(|round| round.start_sample)
+                .unwrap_or(0);
 
-            // オフセット計算: 録音開始時のラウンド経過時間 + 発話開始位置
+            // メモのタイムスタンプはターン開始からの相対秒
             let chunk_start_secs =
-                self.recording_start_round_secs + (start_sample as f32 / SAMPLE_RATE as f32);
+                start_sample.saturating_sub(round_start) as f32 / SAMPLE_RATE as f32;
 
             let request = TranscribeRequest {
                 samples,

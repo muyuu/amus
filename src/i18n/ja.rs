@@ -73,6 +73,7 @@ pub fn translate(key: TextKey) -> String {
         VoiceMemoStartTurn => format!("▶ {}{}", W::TURN, W::START),
         VoiceMemoClear => format!("🗑 {}", W::CLEAR),
         VoiceMemoError => W::ERROR.to_string(),
+        VoiceMemoRecordPrompt => format!("{}を{}してください", W::RECORD, W::START),
         VoiceMemoStartPrompt => format!("{}を{}してください", W::TURN, W::START),
         VoiceMemoRecordHint => W::RECORD_BUTTON_HINT.to_string(),
         VoiceMemoMemoCount => W::NOTES.to_string(),
