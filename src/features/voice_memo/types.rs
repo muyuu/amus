@@ -11,13 +11,18 @@ pub struct VoiceMemo {
     pub text: String,
 }
 
-/// ラウンドデータ
+/// ターンデータ
+///
+/// ターンは録音上の時間区間として表す。位置は `VoiceRecorder::SAMPLE_RATE` 基準の
+/// 絶対サンプルインデックスで、録音の開始・停止とは独立している。
 #[derive(Debug, Clone, Default)]
 pub struct Round {
     /// メモ一覧
     pub memos: Vec<VoiceMemo>,
-    /// ラウンド終了時の経過秒数
-    pub duration_secs: Option<f32>,
+    /// ターン開始位置
+    pub start_sample: usize,
+    /// ターン終了位置。進行中は `None`。
+    pub end_sample: Option<usize>,
 }
 
 /// 音声メモの状態
@@ -27,9 +32,9 @@ pub struct VoiceMemoState {
     pub is_recording: bool,
     /// 処理中（書き起こし中）かどうか
     pub is_processing: bool,
-    /// ラウンドデータ一覧
+    /// ターンデータ一覧
     pub rounds: Vec<Round>,
-    /// 現在表示中のラウンド（0-indexed）
+    /// 現在表示中のターン（0-indexed）
     pub selected_round: usize,
     /// エラーメッセージ
     pub error: Option<String>,
@@ -47,11 +52,9 @@ pub struct VoiceMemoState {
     pub downloaded_bytes: u64,
     /// ダウンロード総バイト数
     pub total_bytes: Option<u64>,
-    /// ラウンド進行中かどうか
+    /// ターン進行中かどうか
     pub round_active: bool,
-    /// ラウンド開始時刻
-    pub round_start_time: Option<std::time::Instant>,
-    /// ラウンド経過時間（秒）
+    /// ターン経過時間（秒）
     pub round_elapsed_secs: f32,
     /// 処理待ちのチャンク数
     pub pending_chunks: usize,
@@ -73,7 +76,6 @@ impl Default for VoiceMemoState {
             downloaded_bytes: 0,
             total_bytes: None,
             round_active: false,
-            round_start_time: None,
             round_elapsed_secs: 0.0,
             pending_chunks: 0,
         }
