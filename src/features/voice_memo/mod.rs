@@ -11,6 +11,7 @@
 //! - `view`: 描画
 
 mod download;
+mod prompt;
 mod recording;
 mod transcription;
 mod types;
@@ -51,6 +52,10 @@ pub struct VoiceMemoFeature {
     download_cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
     /// 認識用コンテキスト（プレイヤー名など）
     context: Option<String>,
+    /// 描画時に集めた最新の語彙
+    vocabulary: Option<prompt::Vocabulary>,
+    /// `context` を組み立てた元の語彙。変化したときだけ組み直す。
+    context_vocabulary: Option<prompt::Vocabulary>,
     /// バックグラウンド書き起こしスレッド
     transcriber_thread: Option<TranscriberThread>,
     /// 発話開始位置（元サンプルレート基準）
@@ -96,6 +101,8 @@ impl VoiceMemoFeature {
             download_handle: None,
             download_cancel: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             context: None,
+            vocabulary: None,
+            context_vocabulary: None,
             transcriber_thread,
             speech_start_sample: 0,
             last_vad_check_sample: 0,
@@ -127,8 +134,8 @@ impl VoiceMemoFeature {
             Some(Area::AirShip) | None => JapaneseWords::AIRSHIP_ROOMS,
         };
 
-        // 2. コンテキスト設定
-        self.set_context(&player_info, room_names);
+        // 2. 認識語彙を記録（プロンプトの組み立ては update 側）
+        self.set_vocabulary(&player_info, room_names);
 
         // 3. Viewを描画して Action を取得
         let translator = slices.translator();
@@ -146,47 +153,44 @@ impl VoiceMemoFeature {
         actions.into_iter().map(AppAction::VoiceMemo).collect()
     }
 
-    fn set_context(&mut self, players: &[(String, String)], room_names: &[&str]) {
-        let player_info: Vec<String> = players
-            .iter()
-            .filter(|(name, _)| !name.is_empty())
-            .map(|(name, color)| format!("{}({})", name, color))
-            .collect();
-
-        let rooms: Vec<&str> = room_names.to_vec();
-        let rooms_str = rooms.join("、");
-
-        // i18n/words/ja.rs のアモアス用語を使用
-        let amongus_terms = [
-            JapaneseWords::SABOTAGE,
-            JapaneseWords::SABOTAGE_COMMS,
-            JapaneseWords::SABOTAGE_LIGHTS,
-            JapaneseWords::SABOTAGE_O2,
-            JapaneseWords::SABOTAGE_REACTOR,
-            JapaneseWords::SABOTAGE_DOORS,
-            JapaneseWords::SPAWN,
-            JapaneseWords::VENT,
-            JapaneseWords::TASK,
-            JapaneseWords::DISCUSSION,
-        ];
-
-        let terms_str = amongus_terms.join("、");
-
-        let context = if player_info.is_empty() {
-            format!(
-                "Among Usのゲーム。部屋: {}。用語: {}。",
-                rooms_str, terms_str
-            )
-        } else {
-            format!(
-                "Among Usのゲーム。プレイヤー: {}。部屋: {}。用語: {}。",
-                player_info.join("、"),
-                rooms_str,
-                terms_str
-            )
+    /// 語彙が変化していれば認識コンテキストを組み直す。
+    ///
+    /// 組み立てにはモデルのトークナイザが要るため、`WhisperTranscriber` が
+    /// 利用できないうちはコンテキストなしで書き起こす。
+    fn refresh_context(&mut self, resources: &Resources) {
+        let Some(vocabulary) = &self.vocabulary else {
+            return;
+        };
+        if self.context_vocabulary.as_ref() == Some(vocabulary) {
+            return;
+        }
+        let Some(transcriber) = &resources.whisper_transcriber else {
+            return;
         };
 
-        self.context = Some(context);
+        self.context = Some(prompt::build_recognition_context(vocabulary, |text| {
+            transcriber.count_tokens(text)
+        }));
+        self.context_vocabulary = Some(vocabulary.clone());
+    }
+
+    /// 認識に使う語彙を記録する。プロンプトの組み立ては `refresh_context` が行う。
+    ///
+    /// 色名はプロンプトに載せない。10人で40トークンを占める一方、名前の認識には
+    /// 寄与しないため。
+    fn set_vocabulary(
+        &mut self,
+        players: &[(String, String)],
+        room_names: &'static [&'static str],
+    ) {
+        self.vocabulary = Some(prompt::Vocabulary {
+            player_names: players
+                .iter()
+                .map(|(name, _)| name.clone())
+                .filter(|name| !name.is_empty())
+                .collect(),
+            room_names,
+        });
     }
 
     /// リアルタイム更新（中央 dispatch の①）。タイマー・ポーリング・VAD・ダウンロード進捗。
@@ -205,6 +209,9 @@ impl VoiceMemoFeature {
                 self.state.elapsed_secs = recorder.elapsed_secs();
             }
         }
+
+        // 語彙が変わっていれば認識コンテキストを組み直す
+        self.refresh_context(resources);
 
         // 書き起こし結果をポーリング
         self.poll_transcription_results();
@@ -262,6 +269,8 @@ impl Default for VoiceMemoFeature {
             download_handle: None,
             download_cancel: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             context: None,
+            vocabulary: None,
+            context_vocabulary: None,
             transcriber_thread: None,
             speech_start_sample: 0,
             last_vad_check_sample: 0,
