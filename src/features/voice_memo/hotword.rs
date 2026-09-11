@@ -67,6 +67,64 @@ fn to_katakana(c: char) -> char {
     }
 }
 
+/// トリガーワード検出に応じて行うターン境界の操作。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum TurnBoundary {
+    /// ターンを開く
+    Open,
+    /// 進行中のターンを閉じる
+    Close,
+    /// 進行中のターンを閉じ、同じ位置で次のターンを開く
+    Restart,
+}
+
+/// 検出をターン境界の操作へ変換する。
+///
+/// ターンは連続するため、進行中に開始ワードを検知したらそこで区切って次を開く。
+/// 終了ワードは任意であり、開始ワードだけでも区間は途切れず確定する。
+pub(super) struct BoundaryTracker {
+    /// 直前の検出からこのサンプル数の間は次の検出を無視する。
+    cooldown_samples: usize,
+    last_detection: Option<usize>,
+}
+
+impl BoundaryTracker {
+    pub(super) fn new(cooldown_samples: usize) -> Self {
+        Self {
+            cooldown_samples,
+            last_detection: None,
+        }
+    }
+
+    /// 検出を受け取り、行うべき境界操作を返す。`at` は検出位置の絶対インデックス。
+    pub(super) fn accept(
+        &mut self,
+        hotword: Hotword,
+        at: usize,
+        turn_open: bool,
+    ) -> Option<TurnBoundary> {
+        if self.in_cooldown(at) {
+            return None;
+        }
+
+        let boundary = match (hotword, turn_open) {
+            (Hotword::TurnStart, false) => TurnBoundary::Open,
+            (Hotword::TurnStart, true) => TurnBoundary::Restart,
+            (Hotword::TurnEnd, true) => TurnBoundary::Close,
+            // 開いていないターンは閉じられない
+            (Hotword::TurnEnd, false) => return None,
+        };
+
+        self.last_detection = Some(at);
+        Some(boundary)
+    }
+
+    /// 直前の検出から間もないか。同じ発話を重ねて拾うのを防ぐ。
+    fn in_cooldown(&self, at: usize) -> bool {
+        self.last_detection
+            .is_some_and(|last| at.saturating_sub(last) < self.cooldown_samples)
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -99,5 +157,70 @@ mod tests {
     #[test]
     fn returns_none_without_a_trigger_word() {
         assert_eq!(matcher().find("エレキで死体見つけた"), None);
+    }
+
+    /// クールダウンは検証したい振る舞いではないので、十分短くしておく。
+    fn tracker() -> BoundaryTracker {
+        BoundaryTracker::new(0)
+    }
+
+    #[test]
+    fn start_word_opens_a_turn() {
+        assert_eq!(
+            tracker().accept(Hotword::TurnStart, 100, false),
+            Some(TurnBoundary::Open)
+        );
+    }
+
+    #[test]
+    fn start_word_during_a_turn_restarts_it() {
+        assert_eq!(
+            tracker().accept(Hotword::TurnStart, 100, true),
+            Some(TurnBoundary::Restart)
+        );
+    }
+
+    #[test]
+    fn end_word_closes_an_open_turn() {
+        assert_eq!(
+            tracker().accept(Hotword::TurnEnd, 100, true),
+            Some(TurnBoundary::Close)
+        );
+    }
+
+    #[test]
+    fn end_word_without_an_open_turn_is_ignored() {
+        assert_eq!(tracker().accept(Hotword::TurnEnd, 100, false), None);
+    }
+
+    #[test]
+    fn detections_during_cooldown_are_ignored() {
+        let mut tracker = BoundaryTracker::new(50);
+
+        assert_eq!(
+            tracker.accept(Hotword::TurnStart, 100, false),
+            Some(TurnBoundary::Open)
+        );
+        // 同じ発話を重ねて拾わない
+        assert_eq!(tracker.accept(Hotword::TurnStart, 140, true), None);
+        // クールダウンを過ぎれば拾う
+        assert_eq!(
+            tracker.accept(Hotword::TurnStart, 150, true),
+            Some(TurnBoundary::Restart)
+        );
+    }
+
+    #[test]
+    fn ignored_detections_do_not_extend_the_cooldown() {
+        let mut tracker = BoundaryTracker::new(50);
+        tracker.accept(Hotword::TurnStart, 100, false);
+
+        // 無視された検出でクールダウンの起点がずれると、次が拾えなくなる
+        tracker.accept(Hotword::TurnStart, 140, true);
+
+        assert_eq!(
+            tracker.accept(Hotword::TurnStart, 150, true),
+            Some(TurnBoundary::Restart)
+        );
     }
 }
