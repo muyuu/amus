@@ -35,10 +35,7 @@ pub use transcriber_thread::{TranscribeRequest, TranscriberThread};
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub use voice_recorder::VoiceRecorder;
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-pub use whisper_transcriber::{
-    get_model_download_url, get_model_max_download_bytes, get_model_path, get_model_sha256,
-    model_exists, WhisperTranscriber,
-};
+pub use whisper_transcriber::{WhisperModel, WhisperTranscriber};
 
 /// ハードウェアリソース
 ///
@@ -74,8 +71,8 @@ impl Resources {
 
     #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
     fn init_whisper_transcriber() -> Option<WhisperTranscriber> {
-        if model_exists() {
-            match WhisperTranscriber::new(&get_model_path()) {
+        if WhisperModel::SMALL.exists() {
+            match WhisperTranscriber::new(&WhisperModel::SMALL.path()) {
                 Ok(t) => Some(t),
                 Err(e) => {
                     crate::log_error!(

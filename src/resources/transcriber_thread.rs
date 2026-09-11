@@ -6,7 +6,7 @@ use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::thread::{self, JoinHandle};
 use thiserror::Error;
 
-use super::whisper_transcriber::{get_model_path, model_exists, TranscriptionSegment};
+use super::whisper_transcriber::{TranscriptionSegment, WhisperModel};
 use crate::{log_debug, log_error};
 
 /// 書き起こしスレッドの起動が失敗した理由。
@@ -50,8 +50,10 @@ pub struct TranscriberThread {
 impl TranscriberThread {
     /// 新しいTranscriberThreadを作成
     pub fn new() -> Result<Self, TranscriberThreadError> {
-        if !model_exists() {
-            return Err(TranscriberThreadError::ModelNotFound(get_model_path()));
+        if !WhisperModel::SMALL.exists() {
+            return Err(TranscriberThreadError::ModelNotFound(
+                WhisperModel::SMALL.path(),
+            ));
         }
 
         let (request_tx, request_rx) = mpsc::channel::<TranscribeRequest>();
@@ -96,7 +98,7 @@ impl TranscriberThread {
         use super::whisper_transcriber::WhisperTranscriber;
 
         // Whisperを初期化
-        let transcriber = match WhisperTranscriber::new(&get_model_path()) {
+        let transcriber = match WhisperTranscriber::new(&WhisperModel::SMALL.path()) {
             Ok(t) => t,
             Err(e) => {
                 log_error!("TranscriberThread", format!("Whisper初期化エラー: {}", e));

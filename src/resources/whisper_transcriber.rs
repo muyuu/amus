@@ -29,43 +29,67 @@ pub struct TranscriptionSegment {
 // Whisperモデル設定
 // =============================================================================
 
-/// Whisperモデルの保存先パスを取得
-pub fn get_model_path() -> String {
-    // アプリのデータディレクトリにモデルを配置
-    let data_dir = dirs_next::data_dir()
-        .map(|p| p.join("amus"))
-        .unwrap_or_else(|| std::path::PathBuf::from("."));
-
-    data_dir
-        .join("models")
-        .join("ggml-small.bin")
-        .to_string_lossy()
-        .to_string()
-}
-
-/// モデルが存在するかチェック
-pub fn model_exists() -> bool {
-    std::path::Path::new(&get_model_path()).exists()
-}
-
-/// モデルのダウンロードURL
+/// ダウンロードして使う Whisper モデル。
 ///
-/// 上流の差し替えに追従しないよう `main` ではなく特定コミット（revision）に固定する。
-pub fn get_model_download_url() -> &'static str {
-    // Whisper small model (約466MB) - 精度重視。revision 固定。
-    "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-small.bin"
+/// 用途ごとに大きさの違うモデルを使う。書き起こしは精度、ホットワード検知は
+/// 短い窓を繰り返し処理するため速度を優先する。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WhisperModel {
+    file_name: &'static str,
+    /// 上流の差し替えに追従しないよう `main` ではなく revision に固定する。
+    url: &'static str,
+    /// DL 完了後・配置前に照合する SHA-256（16進小文字）。不一致なら破棄する。
+    sha256: &'static str,
+    expected_bytes: u64,
 }
 
-/// ダウンロードしたモデルの期待 SHA-256（16進小文字）。
-/// DL 完了後・配置前にこの値と照合し、不一致なら破棄する。
-pub fn get_model_sha256() -> &'static str {
-    "1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b"
-}
+impl WhisperModel {
+    /// 書き起こし用（約466MB）。
+    pub const SMALL: Self = Self {
+        file_name: "ggml-small.bin",
+        url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-small.bin",
+        sha256: "1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b",
+        expected_bytes: 487_601_967,
+    };
 
-/// 書き込みを打ち切る上限バイト数（期待サイズ 487,601,967 + 余裕）。
-/// Content-Length を信頼せず、暴走ダウンロードを防ぐための上限。
-pub fn get_model_max_download_bytes() -> u64 {
-    487_601_967 + 4 * 1024 * 1024
+    /// ホットワード検知用（約74MB）。
+    pub const TINY: Self = Self {
+        file_name: "ggml-tiny.bin",
+        url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-tiny.bin",
+        sha256: "be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21",
+        expected_bytes: 77_691_713,
+    };
+
+    /// モデルファイルの保存先。
+    pub fn path(&self) -> String {
+        let data_dir = dirs_next::data_dir()
+            .map(|p| p.join("amus"))
+            .unwrap_or_else(|| std::path::PathBuf::from("."));
+
+        data_dir
+            .join("models")
+            .join(self.file_name)
+            .to_string_lossy()
+            .to_string()
+    }
+
+    pub fn exists(&self) -> bool {
+        std::path::Path::new(&self.path()).exists()
+    }
+
+    pub fn url(&self) -> &'static str {
+        self.url
+    }
+
+    pub fn sha256(&self) -> &'static str {
+        self.sha256
+    }
+
+    /// 書き込みを打ち切る上限バイト数。
+    /// Content-Length を信頼せず、暴走ダウンロードを防ぐための上限。
+    pub fn max_download_bytes(&self) -> u64 {
+        self.expected_bytes + 4 * 1024 * 1024
+    }
 }
 
 // =============================================================================

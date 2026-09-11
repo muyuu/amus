@@ -132,13 +132,13 @@ mod tests {
 mod verification {
     use super::*;
     use crate::models::Area;
-    use crate::resources::whisper_transcriber::{get_model_path, WhisperTranscriber};
+    use crate::resources::whisper_transcriber::{WhisperModel, WhisperTranscriber};
 
     #[test]
     #[ignore]
     fn verify_context_keeps_player_names() {
         let transcriber =
-            WhisperTranscriber::new(&get_model_path()).expect("モデルの読み込みに失敗");
+            WhisperTranscriber::new(&WhisperModel::SMALL.path()).expect("モデルの読み込みに失敗");
 
         let player_names: Vec<String> = ["あおい", "ゆう", "しろねこ", "たろう", "はなこ"]
             .iter()
