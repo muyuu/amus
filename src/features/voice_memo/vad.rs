@@ -29,11 +29,6 @@ impl VoiceMemoFeature {
         // 最新のウィンドウでRMSを計算
         let window_start = buffer_len.saturating_sub(vad_window_samples);
 
-        // 今後 get_samples_since で要求しうる最古の位置（発話開始 or 直近ウィンドウ）
-        // より前の確定領域を破棄し、バッファの単調増加を抑える。
-        let keep_from = self.speech_start_sample.min(window_start);
-        recorder.discard_before(keep_from);
-
         let recent_samples = recorder.get_samples_since(window_start).samples;
         let rms = Self::calculate_rms(&recent_samples);
         let is_sound = rms > SILENCE_THRESHOLD;

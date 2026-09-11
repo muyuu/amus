@@ -34,12 +34,12 @@ fn lock_recover<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
-/// 録音サンプルを、確定送出済みの先頭領域を破棄しつつ保持するバッファ。
+/// 録音サンプルを、上限まで保持するリングバッファ。
 ///
-/// 呼び出し側は VAD の保持位置（`speech_start_sample` など）を **絶対インデックス**
-/// として扱う。先頭を破棄しても絶対インデックスは変えないため、`base`（破棄済み
-/// サンプル数 = `samples[0]` の絶対位置）を保持し、内部で相対位置へ換算する。
-/// これにより長時間録音でバッファが単調増加するのを防ぐ。
+/// 呼び出し側は保持位置（`speech_start_sample` など）を **絶対インデックス**
+/// として扱う。上限を超えて先頭が失われても絶対インデックスは変えないため、
+/// `base`（失われたサンプル数 = `samples[0]` の絶対位置）を保持し、内部で
+/// 相対位置へ換算する。
 #[derive(Default)]
 struct RecordingBuffer {
     /// 先頭の破棄を O(1) で行うため `VecDeque`。録音コールバックから毎サンプル
@@ -47,7 +47,7 @@ struct RecordingBuffer {
     ///
     /// 長時間の保持がメモリを圧迫するため、f32 ではなく i16 で持つ。
     samples: VecDeque<i16>,
-    /// 破棄済みサンプル数（= `samples[0]` の絶対インデックス）。
+    /// 失われたサンプル数（= `samples[0]` の絶対インデックス）。
     base: usize,
     /// 保持するサンプル数の上限。0 は無制限。
     capacity: usize,
@@ -86,7 +86,7 @@ impl RecordingBuffer {
         }
     }
 
-    /// 絶対長（破棄分を含む、これまでに録音した総サンプル数）。
+    /// 絶対長（失われた分を含む、これまでに録音した総サンプル数）。
     fn len_abs(&self) -> usize {
         self.base + self.samples.len()
     }
@@ -108,13 +108,6 @@ impl RecordingBuffer {
             samples: self.samples.range(rel..).copied().map(i16_to_f32).collect(),
             start,
         }
-    }
-
-    /// `abs_index` より前の確定領域を破棄する（絶対インデックスは不変）。
-    fn discard_before(&mut self, abs_index: usize) {
-        let rel = abs_index.saturating_sub(self.base).min(self.samples.len());
-        self.samples.drain(..rel);
-        self.base += rel;
     }
 }
 
@@ -325,7 +318,7 @@ impl VoiceRecorder {
         }
     }
 
-    /// これまでに録音した総サンプル数（破棄済みを含む絶対長）
+    /// これまでに録音した総サンプル数（失われた分を含む絶対長）
     pub fn buffer_len(&self) -> usize {
         lock_recover(&self.buffer).len_abs()
     }
@@ -338,12 +331,6 @@ impl VoiceRecorder {
     /// 要求位置より後ろになる。
     pub fn get_samples_since(&self, start_sample: usize) -> RecordedSlice {
         lock_recover(&self.buffer).samples_since(start_sample)
-    }
-
-    /// `keep_from`（絶対インデックス）より前の確定送出済み領域を破棄する。
-    /// 録音を止めずにバッファの単調増加を抑える。絶対インデックスは変わらない。
-    pub fn discard_before(&self, keep_from: usize) {
-        lock_recover(&self.buffer).discard_before(keep_from);
     }
 
     /// 録音データをWAVファイルとして保存（デバッグ用）
@@ -379,28 +366,22 @@ mod tests {
     }
 
     #[test]
-    fn buffer_keeps_absolute_indices_across_discard() {
-        let mut buf = RecordingBuffer::default();
+    fn buffer_keeps_absolute_indices_across_overwrite() {
+        let mut buf = RecordingBuffer::with_capacity(6);
         for i in 0..10i16 {
             buf.push(s(i));
         }
         assert_eq!(buf.len_abs(), 10);
 
-        // 絶対インデックス 4 以降を取得
+        // 先頭が失われても絶対インデックスは不変
+        assert_eq!(buf.samples.len(), 6); // 実メモリは上限に収まる
         let slice = buf.samples_since(4);
         assert_eq!(slice.samples, vec![s(4), s(5), s(6), s(7), s(8), s(9)]);
 
-        // 先頭 4 サンプルを破棄しても絶対インデックスは不変
-        buf.discard_before(4);
-        assert_eq!(buf.len_abs(), 10);
-        assert_eq!(buf.samples.len(), 6); // 実メモリは縮む
-        let slice2 = buf.samples_since(4);
-        assert_eq!(slice2.samples, vec![s(4), s(5), s(6), s(7), s(8), s(9)]);
-
         // さらに録音が進んでも整合する
         buf.push(s(10));
-        let slice3 = buf.samples_since(8);
-        assert_eq!(slice3.samples, vec![s(8), s(9), s(10)]);
+        let slice2 = buf.samples_since(8);
+        assert_eq!(slice2.samples, vec![s(8), s(9), s(10)]);
     }
 
     #[test]
@@ -453,20 +434,6 @@ mod tests {
         buf.push(2.0);
         let slice = buf.samples_since(5);
         assert!(slice.samples.is_empty());
-    }
-
-    #[test]
-    fn buffer_discard_before_already_discarded_is_noop() {
-        let mut buf = RecordingBuffer::default();
-        for i in 0..5i16 {
-            buf.push(s(i));
-        }
-        buf.discard_before(3);
-        // 既に破棄済みより前を指しても壊れない
-        buf.discard_before(1);
-        assert_eq!(buf.base, 3);
-        let slice = buf.samples_since(3);
-        assert_eq!(slice.samples, vec![s(3), s(4)]);
     }
 
     #[test]
