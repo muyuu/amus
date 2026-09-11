@@ -16,6 +16,13 @@ impl<'a> GameSlice<'a> {
         self.data.game.as_ref()
     }
 
+    /// ゲームの世代番号。作り直すたびに進む。
+    ///
+    /// 前回見たときと違えば別のゲームになっている。内容が同じでも区別できる。
+    pub fn generation(&self) -> u64 {
+        self.data.game_generation
+    }
+
     /// ゲームが存在するかどうか
     pub fn has_game(&self) -> bool {
         self.data.game.is_some()

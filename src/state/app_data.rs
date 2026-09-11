@@ -23,6 +23,11 @@ pub struct AppData {
 
     pub(in crate::state) game: Option<Game>,
 
+    /// ゲームが作り直されたことを検知するための世代番号。
+    /// 作り直しでプレイヤーもマップも同じことがあるため、内容では区別できない。
+    /// セッション内でのみ意味を持ち、永続化しない。
+    pub(in crate::state) game_generation: u64,
+
     pub(in crate::state) selected_player_id: Option<PlayerId>,
 
     // ゲーム設定の状態
@@ -49,6 +54,7 @@ impl Default for AppData {
             editing_name_player_id: None, // ユーザー名編集中はNone
             erase_mode: false,            // 初期状態では消しゴムモードオフ
             game: None,
+            game_generation: 0,
             selected_player_id: None,
             setup_state: SetupState::default(),
             show_setup_dialog: false,
