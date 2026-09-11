@@ -149,6 +149,24 @@ mod tests {
     }
 
     #[test]
+    fn recreating_the_game_clears_previous_memos() {
+        let mut feature = VoiceMemoFeature::default();
+        let mut resources = resources_without_hardware();
+        feature.state.rounds.push(Round::default());
+        feature.state.round_active = true;
+
+        // ゲームが作り直された
+        feature.game_generation += 1;
+        feature.follow_game_lifecycle(&mut resources);
+
+        assert!(
+            feature.state.rounds.is_empty(),
+            "前のゲームのメモが残っている"
+        );
+        assert!(!feature.state.round_active);
+    }
+
+    #[test]
     fn starting_a_turn_without_recording_does_nothing() {
         let mut feature = VoiceMemoFeature::default();
         let mut resources = resources_without_hardware();

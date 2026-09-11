@@ -53,6 +53,10 @@ pub struct VoiceMemoFeature {
     context: Option<String>,
     /// ゲームが開始されているか。描画時に Slices から拾う。
     game_active: bool,
+    /// 描画時に拾った最新のゲーム世代
+    game_generation: u64,
+    /// 追従済みのゲーム世代。これと違えばゲームが作り直されている。
+    observed_game_generation: u64,
     /// 描画時に集めた最新の語彙
     vocabulary: Option<prompt::Vocabulary>,
     /// `context` を組み立てた元の語彙。変化したときだけ組み直す。
@@ -101,6 +105,8 @@ impl VoiceMemoFeature {
             download_cancel: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             context: None,
             game_active: false,
+            game_generation: 0,
+            observed_game_generation: 0,
             vocabulary: None,
             context_vocabulary: None,
             transcriber_thread,
@@ -135,6 +141,7 @@ impl VoiceMemoFeature {
 
         // 2. ゲームの有無と認識語彙を記録（録音・プロンプトの反映は update 側）
         self.game_active = slices.game().has_game();
+        self.game_generation = slices.game().generation();
         self.set_vocabulary(&player_info, room_names);
 
         // 3. Viewを描画して Action を取得
@@ -153,11 +160,20 @@ impl VoiceMemoFeature {
         actions.into_iter().map(AppAction::VoiceMemo).collect()
     }
 
-    /// ゲームの有無に録音を追従させる。
+    /// ゲームの有無と作り直しに録音を追従させる。
     ///
     /// 録音はターンの区間を切り出すための土台であり、ユーザーが意識する操作ではない。
     /// ゲームが始まっている間は回し続け、終われば止める。
+    ///
+    /// ゲームが作り直されたら前のゲームのメモと録音は破棄する。ターンは録音上の位置で
+    /// 区間を持つため、録音を取り直しつつメモを残すと位置の対応が崩れる。
     fn follow_game_lifecycle(&mut self, resources: &mut Resources) {
+        if self.game_generation != self.observed_game_generation {
+            self.observed_game_generation = self.game_generation;
+            self.stop_recording(resources);
+            self.clear_all_rounds();
+        }
+
         match (self.game_active, self.state.is_recording) {
             (true, false) => self.start_recording(resources),
             (false, true) => self.stop_recording(resources),
@@ -299,6 +315,8 @@ impl Default for VoiceMemoFeature {
             download_cancel: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             context: None,
             game_active: false,
+            game_generation: 0,
+            observed_game_generation: 0,
             vocabulary: None,
             context_vocabulary: None,
             transcriber_thread: None,
