@@ -23,6 +23,7 @@ pub use types::{Round, VoiceMemo, VoiceMemoState};
 use crate::app_action::AppAction;
 use crate::i18n::keys as K;
 use crate::i18n::words::ja::JapaneseWords;
+use crate::log_debug;
 use crate::log_error;
 use crate::models::Area;
 use crate::resources::{DownloadError, DownloadProgress, Resources, TranscriberThread};
@@ -168,9 +169,21 @@ impl VoiceMemoFeature {
             return;
         };
 
-        self.context = Some(prompt::build_recognition_context(vocabulary, |text| {
-            transcriber.count_tokens(text)
-        }));
+        let context =
+            prompt::build_recognition_context(vocabulary, |text| transcriber.count_tokens(text));
+
+        // 認識結果が期待と違うとき、語彙がプロンプトに載っていないのか、載った上で
+        // モデルが採用しなかったのかを切り分けるために残す。発話内容ではなく設定値。
+        log_debug!(
+            "VoiceMemo",
+            format!(
+                "認識コンテキストを更新: {}トークン / {}",
+                transcriber.count_tokens(&context),
+                context
+            )
+        );
+
+        self.context = Some(context);
         self.context_vocabulary = Some(vocabulary.clone());
     }
 
