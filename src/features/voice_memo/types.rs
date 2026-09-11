@@ -38,8 +38,6 @@ pub struct VoiceMemoState {
     pub selected_round: usize,
     /// エラーメッセージ
     pub error: Option<String>,
-    /// 録音経過時間（秒）
-    pub elapsed_secs: f32,
     /// Whisperモデルが利用可能か
     pub model_available: bool,
     /// レコーダーが利用可能か
@@ -68,7 +66,6 @@ impl Default for VoiceMemoState {
             rounds: Vec::new(),
             selected_round: 0,
             error: None,
-            elapsed_secs: 0.0,
             model_available: false,
             recorder_available: false,
             is_downloading: false,

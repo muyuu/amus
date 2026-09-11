@@ -83,31 +83,11 @@ impl VoiceMemoView {
             });
         }
 
-        // 録音コントロール。録音はターンと独立で、ゲーム中は回しっぱなしにする。
+        // ターンの操作。録音はゲーム中ずっと回っているが、内部の都合なので見せない。
         ui.horizontal(|ui| {
-            if state.is_recording {
-                ui.label(
-                    RichText::new(format!(
-                        "{} {:.1}s",
-                        translator.t(K::VOICE_MEMO_REC),
-                        state.elapsed_secs
-                    ))
-                    .color(Color32::RED),
-                );
-
-                if ui.button(translator.t(K::VOICE_MEMO_STOP)).clicked() {
-                    actions.push(VoiceMemoAction::StopRecording);
-                }
-
-                // 録音中でターン外ならターンを開始できる
-                if !state.round_active
-                    && ui.button(translator.t(K::VOICE_MEMO_START_TURN)).clicked()
-                {
+            if !state.round_active {
+                if ui.button(translator.t(K::VOICE_MEMO_START_TURN)).clicked() {
                     actions.push(VoiceMemoAction::StartRound);
-                }
-            } else {
-                if ui.button(translator.t(K::VOICE_MEMO_RECORD)).clicked() {
-                    actions.push(VoiceMemoAction::StartRecording);
                 }
 
                 if !state.rounds.is_empty()
@@ -159,12 +139,7 @@ impl VoiceMemoView {
         let current_round: Option<&Round> = state.rounds.get(state.selected_round);
 
         if state.rounds.is_empty() {
-            // ターンは録音上の区間なので、まず録音を始めてもらう
-            ui.label(if state.is_recording {
-                translator.t(K::VOICE_MEMO_START_PROMPT)
-            } else {
-                translator.t(K::VOICE_MEMO_RECORD_PROMPT)
-            });
+            ui.label(translator.t(K::VOICE_MEMO_START_PROMPT));
         } else if let Some(round) = current_round {
             if round.memos.is_empty() {
                 ui.label(translator.t(K::VOICE_MEMO_RECORD_HINT));

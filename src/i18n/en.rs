@@ -76,18 +76,10 @@ pub fn translate(key: TextKey) -> String {
         VoiceMemoDownloadModel => format!("📥 {} {}", W::DOWNLOAD, W::MODEL.to_lowercase()),
         VoiceMemoMicUnavailable => format!("⚠ {} unavailable", W::MIC),
         VoiceMemoEnd => W::END.to_string(),
-        VoiceMemoRec => "● REC".to_string(),
-        VoiceMemoStop => format!("⏹ {}", W::STOP),
         VoiceMemoTranscribing => format!("⏳ {}...", W::TRANSCRIBING),
-        VoiceMemoRecord => format!("🎤 {}", W::RECORD),
         VoiceMemoStartTurn => format!("▶ {} {}", W::START, W::TURN),
         VoiceMemoClear => format!("🗑 {}", W::CLEAR),
         VoiceMemoError => W::ERROR.to_string(),
-        VoiceMemoRecordPrompt => format!(
-            "Please {} {}",
-            W::START.to_lowercase(),
-            W::RECORD.to_lowercase()
-        ),
         VoiceMemoStartPrompt => format!(
             "Please {} a {}",
             W::START.to_lowercase(),

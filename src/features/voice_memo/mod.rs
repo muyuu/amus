@@ -34,8 +34,6 @@ use crate::state::Slices;
 pub enum VoiceMemoAction {
     StartRound,
     EndRound,
-    StartRecording,
-    StopRecording,
     SelectRound(usize),
     ClearAllRounds,
     DownloadModel,
@@ -53,6 +51,8 @@ pub struct VoiceMemoFeature {
     download_cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
     /// 認識用コンテキスト（プレイヤー名など）
     context: Option<String>,
+    /// ゲームが開始されているか。描画時に Slices から拾う。
+    game_active: bool,
     /// 描画時に集めた最新の語彙
     vocabulary: Option<prompt::Vocabulary>,
     /// `context` を組み立てた元の語彙。変化したときだけ組み直す。
@@ -100,6 +100,7 @@ impl VoiceMemoFeature {
             download_handle: None,
             download_cancel: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             context: None,
+            game_active: false,
             vocabulary: None,
             context_vocabulary: None,
             transcriber_thread,
@@ -132,7 +133,8 @@ impl VoiceMemoFeature {
             Some(Area::AirShip) | None => JapaneseWords::AIRSHIP_ROOMS,
         };
 
-        // 2. 認識語彙を記録（プロンプトの組み立ては update 側）
+        // 2. ゲームの有無と認識語彙を記録（録音・プロンプトの反映は update 側）
+        self.game_active = slices.game().has_game();
         self.set_vocabulary(&player_info, room_names);
 
         // 3. Viewを描画して Action を取得
@@ -149,6 +151,18 @@ impl VoiceMemoFeature {
             .unwrap_or_default();
 
         actions.into_iter().map(AppAction::VoiceMemo).collect()
+    }
+
+    /// ゲームの有無に録音を追従させる。
+    ///
+    /// 録音はターンの区間を切り出すための土台であり、ユーザーが意識する操作ではない。
+    /// ゲームが始まっている間は回し続け、終われば止める。
+    fn follow_game_lifecycle(&mut self, resources: &mut Resources) {
+        match (self.game_active, self.state.is_recording) {
+            (true, false) => self.start_recording(resources),
+            (false, true) => self.stop_recording(resources),
+            _ => {}
+        }
     }
 
     /// 語彙が変化していれば認識コンテキストを組み直す。
@@ -203,13 +217,14 @@ impl VoiceMemoFeature {
         });
     }
 
-    /// リアルタイム更新（中央 dispatch の①）。タイマー・ポーリング・VAD・ダウンロード進捗。
-    pub fn update(&mut self, resources: &Resources, ctx: &egui::Context) {
+    /// リアルタイム更新（中央 dispatch の①）。録音の維持・タイマー・ポーリング・VAD・
+    /// ダウンロード進捗。
+    pub fn update(&mut self, resources: &mut Resources, ctx: &egui::Context) {
+        self.follow_game_lifecycle(resources);
+
         // 録音中なら経過時間を更新。ターンの経過は録音位置から求める。
         if self.state.is_recording {
             if let Some(recorder) = &resources.voice_recorder {
-                self.state.elapsed_secs = recorder.elapsed_secs();
-
                 if self.state.round_active {
                     let round_start = self
                         .state
@@ -268,8 +283,6 @@ impl VoiceMemoFeature {
         match action {
             VoiceMemoAction::StartRound => self.start_round(resources),
             VoiceMemoAction::EndRound => self.end_round(resources),
-            VoiceMemoAction::StartRecording => self.start_recording(resources),
-            VoiceMemoAction::StopRecording => self.stop_recording(resources),
             VoiceMemoAction::SelectRound(index) => self.select_round(index),
             VoiceMemoAction::ClearAllRounds => self.clear_all_rounds(),
             VoiceMemoAction::DownloadModel => self.start_download(resources),
@@ -285,6 +298,7 @@ impl Default for VoiceMemoFeature {
             download_handle: None,
             download_cancel: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             context: None,
+            game_active: false,
             vocabulary: None,
             context_vocabulary: None,
             transcriber_thread: None,

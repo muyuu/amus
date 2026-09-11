@@ -7,7 +7,6 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, SampleFormat, Stream, StreamConfig};
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::time::Instant;
 use thiserror::Error;
 
 /// このレコーダが返すサンプルと、絶対インデックスの単位となるレート。
@@ -24,7 +23,7 @@ const BUFFER_CAPACITY_SECS: usize = 1800;
 
 /// poison したロックも回復して使う。
 ///
-/// 録音バッファと開始時刻はオーディオコールバックスレッドと共有する。
+/// 録音バッファはオーディオコールバックスレッドと共有する。
 /// コールバックが panic してロックが poison しても、途中までの録音データは
 /// そのまま使い続けて差し支えなく、ここで panic させてアプリ全体を巻き込む
 /// 方が害が大きい。よって poison は無視して継続する。
@@ -181,8 +180,6 @@ pub struct VoiceRecorder {
     device_sample_rate: u32,
     /// 録音中の音声データバッファ
     buffer: Arc<Mutex<RecordingBuffer>>,
-    /// 録音開始時刻
-    start_time: Arc<Mutex<Option<Instant>>>,
     /// 録音ストリーム
     stream: Option<Stream>,
 }
@@ -217,7 +214,6 @@ impl VoiceRecorder {
             buffer: Arc::new(Mutex::new(RecordingBuffer::with_capacity(
                 SAMPLE_RATE as usize * BUFFER_CAPACITY_SECS,
             ))),
-            start_time: Arc::new(Mutex::new(None)),
             stream: None,
         })
     }
@@ -228,12 +224,6 @@ impl VoiceRecorder {
         {
             let mut buffer = lock_recover(&self.buffer);
             buffer.clear();
-        }
-
-        // 開始時刻を記録
-        {
-            let mut start_time = lock_recover(&self.start_time);
-            *start_time = Some(Instant::now());
         }
 
         let channels = self.config.channels as usize;
@@ -292,30 +282,15 @@ impl VoiceRecorder {
 
         let total_samples = lock_recover(&self.buffer).len_abs();
 
-        let duration_secs = {
-            let start_time = lock_recover(&self.start_time);
-            start_time
-                .map(|start| start.elapsed().as_secs_f32())
-                .unwrap_or(0.0)
-        };
-
         crate::log_debug!(
             "VoiceRecorder",
             format!(
                 "録音停止: {}サンプル取得, 録音時間={:.1}秒, デバイスレート={}",
-                total_samples, duration_secs, self.device_sample_rate
+                total_samples,
+                total_samples as f32 / SAMPLE_RATE as f32,
+                self.device_sample_rate
             )
         );
-    }
-
-    /// 現在の録音時間（秒）
-    pub fn elapsed_secs(&self) -> f32 {
-        let start_time = lock_recover(&self.start_time);
-        if let Some(start) = *start_time {
-            start.elapsed().as_secs_f32()
-        } else {
-            0.0
-        }
     }
 
     /// これまでに録音した総サンプル数（失われた分を含む絶対長）
