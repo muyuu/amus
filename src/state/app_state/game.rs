@@ -26,6 +26,7 @@ impl AppState {
             new_game.waves.push(Wave::default());
         }
         self.data.game = Some(new_game);
+        self.data.game_generation += 1;
         self.data.current_wave_index = 0;
         self.data.show_setup_dialog = false;
     }
@@ -37,8 +38,11 @@ impl AppState {
     pub fn reset_game(&mut self) {
         // setup_state は変えなくて良いケースが多いはずなので保持
         let setup_state = self.data.setup_state.clone();
+        // 世代はゲームを作り直したことの検知に使うので、リセットでも巻き戻さない
+        let game_generation = self.data.game_generation;
         self.data = crate::state::app_data::AppData::default();
         self.data.setup_state = setup_state;
+        self.data.game_generation = game_generation;
     }
 
     pub fn select_wave(&mut self, index: usize) {
@@ -50,6 +54,19 @@ impl AppState {
 mod tests {
     use super::*;
     use crate::models::Area;
+
+    #[test]
+    fn creating_a_game_advances_the_generation() {
+        let mut state = AppState::new();
+        state.create_game_from_setup();
+        let first = state.slices().game().generation();
+
+        // リセットを挟んで作り直しても、前のゲームと区別できること
+        state.reset_game();
+        state.create_game_from_setup();
+
+        assert_ne!(state.slices().game().generation(), first);
+    }
 
     #[test]
     fn start_new_game_opens_setup_dialog() {

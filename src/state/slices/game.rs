@@ -16,6 +16,19 @@ impl<'a> GameSlice<'a> {
         self.data.game.as_ref()
     }
 
+    /// ゲームの世代番号。作り直すたびに進む。
+    ///
+    /// 前回見たときと違えば別のゲームになっている。内容が同じでも区別できる。
+    ///
+    /// 読むのが voice_memo（ネイティブ専用）だけなので、それを含まないビルドでは未使用。
+    #[cfg_attr(
+        not(all(not(target_arch = "wasm32"), feature = "voice_memo")),
+        allow(dead_code)
+    )]
+    pub fn generation(&self) -> u64 {
+        self.data.game_generation
+    }
+
     /// ゲームが存在するかどうか
     pub fn has_game(&self) -> bool {
         self.data.game.is_some()

@@ -100,7 +100,7 @@ impl eframe::App for AmusApp {
 
         // ① リアルタイム更新（リソース系のステートフル feature）
         #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-        self.features.voice_memo.update(&self.resources, ctx);
+        self.features.voice_memo.update(&mut self.resources, ctx);
 
         // 上部のメニュー（アプリシェル）
         self.build_menu_ui(ctx, frame);

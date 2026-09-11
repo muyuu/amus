@@ -7,7 +7,7 @@
 //! - `vad`: 発話区間検出
 //! - `transcription`: 書き起こしスレッドとのやり取り
 //! - `download`: Whisper モデルのダウンロード制御
-//! - `recording`: ラウンド・録音のライフサイクル
+//! - `recording`: ターン・録音のライフサイクル
 //! - `view`: 描画
 
 mod download;
@@ -34,8 +34,6 @@ use crate::state::Slices;
 pub enum VoiceMemoAction {
     StartRound,
     EndRound,
-    StartRecording,
-    StopRecording,
     SelectRound(usize),
     ClearAllRounds,
     DownloadModel,
@@ -53,13 +51,19 @@ pub struct VoiceMemoFeature {
     download_cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
     /// 認識用コンテキスト（プレイヤー名など）
     context: Option<String>,
+    /// ゲームが開始されているか。描画時に Slices から拾う。
+    game_active: bool,
+    /// 描画時に拾った最新のゲーム世代
+    game_generation: u64,
+    /// 追従済みのゲーム世代。これと違えばゲームが作り直されている。
+    observed_game_generation: u64,
     /// 描画時に集めた最新の語彙
     vocabulary: Option<prompt::Vocabulary>,
     /// `context` を組み立てた元の語彙。変化したときだけ組み直す。
     context_vocabulary: Option<prompt::Vocabulary>,
     /// バックグラウンド書き起こしスレッド
     transcriber_thread: Option<TranscriberThread>,
-    /// 発話開始位置（元サンプルレート基準）
+    /// 発話開始位置（VoiceRecorder の SAMPLE_RATE 基準の絶対インデックス）
     speech_start_sample: usize,
     /// 最後にVADチェックしたサンプル位置
     last_vad_check_sample: usize,
@@ -67,8 +71,6 @@ pub struct VoiceMemoFeature {
     silence_start: Option<std::time::Instant>,
     /// 現在発話中かどうか
     is_speaking: bool,
-    /// 録音開始時のラウンド経過時間（オフセット計算用）
-    recording_start_round_secs: f32,
 }
 
 impl VoiceMemoFeature {
@@ -102,6 +104,9 @@ impl VoiceMemoFeature {
             download_handle: None,
             download_cancel: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             context: None,
+            game_active: false,
+            game_generation: 0,
+            observed_game_generation: 0,
             vocabulary: None,
             context_vocabulary: None,
             transcriber_thread,
@@ -109,7 +114,6 @@ impl VoiceMemoFeature {
             last_vad_check_sample: 0,
             silence_start: None,
             is_speaking: false,
-            recording_start_round_secs: 0.0,
         }
     }
 
@@ -135,7 +139,9 @@ impl VoiceMemoFeature {
             Some(Area::AirShip) | None => JapaneseWords::AIRSHIP_ROOMS,
         };
 
-        // 2. 認識語彙を記録（プロンプトの組み立ては update 側）
+        // 2. ゲームの有無と認識語彙を記録（録音・プロンプトの反映は update 側）
+        self.game_active = slices.game().has_game();
+        self.game_generation = slices.game().generation();
         self.set_vocabulary(&player_info, room_names);
 
         // 3. Viewを描画して Action を取得
@@ -152,6 +158,27 @@ impl VoiceMemoFeature {
             .unwrap_or_default();
 
         actions.into_iter().map(AppAction::VoiceMemo).collect()
+    }
+
+    /// ゲームの有無と作り直しに録音を追従させる。
+    ///
+    /// 録音はターンの区間を切り出すための土台であり、ユーザーが意識する操作ではない。
+    /// ゲームが始まっている間は回し続け、終われば止める。
+    ///
+    /// ゲームが作り直されたら前のゲームのメモと録音は破棄する。ターンは録音上の位置で
+    /// 区間を持つため、録音を取り直しつつメモを残すと位置の対応が崩れる。
+    fn follow_game_lifecycle(&mut self, resources: &mut Resources) {
+        if self.game_generation != self.observed_game_generation {
+            self.observed_game_generation = self.game_generation;
+            self.stop_recording(resources);
+            self.clear_all_rounds();
+        }
+
+        match (self.game_active, self.state.is_recording) {
+            (true, false) => self.start_recording(resources),
+            (false, true) => self.stop_recording(resources),
+            _ => {}
+        }
     }
 
     /// 語彙が変化していれば認識コンテキストを組み直す。
@@ -206,21 +233,27 @@ impl VoiceMemoFeature {
         });
     }
 
-    /// リアルタイム更新（中央 dispatch の①）。タイマー・ポーリング・VAD・ダウンロード進捗。
-    pub fn update(&mut self, resources: &Resources, ctx: &egui::Context) {
-        // ラウンド進行中ならタイマーを更新
-        if self.state.round_active {
-            if let Some(start) = self.state.round_start_time {
-                self.state.round_elapsed_secs = start.elapsed().as_secs_f32();
-            }
-            ctx.request_repaint();
-        }
+    /// リアルタイム更新（中央 dispatch の①）。録音の維持・タイマー・ポーリング・VAD・
+    /// ダウンロード進捗。
+    pub fn update(&mut self, resources: &mut Resources, ctx: &egui::Context) {
+        self.follow_game_lifecycle(resources);
 
-        // 録音中なら録音経過時間も更新
+        // 録音中なら経過時間を更新。ターンの経過は録音位置から求める。
         if self.state.is_recording {
             if let Some(recorder) = &resources.voice_recorder {
-                self.state.elapsed_secs = recorder.elapsed_secs();
+                if self.state.round_active {
+                    let round_start = self
+                        .state
+                        .rounds
+                        .last()
+                        .map(|round| round.start_sample)
+                        .unwrap_or(0);
+                    self.state.round_elapsed_secs =
+                        recorder.buffer_len().saturating_sub(round_start) as f32
+                            / crate::resources::voice_recorder::SAMPLE_RATE as f32;
+                }
             }
+            ctx.request_repaint();
         }
 
         // 語彙が変わっていれば認識コンテキストを組み直す
@@ -229,8 +262,9 @@ impl VoiceMemoFeature {
         // 書き起こし結果をポーリング
         self.poll_transcription_results();
 
-        // 録音中ならVADチェックしてチャンクを送信
-        if self.state.is_recording {
+        // ターン進行中のみVADチェックしてチャンクを送信。録音はターン外も続くが、
+        // メモはターンに属するため書き起こしはターン内に限る。
+        if self.state.round_active {
             self.check_vad_and_send(resources);
         }
 
@@ -265,8 +299,6 @@ impl VoiceMemoFeature {
         match action {
             VoiceMemoAction::StartRound => self.start_round(resources),
             VoiceMemoAction::EndRound => self.end_round(resources),
-            VoiceMemoAction::StartRecording => self.start_recording(resources),
-            VoiceMemoAction::StopRecording => self.stop_recording(resources),
             VoiceMemoAction::SelectRound(index) => self.select_round(index),
             VoiceMemoAction::ClearAllRounds => self.clear_all_rounds(),
             VoiceMemoAction::DownloadModel => self.start_download(resources),
@@ -282,6 +314,9 @@ impl Default for VoiceMemoFeature {
             download_handle: None,
             download_cancel: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             context: None,
+            game_active: false,
+            game_generation: 0,
+            observed_game_generation: 0,
             vocabulary: None,
             context_vocabulary: None,
             transcriber_thread: None,
@@ -289,7 +324,6 @@ impl Default for VoiceMemoFeature {
             last_vad_check_sample: 0,
             silence_start: None,
             is_speaking: false,
-            recording_start_round_secs: 0.0,
         }
     }
 }

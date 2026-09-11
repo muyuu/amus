@@ -1,5 +1,6 @@
 use super::{Round, VoiceMemo, VoiceMemoAction, VoiceMemoState};
 use crate::i18n::{keys as K, Translator};
+use crate::resources::voice_recorder::SAMPLE_RATE;
 use egui::{Color32, RichText, Ui};
 
 /// 音声メモのView（純粋な描画のみ）
@@ -82,32 +83,9 @@ impl VoiceMemoView {
             });
         }
 
-        // 録音コントロール
+        // ターンの操作。録音はゲーム中ずっと回っているが、内部の都合なので見せない。
         ui.horizontal(|ui| {
-            if state.is_recording {
-                ui.label(
-                    RichText::new(format!(
-                        "{} {:.1}s",
-                        translator.t(K::VOICE_MEMO_REC),
-                        state.elapsed_secs
-                    ))
-                    .color(Color32::RED),
-                );
-
-                if ui.button(translator.t(K::VOICE_MEMO_STOP)).clicked() {
-                    actions.push(VoiceMemoAction::StopRecording);
-                }
-            } else if state.is_processing {
-                ui.label(
-                    RichText::new(translator.t(K::VOICE_MEMO_TRANSCRIBING)).color(Color32::YELLOW),
-                );
-            } else if state.round_active {
-                // ターン進行中は録音ボタン
-                if ui.button(translator.t(K::VOICE_MEMO_RECORD)).clicked() {
-                    actions.push(VoiceMemoAction::StartRecording);
-                }
-            } else {
-                // ターン開始ボタン
+            if !state.round_active {
                 if ui.button(translator.t(K::VOICE_MEMO_START_TURN)).clicked() {
                     actions.push(VoiceMemoAction::StartRound);
                 }
@@ -117,6 +95,12 @@ impl VoiceMemoView {
                 {
                     actions.push(VoiceMemoAction::ClearAllRounds);
                 }
+            }
+
+            if state.is_processing {
+                ui.label(
+                    RichText::new(translator.t(K::VOICE_MEMO_TRANSCRIBING)).color(Color32::YELLOW),
+                );
             }
         });
 
@@ -171,8 +155,10 @@ impl VoiceMemoView {
                         for memo in &round.memos {
                             Self::render_memo(ui, memo);
                         }
-                        // ターン終了時間を表示
-                        if let Some(duration) = round.duration_secs {
+                        // 確定したターンの長さを表示
+                        if let Some(duration) = round.end_sample.map(|end| {
+                            end.saturating_sub(round.start_sample) as f32 / SAMPLE_RATE as f32
+                        }) {
                             ui.separator();
                             let mins = duration as i32 / 60;
                             let secs = duration as i32 % 60;
