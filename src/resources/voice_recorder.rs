@@ -4,9 +4,17 @@
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, SampleFormat, Stream, StreamConfig};
+use std::collections::VecDeque;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Instant;
 use thiserror::Error;
+
+/// 録音バッファに保持する秒数の上限。
+///
+/// 呼び出し側が破棄を忘れても際限なく増えないための上限。ネイティブの
+/// サンプルレート・f32 のまま保持するため、48kHz では 1 秒あたり約 192KB
+/// 消費する（この上限で約 57MB）。
+const BUFFER_CAPACITY_SECS: usize = 300;
 
 /// poison したロックも回復して使う。
 ///
@@ -28,19 +36,45 @@ fn lock_recover<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
 /// これにより長時間録音でバッファが単調増加するのを防ぐ。
 #[derive(Default)]
 struct RecordingBuffer {
-    samples: Vec<f32>,
+    /// 先頭の破棄を O(1) で行うため `VecDeque`。録音コールバックから毎サンプル
+    /// 呼ばれるので、`Vec` の先頭 drain（全要素の移動）は使えない。
+    samples: VecDeque<f32>,
     /// 破棄済みサンプル数（= `samples[0]` の絶対インデックス）。
     base: usize,
+    /// 保持するサンプル数の上限。0 は無制限。
+    capacity: usize,
 }
 
 impl RecordingBuffer {
+    /// 保持上限を指定して作る。上限を超えた分は古い側から落とす。
+    ///
+    /// ゲーム開始から録音し続けるため、呼び出し側の破棄に頼らず上限を設ける。
+    fn with_capacity(capacity: usize) -> Self {
+        Self {
+            capacity,
+            ..Default::default()
+        }
+    }
+
     fn clear(&mut self) {
         self.samples.clear();
         self.base = 0;
     }
 
     fn push(&mut self, sample: f32) {
-        self.samples.push(sample);
+        self.samples.push_back(sample);
+        self.enforce_capacity();
+    }
+
+    /// 上限を超えた分を古い側から落とす。絶対インデックスは変えない。
+    fn enforce_capacity(&mut self) {
+        if self.capacity == 0 {
+            return;
+        }
+        while self.samples.len() > self.capacity {
+            self.samples.pop_front();
+            self.base += 1;
+        }
     }
 
     /// 絶対長（破棄分を含む、これまでに録音した総サンプル数）。
@@ -48,15 +82,23 @@ impl RecordingBuffer {
         self.base + self.samples.len()
     }
 
-    /// `abs_start` 以降のサンプルのコピーと、次回開始位置（絶対）を返す。
-    /// 既に破棄済みの領域を跨ぐ場合は残っている分だけを返す。
-    fn samples_since(&self, abs_start: usize) -> (Vec<f32>, usize) {
-        let end = self.len_abs();
-        if abs_start >= end {
-            return (Vec::new(), abs_start);
+    /// `abs_start` 以降の残っているサンプルを返す。
+    ///
+    /// 保持上限を超えて古い側が失われている場合、返るのは残っている分だけで、
+    /// `RecordedSlice::start` が実際の先頭位置を示す。
+    fn samples_since(&self, abs_start: usize) -> RecordedSlice {
+        if abs_start >= self.len_abs() {
+            return RecordedSlice {
+                samples: Vec::new(),
+                start: abs_start,
+            };
         }
-        let rel = abs_start.saturating_sub(self.base);
-        (self.samples[rel..].to_vec(), end)
+        let start = abs_start.max(self.base);
+        let rel = start - self.base;
+        RecordedSlice {
+            samples: self.samples.range(rel..).copied().collect(),
+            start,
+        }
     }
 
     /// `abs_index` より前の確定領域を破棄する（絶対インデックスは不変）。
@@ -65,6 +107,14 @@ impl RecordingBuffer {
         self.samples.drain(..rel);
         self.base += rel;
     }
+}
+
+/// バッファから読み出したサンプルと、その絶対位置。
+pub struct RecordedSlice {
+    pub samples: Vec<f32>,
+    /// 実際に返した先頭サンプルの絶対位置。保持上限を超えて古い側が失われた場合、
+    /// 要求した位置より後ろになる。タイムスタンプの計算にはこちらを使うこと。
+    pub start: usize,
 }
 
 /// 音声録音リソースの操作が失敗した理由。
@@ -125,7 +175,9 @@ impl VoiceRecorder {
             config,
             sample_format,
             sample_rate,
-            buffer: Arc::new(Mutex::new(RecordingBuffer::default())),
+            buffer: Arc::new(Mutex::new(RecordingBuffer::with_capacity(
+                sample_rate as usize * BUFFER_CAPACITY_SECS,
+            ))),
             start_time: Arc::new(Mutex::new(None)),
             stream: None,
         })
@@ -256,16 +308,22 @@ impl VoiceRecorder {
     }
 
     /// 指定位置（絶対インデックス）以降のサンプルを取得（録音を停止せずに）。
-    /// 逐次書き起こし用。戻り値は (16kHzリサンプリング済みサンプル, 次回開始位置)。
-    pub fn get_samples_since(&self, start_sample: usize) -> (Vec<f32>, usize) {
-        let (samples, next_position) = {
+    ///
+    /// 逐次書き起こし用。サンプルは 16kHz にリサンプリング済み。位置は元の
+    /// サンプルレートでの絶対インデックスのまま返す。
+    ///
+    /// 保持上限を超えて古い側が失われている場合、`RecordedSlice::start` が
+    /// 要求位置より後ろになる。
+    pub fn get_samples_since(&self, start_sample: usize) -> RecordedSlice {
+        let slice = {
             let buffer = lock_recover(&self.buffer);
             buffer.samples_since(start_sample)
         };
 
-        // 16kHzにリサンプリング
-        let resampled = self.resample_to_16k(&samples);
-        (resampled, next_position)
+        RecordedSlice {
+            samples: self.resample_to_16k(&slice.samples),
+            ..slice
+        }
     }
 
     /// `keep_from`（絶対インデックス）より前の確定送出済み領域を破棄する。
@@ -336,22 +394,49 @@ mod tests {
         assert_eq!(buf.len_abs(), 10);
 
         // 絶対インデックス 4 以降を取得
-        let (s, next) = buf.samples_since(4);
-        assert_eq!(s, vec![4.0, 5.0, 6.0, 7.0, 8.0, 9.0]);
-        assert_eq!(next, 10);
+        let slice = buf.samples_since(4);
+        assert_eq!(slice.samples, vec![4.0, 5.0, 6.0, 7.0, 8.0, 9.0]);
 
         // 先頭 4 サンプルを破棄しても絶対インデックスは不変
         buf.discard_before(4);
         assert_eq!(buf.len_abs(), 10);
         assert_eq!(buf.samples.len(), 6); // 実メモリは縮む
-        let (s2, next2) = buf.samples_since(4);
-        assert_eq!(s2, vec![4.0, 5.0, 6.0, 7.0, 8.0, 9.0]);
-        assert_eq!(next2, 10);
+        let slice2 = buf.samples_since(4);
+        assert_eq!(slice2.samples, vec![4.0, 5.0, 6.0, 7.0, 8.0, 9.0]);
 
         // さらに録音が進んでも整合する
         buf.push(10.0);
-        let (s3, _) = buf.samples_since(8);
-        assert_eq!(s3, vec![8.0, 9.0, 10.0]);
+        let slice3 = buf.samples_since(8);
+        assert_eq!(slice3.samples, vec![8.0, 9.0, 10.0]);
+    }
+
+    #[test]
+    fn buffer_drops_oldest_samples_beyond_capacity() {
+        let mut buf = RecordingBuffer::with_capacity(4);
+        for i in 0..6 {
+            buf.push(i as f32);
+        }
+
+        // 絶対インデックスは録音開始からの通し番号のまま
+        assert_eq!(buf.len_abs(), 6);
+        // 実メモリは上限に収まり、新しい側が残る
+        assert_eq!(buf.samples.len(), 4);
+        let slice = buf.samples_since(2);
+        assert_eq!(slice.samples, vec![2.0, 3.0, 4.0, 5.0]);
+    }
+
+    #[test]
+    fn buffer_reports_actual_start_when_requested_position_was_dropped() {
+        let mut buf = RecordingBuffer::with_capacity(4);
+        for i in 0..6 {
+            buf.push(i as f32);
+        }
+
+        // 絶対位置 0,1 は容量超過で失われている
+        let slice = buf.samples_since(0);
+
+        assert_eq!(slice.start, 2, "失われた分だけ開始位置が後ろへずれる");
+        assert_eq!(slice.samples, vec![2.0, 3.0, 4.0, 5.0]);
     }
 
     #[test]
@@ -359,9 +444,8 @@ mod tests {
         let mut buf = RecordingBuffer::default();
         buf.push(1.0);
         buf.push(2.0);
-        let (s, next) = buf.samples_since(5);
-        assert!(s.is_empty());
-        assert_eq!(next, 5);
+        let slice = buf.samples_since(5);
+        assert!(slice.samples.is_empty());
     }
 
     #[test]
@@ -374,8 +458,8 @@ mod tests {
         // 既に破棄済みより前を指しても壊れない
         buf.discard_before(1);
         assert_eq!(buf.base, 3);
-        let (s, _) = buf.samples_since(3);
-        assert_eq!(s, vec![3.0, 4.0]);
+        let slice = buf.samples_since(3);
+        assert_eq!(slice.samples, vec![3.0, 4.0]);
     }
 
     #[test]

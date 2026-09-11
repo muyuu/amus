@@ -34,7 +34,7 @@ impl VoiceMemoFeature {
         let keep_from = self.speech_start_sample.min(window_start);
         recorder.discard_before(keep_from);
 
-        let (recent_samples, _) = recorder.get_samples_since(window_start);
+        let recent_samples = recorder.get_samples_since(window_start).samples;
         let rms = Self::calculate_rms(&recent_samples);
         let is_sound = rms > SILENCE_THRESHOLD;
 
@@ -89,7 +89,8 @@ impl VoiceMemoFeature {
         };
 
         // 発話区間のサンプルを取得（16kHzにリサンプリング済み）
-        let (samples, next_pos) = recorder.get_samples_since(self.speech_start_sample);
+        let slice = recorder.get_samples_since(self.speech_start_sample);
+        let samples = slice.samples;
 
         // 16kHzでの最小サンプル数
         let min_speech_samples = (16000.0 * MIN_SPEECH_SECS) as usize;
@@ -119,7 +120,7 @@ impl VoiceMemoFeature {
             )
         );
 
-        self.send_transcription_request(samples, next_pos);
+        self.send_transcription_request(samples, slice.start, sample_rate);
         self.reset_vad_state();
     }
 

@@ -90,10 +90,10 @@ impl VoiceMemoFeature {
 
     pub(super) fn stop_recording(&mut self, resources: &mut Resources) {
         if let Some(recorder) = &mut resources.voice_recorder {
-            // 発話中なら残りのサンプルを取得
+            // 発話中なら残りのサンプルを取得（停止で取得できなくなる前に）
+            let sample_rate = recorder.sample_rate();
             let remaining = if self.is_speaking {
-                let (samples, next_pos) = recorder.get_samples_since(self.speech_start_sample);
-                Some((samples, next_pos))
+                Some(recorder.get_samples_since(self.speech_start_sample))
             } else {
                 None
             };
@@ -106,7 +106,8 @@ impl VoiceMemoFeature {
             let min_speech_samples = (16000.0 * MIN_SPEECH_SECS) as usize;
 
             // 発話中だった場合は残りのサンプルを送信
-            if let Some((samples, next_pos)) = remaining {
+            if let Some(slice) = remaining {
+                let samples = slice.samples;
                 if samples.len() >= min_speech_samples && self.transcriber_thread.is_some() {
                     let duration_secs = samples.len() as f32 / 16000.0;
                     log_debug!(
@@ -117,7 +118,7 @@ impl VoiceMemoFeature {
                             self.state.pending_chunks + 1
                         )
                     );
-                    self.send_transcription_request(samples, next_pos);
+                    self.send_transcription_request(samples, slice.start, sample_rate);
                 } else {
                     let duration_secs = samples.len() as f32 / 16000.0;
                     log_debug!(
