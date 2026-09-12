@@ -37,7 +37,10 @@ pub(super) fn build_recognition_context(
         .collect();
 
     // 重要度の高い順。build_prompt が末尾へ並べ替え、溢れた分を先頭から落とす。
-    let groups: [&[&str]; 3] = [&players, &terms, &rooms];
+    //
+    // トリガーワードはプレイヤー名に次ぐ。プロンプトに載っていない語はモデルがまず
+    // 出さず、出なければターン境界が決まらない。数語なので予算も脅かさない。
+    let groups: [&[&str]; 4] = [&players, super::hotword::PROMPT_WORDS, &terms, &rooms];
 
     build_prompt(&groups, PROMPT_TOKEN_LIMIT, count_tokens)
 }
@@ -79,6 +82,17 @@ mod tests {
             player_names: players.iter().map(|s| s.to_string()).collect(),
             room_names: rooms,
         }
+    }
+
+    #[test]
+    fn carries_the_trigger_words() {
+        let vocab = vocabulary(&["ゆう"], &["カフェテリア"]);
+
+        let prompt = build_recognition_context(&vocab, count_chars);
+
+        // トリガーワードが出力に現れないと検知が成立しない
+        assert!(prompt.contains("ターン開始"), "prompt={}", prompt);
+        assert!(prompt.contains("ターン終了"), "prompt={}", prompt);
     }
 
     #[test]
