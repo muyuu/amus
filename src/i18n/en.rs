@@ -86,8 +86,6 @@ pub fn translate(key: TextKey) -> String {
         ),
         VoiceMemoRecordHint => W::RECORD_BUTTON_HINT.to_string(),
         VoiceMemoMemoCount => W::NOTES.to_string(),
-        VoiceMemoUseGpu => W::USE_GPU.to_string(),
-        VoiceMemoGpuHint => "Switching also changes the model used".to_string(),
         VoiceMemoTurnTime => format!("{} {}", W::TURN, W::TIME),
     }
 }

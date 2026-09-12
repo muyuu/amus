@@ -58,28 +58,24 @@ pub struct Resources {
 }
 
 impl Resources {
-    /// 書き起こしは構成が決まるまで用意しない。保存された設定を読んだあとに
-    /// [`Self::reload_transcriber`] を呼ぶこと。
     pub fn new() -> Self {
         Self {
             #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
             voice_recorder: Self::init_voice_recorder(),
             #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-            whisper_transcriber: None,
+            whisper_transcriber: Self::init_whisper_transcriber(TranscribeSetup::compiled()),
             #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-            transcribe_setup: TranscribeSetup::CPU,
+            transcribe_setup: TranscribeSetup::compiled(),
         }
     }
 
-    /// 書き起こしを指定の構成で用意し直す。
+    /// 書き起こしを用意し直す。
     ///
-    /// 起動時に保存された設定を反映するとき、設定が切り替わったとき、モデルの
-    /// ダウンロードが終わったときに呼ぶ。モデルファイルがまだ無ければ未用意のままにする。
-    /// GPU の初期化に失敗した場合は CPU で用意される（要求した構成と一致するとは限らない）。
+    /// モデルのダウンロードが終わったときに呼ぶ。まだモデルが無ければ未用意のままにする。
+    /// GPU の初期化に失敗した場合は CPU で用意される（構成と一致するとは限らない）。
     #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-    pub fn reload_transcriber(&mut self, setup: TranscribeSetup) {
-        self.transcribe_setup = setup;
-        self.whisper_transcriber = Self::init_whisper_transcriber(setup);
+    pub fn reload_transcriber(&mut self) {
+        self.whisper_transcriber = Self::init_whisper_transcriber(self.transcribe_setup);
     }
 
     /// ハードウェアを一切持たない Resources。

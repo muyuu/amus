@@ -53,7 +53,6 @@ impl JapaneseWords {
     pub const VOICE_RECOGNITION: &'static str = "音声認識";
     pub const WHISPER_MODEL: &'static str = "Whisperモデル";
     pub const RECORD_BUTTON_HINT: &'static str = "録音ボタンで発言を記録";
-    pub const USE_GPU: &'static str = "GPU を使う";
 
     // 状態・形容詞
     pub const ALIVE: &'static str = "生存";

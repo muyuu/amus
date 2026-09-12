@@ -2,16 +2,12 @@ mod game;
 mod player;
 mod setup;
 mod ui;
-#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-mod voice_memo;
 mod wave;
 
 pub use game::GameSlice;
 pub use player::PlayerSlice;
 pub use setup::SetupSlice;
 pub use ui::UiSlice;
-#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-pub use voice_memo::VoiceMemoSlice;
 pub use wave::WaveSlice;
 
 use super::app_data::AppData;
@@ -64,11 +60,5 @@ impl<'a> Slices<'a> {
     /// セットアップ状態の読み取り専用アクセス
     pub fn setup(&self) -> SetupSlice<'a> {
         SetupSlice::new(self.data)
-    }
-
-    /// 音声メモ設定の読み取り専用アクセス
-    #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-    pub fn voice_memo(&self) -> VoiceMemoSlice<'a> {
-        VoiceMemoSlice::new(self.data)
     }
 }

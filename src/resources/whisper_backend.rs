@@ -61,11 +61,12 @@ impl TranscribeSetup {
         model: WhisperModel::SMALL,
     };
 
-    /// ユーザーの選択から構成を決める。
+    /// このビルドの構成。
     ///
-    /// ビルドに GPU バックエンドが含まれていなければ、選択に関わらず CPU になる。
-    pub fn resolve(prefer_gpu: bool) -> Self {
-        Self::select(compiled_backend(), prefer_gpu)
+    /// GPU を使うかはビルド時に決まっており、実行時に選ぶものではない。GPU を使わせたい
+    /// 環境には GPU バックエンドを含まないビルドを渡す。
+    pub fn compiled() -> Self {
+        Self::select(compiled_backend())
     }
 
     /// 何で動いているかを一目で示す表記。`Vulkan / medium` のような形。
@@ -76,8 +77,8 @@ impl TranscribeSetup {
         format!("{} / {}", backend, self.model.name())
     }
 
-    fn select(available: Option<GpuBackend>, prefer_gpu: bool) -> Self {
-        match available.filter(|_| prefer_gpu) {
+    fn select(available: Option<GpuBackend>) -> Self {
+        match available {
             Some(gpu) => Self {
                 gpu: Some(gpu),
                 model: WhisperModel::MEDIUM,
@@ -92,23 +93,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn gpu_is_used_with_a_larger_model_when_the_build_has_one() {
-        let setup = TranscribeSetup::select(Some(GpuBackend::Vulkan), true);
+    fn a_gpu_build_pairs_the_backend_with_a_larger_model() {
+        let setup = TranscribeSetup::select(Some(GpuBackend::Vulkan));
 
         assert_eq!(setup.gpu, Some(GpuBackend::Vulkan));
         assert_eq!(setup.model, WhisperModel::MEDIUM);
     }
 
     #[test]
-    fn declining_gpu_falls_back_to_cpu_with_the_small_model() {
-        let setup = TranscribeSetup::select(Some(GpuBackend::Vulkan), false);
-
-        assert_eq!(setup, TranscribeSetup::CPU);
-    }
-
-    #[test]
-    fn a_build_without_a_gpu_backend_stays_on_cpu_even_when_asked_for_gpu() {
-        let setup = TranscribeSetup::select(None, true);
+    fn a_build_without_a_gpu_backend_stays_on_cpu() {
+        let setup = TranscribeSetup::select(None);
 
         assert_eq!(setup, TranscribeSetup::CPU);
     }

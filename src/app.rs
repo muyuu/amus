@@ -9,8 +9,6 @@ use crate::features::StatefulFeatures;
 use crate::i18n::keys;
 use crate::log_error;
 use crate::resources::Resources;
-#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-use crate::resources::TranscribeSetup;
 use crate::state::{Actions, AppState};
 
 pub struct AmusApp {
@@ -27,10 +25,7 @@ pub struct AmusApp {
 
 impl Default for AmusApp {
     fn default() -> Self {
-        #[allow(unused_mut)]
-        let mut resources = Resources::new();
-        #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-        resources.reload_transcriber(TranscribeSetup::resolve(AppState::new().use_gpu()));
+        let resources = Resources::new();
 
         #[cfg(not(target_arch = "wasm32"))]
         let features = StatefulFeatures::new(&resources);
@@ -47,27 +42,25 @@ impl Default for AmusApp {
 
 impl AmusApp {
     pub fn new(_cc: &eframe::CreationContext<'_>, state: AppState) -> Self {
-        let mut state = state;
-        // 書き起こしの構成は保存された設定で決まるため、リソースより先に読む。
-        if let Some(storage) = _cc.storage {
-            state.load_from_storage(Some(storage)).unwrap_or_default();
-        }
-
-        #[allow(unused_mut)]
-        let mut resources = Resources::new();
-        #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-        resources.reload_transcriber(TranscribeSetup::resolve(state.use_gpu()));
+        let resources = Resources::new();
 
         #[cfg(not(target_arch = "wasm32"))]
         let features = StatefulFeatures::new(&resources);
         #[cfg(target_arch = "wasm32")]
         let features = StatefulFeatures::new();
 
-        Self {
+        let mut app = Self {
             state,
             resources,
             features,
+        };
+
+        if let Some(storage) = _cc.storage {
+            app.state
+                .load_from_storage(Some(storage))
+                .unwrap_or_default();
         }
+        app
     }
 }
 
@@ -167,12 +160,6 @@ impl AmusApp {
                 AppAction::Eraser(a) => Actions::new(&mut self.state).handle_eraser(a),
                 AppAction::Setup(a) => Actions::new(&mut self.state).handle_setup(a),
                 AppAction::Wave(a) => Actions::new(&mut self.state).handle_wave(a),
-                // 設定値の書き込みは他のアプリ設定と同様にここで行う。書き起こしの
-                // 作り直しは Feature が次の update で追従する。
-                #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-                AppAction::VoiceMemo(crate::features::voice_memo::VoiceMemoAction::SetUseGpu(
-                    use_gpu,
-                )) => self.state.set_use_gpu(use_gpu),
                 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
                 AppAction::VoiceMemo(a) => self
                     .features

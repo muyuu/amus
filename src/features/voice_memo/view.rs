@@ -18,7 +18,7 @@ impl VoiceMemoView {
         let max_width = ui.available_width().min(600.0);
         ui.set_max_width(max_width);
 
-        Self::render_backend(state, translator, ui, &mut actions);
+        Self::render_backend(state, ui);
 
         // モデルの状態表示
         if !state.model_available {
@@ -185,42 +185,16 @@ impl VoiceMemoView {
         actions
     }
 
-    /// 書き起こしの実行構成。GPU を含むビルドでは切り替えも出す。
+    /// 動作中の実行構成。
     ///
-    /// 認識がおかしいときに、GPU が効いているのか・どのモデルなのかを確かめられるよう、
-    /// 動作中の構成は切り替えの可否によらず常に見せる。
-    fn render_backend(
-        state: &VoiceMemoState,
-        translator: &Translator,
-        ui: &mut Ui,
-        actions: &mut Vec<VoiceMemoAction>,
-    ) {
-        ui.horizontal(|ui| {
-            if state.gpu_selectable {
-                let mut use_gpu = state.use_gpu;
-                if ui
-                    .checkbox(&mut use_gpu, translator.t(K::VOICE_MEMO_USE_GPU))
-                    .changed()
-                {
-                    actions.push(VoiceMemoAction::SetUseGpu(use_gpu));
-                }
-            }
-
-            ui.label(
-                RichText::new(&state.backend_label)
-                    .monospace()
-                    .color(Color32::GRAY),
-            );
-        });
-
-        if state.gpu_selectable {
-            ui.label(
-                RichText::new(translator.t(K::VOICE_MEMO_GPU_HINT))
-                    .small()
-                    .color(Color32::GRAY),
-            );
-        }
-
+    /// 認識がおかしいときに、GPU が効いているのか・どのモデルなのかを確かめる手がかり。
+    /// 構成はビルドで決まるため操作はできない。
+    fn render_backend(state: &VoiceMemoState, ui: &mut Ui) {
+        ui.label(
+            RichText::new(&state.backend_label)
+                .monospace()
+                .color(Color32::GRAY),
+        );
         ui.separator();
     }
 

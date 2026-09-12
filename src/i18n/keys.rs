@@ -88,6 +88,4 @@ text_keys! {
     VOICE_MEMO_RECORD_HINT => VoiceMemoRecordHint,
     VOICE_MEMO_MEMO_COUNT => VoiceMemoMemoCount,
     VOICE_MEMO_TURN_TIME => VoiceMemoTurnTime,
-    VOICE_MEMO_USE_GPU => VoiceMemoUseGpu,
-    VOICE_MEMO_GPU_HINT => VoiceMemoGpuHint,
 }

@@ -62,8 +62,7 @@ impl VoiceMemoFeature {
 
                             // 取得したモデルで書き起こしを用意する。認識コンテキストは
                             // モデルのトークナイザで組むため、組み直させる。
-                            let setup = resources.transcribe_setup();
-                            resources.reload_transcriber(setup);
+                            resources.reload_transcriber();
                             self.sync_backend_state(resources);
                             self.context_vocabulary = None;
                             self.restart_transcriber_thread(resources);

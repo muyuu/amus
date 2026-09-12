@@ -68,8 +68,6 @@ pub fn translate(key: TextKey) -> String {
         VoiceMemoStartPrompt => format!("{}を{}してください", W::TURN, W::START),
         VoiceMemoRecordHint => W::RECORD_BUTTON_HINT.to_string(),
         VoiceMemoMemoCount => W::NOTES.to_string(),
-        VoiceMemoUseGpu => W::USE_GPU.to_string(),
-        VoiceMemoGpuHint => "切り替えると使うモデルも変わります".to_string(),
         VoiceMemoTurnTime => format!("{}{}", W::TURN, W::TIME),
     }
 }
