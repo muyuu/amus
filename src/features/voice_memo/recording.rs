@@ -78,10 +78,7 @@ impl VoiceMemoFeature {
                     self.state.is_recording = true;
                     self.state.error = None;
                     self.recording_start_sample = at;
-                    self.speech_start_sample = at;
-                    self.last_vad_check_sample = at;
-                    self.silence_start = None;
-                    self.is_speaking = false;
+                    self.reset_vad_state(at);
                     log_debug!("VoiceMemo", &format!("録音開始: at={}", at));
                 }
                 Err(e) => {
@@ -94,16 +91,14 @@ impl VoiceMemoFeature {
 
     /// 録音を停止する。進行中のターンがあればその位置で閉じる。
     pub(super) fn stop_recording(&mut self, resources: &mut Resources) {
-        // 発話中なら残りのサンプルを取得する。
+        // 言い終わる前に録音が止まることがある。途中まででも書き起こしに回す。
         // 送信はターンを閉じる前に行う必要がある（閉じた後は書き起こしに送られない）。
-        let remaining = if self.is_speaking {
+        let remaining = self.detector.pending_speech().and_then(|start| {
             resources
                 .voice_recorder
                 .as_ref()
-                .map(|recorder| recorder.get_samples_since(self.speech_start_sample))
-        } else {
-            None
-        };
+                .map(|recorder| recorder.get_samples_since(start))
+        });
 
         let min_speech_samples = (SAMPLE_RATE as f32 * MIN_SPEECH_SECS) as usize;
 
@@ -142,7 +137,7 @@ impl VoiceMemoFeature {
             recorder.stop_recording();
         }
         self.state.is_recording = false;
-        self.reset_vad_state();
+        self.reset_vad_state(0);
     }
 }
 
