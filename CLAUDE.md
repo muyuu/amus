@@ -47,6 +47,20 @@ mise run start-gpu   # GPU 版を起動
 マシンだけで、実行側には GPU ドライバ同梱のローダー（`vulkan-1.dll` / `libvulkan.so.1`）しか
 要らない。インストール直後はシェルを開き直さないと環境変数が反映されない。
 
+### 配布用ビルド
+
+```bash
+mise run release-gpu   # → dist/memongus-<os>-gpu
+mise run release-cpu   # → dist/memongus-<os>-cpu
+```
+
+動かすマシンの OS 向けに作る。whisper.cpp と Vulkan のシェーダを含むためクロスコンパイル
+はせず、配布する OS ごとにそのマシンで実行する。リリースビルドはアセットを実行ファイルへ
+埋め込むため、成果物は 1 ファイルで動く（デバッグビルドは `assets/` を実行時に読むので
+配布には使えない）。
+
+### GPU ビルドの target ディレクトリ
+
 GPU ビルドは CPU ビルドと target ディレクトリを分ける。feature が違うとビルドグラフ全体が
 無効化されるため、共有すると切り替えるたびに全再ビルドになる。Windows ではこれが必須でもある。
 ggml-vulkan がシェーダ生成ツールを入れ子の ExternalProject として建てる都合で中間ファイルの
