@@ -1,66 +1,41 @@
-//! VAD（発話区間検出）。録音中のサンプルを監視し、発話の終了を検出して
-//! 書き起こしチャンクを送信する。
+//! 録音を監視して発話区間を切り出し、書き起こしへ送る。
+//!
+//! どこを発話とみなすかの判定は `speech` が持つ。ここはレコーダーから音量を読み、
+//! 確定した区間のサンプルを渡すところまでを受け持つ。
 
 use super::VoiceMemoFeature;
 use crate::log_debug;
 use crate::resources::voice_recorder::SAMPLE_RATE;
 use crate::resources::Resources;
 
-const SILENCE_THRESHOLD: f32 = 0.01; // 無音判定の閾値（RMS）
-const SILENCE_DURATION_SECS: f32 = 1.5; // 無音がこの秒数続いたら発話終了とみなす
-/// 最低この秒数分の発話がないと書き起こしに送らない
-pub(super) const MIN_SPEECH_SECS: f32 = 1.0;
-const VAD_WINDOW_SECS: f32 = 0.1; // 100msのウィンドウでRMSを計算
+/// 音量を測る窓の長さ。
+const VAD_WINDOW_SECS: f32 = 0.1;
+/// これより短い区間は書き起こしに送らない。
+///
+/// 区間は前後の余韻を含むため、発話の実体はこれよりさらに短い。物音ひとつで
+/// 書き起こしを回さないための下限。
+pub(super) const MIN_SPEECH_SECS: f32 = 0.6;
 
 impl VoiceMemoFeature {
-    /// VADチェックして発話終了時にチャンクを送信
+    /// 新しく録音された分を検査し、発話区間が確定したら書き起こしへ送る。
     pub(super) fn check_vad_and_send(&mut self, resources: &Resources) {
         let Some(recorder) = &resources.voice_recorder else {
             return;
         };
 
-        let vad_window_samples = (SAMPLE_RATE as f32 * VAD_WINDOW_SECS) as usize;
-
+        let window_samples = (SAMPLE_RATE as f32 * VAD_WINDOW_SECS) as usize;
         let buffer_len = recorder.buffer_len();
-        if buffer_len <= self.last_vad_check_sample + vad_window_samples {
-            return; // 新しいサンプルが足りない
-        }
 
-        // 最新のウィンドウでRMSを計算
-        let window_start = buffer_len.saturating_sub(vad_window_samples);
+        // 溜まった分を窓単位で漏れなく見る。フレームが飛んでも録音上の位置は飛ばない。
+        while self.vad_checked_sample + window_samples <= buffer_len {
+            let window = self.vad_checked_sample..self.vad_checked_sample + window_samples;
+            self.vad_checked_sample = window.end;
 
-        let recent_samples = recorder.get_samples_since(window_start).samples;
-        let rms = Self::calculate_rms(&recent_samples);
-        let is_sound = rms > SILENCE_THRESHOLD;
+            let samples = recorder.get_samples_since(window.start).samples;
+            let rms = Self::calculate_rms(&samples[..samples.len().min(window_samples)]);
 
-        self.last_vad_check_sample = buffer_len;
-
-        if is_sound {
-            // 音声あり
-            if !self.is_speaking {
-                // 発話開始
-                self.is_speaking = true;
-                self.speech_start_sample = window_start;
-                log_debug!("VoiceMemo", &format!("発話開始検出 (RMS={:.4})", rms));
-            }
-            self.silence_start = None;
-        } else {
-            // 無音
-            if self.is_speaking {
-                // 発話中に無音を検出
-                let silence_start = self
-                    .silence_start
-                    .get_or_insert_with(std::time::Instant::now);
-                let silence_duration = silence_start.elapsed().as_secs_f32();
-
-                if silence_duration >= SILENCE_DURATION_SECS {
-                    // 無音が十分続いた → 発話終了、チャンクを送信
-                    log_debug!(
-                        "VoiceMemo",
-                        &format!("無音検知、解析開始 (無音継続={:.1}s)", silence_duration)
-                    );
-                    self.send_speech_chunk(resources);
-                }
+            if let Some(speech) = self.detector.observe(window, rms) {
+                self.send_speech(resources, speech);
             }
         }
     }
@@ -74,34 +49,25 @@ impl VoiceMemoFeature {
         (sum_sq / samples.len() as f32).sqrt()
     }
 
-    /// 発話チャンクを送信
-    fn send_speech_chunk(&mut self, resources: &Resources) {
+    /// 確定した発話区間を書き起こしへ送る。
+    fn send_speech(&mut self, resources: &Resources, speech: std::ops::Range<usize>) {
         let Some(recorder) = &resources.voice_recorder else {
             return;
         };
 
-        // 発話区間のサンプルを取得
-        let slice = recorder.get_samples_since(self.speech_start_sample);
-        let samples = slice.samples;
+        let slice = recorder.get_samples_since(speech.start);
+        let length = (speech.end - speech.start).min(slice.samples.len());
+        let samples = slice.samples[..length].to_vec();
 
-        // 送信に必要な最小サンプル数
-        let min_speech_samples = (SAMPLE_RATE as f32 * MIN_SPEECH_SECS) as usize;
-
-        if samples.len() < min_speech_samples {
-            let duration_secs = samples.len() as f32 / SAMPLE_RATE as f32;
+        let duration_secs = samples.len() as f32 / SAMPLE_RATE as f32;
+        if duration_secs < MIN_SPEECH_SECS {
             log_debug!(
                 "VoiceMemo",
-                &format!(
-                    "発話が短すぎるためスキップ ({:.1}秒, {}サンプル)",
-                    duration_secs,
-                    samples.len()
-                )
+                &format!("発話が短すぎるためスキップ ({:.1}秒)", duration_secs)
             );
-            self.reset_vad_state();
             return;
         }
 
-        let duration_secs = samples.len() as f32 / SAMPLE_RATE as f32;
         log_debug!(
             "VoiceMemo",
             &format!(
@@ -112,13 +78,11 @@ impl VoiceMemoFeature {
         );
 
         self.send_transcription_request(samples, slice.start);
-        self.reset_vad_state();
     }
 
-    /// VAD状態をリセット
-    pub(super) fn reset_vad_state(&mut self) {
-        self.is_speaking = false;
-        self.silence_start = None;
-        self.speech_start_sample = self.last_vad_check_sample;
+    /// 録音を取り直したときに、検出の状態を録音上の位置ごと捨てる。
+    pub(super) fn reset_vad_state(&mut self, at: usize) {
+        self.vad_checked_sample = at;
+        self.detector.reset();
     }
 }

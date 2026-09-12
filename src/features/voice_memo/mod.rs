@@ -18,6 +18,7 @@ mod hotword;
 mod prompt;
 mod reading;
 mod recording;
+mod speech;
 mod transcription;
 mod types;
 mod vad;
@@ -75,14 +76,10 @@ pub struct VoiceMemoFeature {
     corrector: VocabularyCorrector,
     /// バックグラウンド書き起こしスレッド
     transcriber_thread: Option<TranscriberThread>,
-    /// 発話開始位置（VoiceRecorder の SAMPLE_RATE 基準の絶対インデックス）
-    speech_start_sample: usize,
-    /// 最後にVADチェックしたサンプル位置
-    last_vad_check_sample: usize,
-    /// 無音開始時刻
-    silence_start: Option<std::time::Instant>,
-    /// 現在発話中かどうか
-    is_speaking: bool,
+    /// 発話区間の検出器
+    detector: speech::SpeechDetector,
+    /// VAD で検査済みの録音上の位置
+    vad_checked_sample: usize,
     /// 現在の録音が始まった絶対サンプル位置
     recording_start_sample: usize,
 
@@ -349,10 +346,8 @@ impl Default for VoiceMemoFeature {
             context_vocabulary: None,
             corrector: VocabularyCorrector::new([]),
             transcriber_thread: None,
-            speech_start_sample: 0,
-            last_vad_check_sample: 0,
-            silence_start: None,
-            is_speaking: false,
+            detector: speech::SpeechDetector::default(),
+            vad_checked_sample: 0,
             recording_start_sample: 0,
             matcher: HotwordMatcher::new(hotword::DEFAULT_START_WORDS, hotword::DEFAULT_END_WORDS),
             boundary_tracker: BoundaryTracker::new(
