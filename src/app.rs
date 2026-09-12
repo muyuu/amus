@@ -242,7 +242,7 @@ impl AmusApp {
 
     fn get_frame() -> Frame {
         Frame::NONE
-            .fill(AppConstants::WINDOW_BG_COLOR_DARK)
+            .fill(AppConstants::BG_COLOR)
             .stroke(Stroke::NONE)
     }
 }

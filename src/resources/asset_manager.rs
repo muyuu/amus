@@ -7,7 +7,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::models::Area;
-use crate::models::Theme;
 
 // アセットディレクトリのパスを一元管理。
 // wasm デバッグビルドのフォント読み込み (load_font_from_assets) でのみ使う。
@@ -94,13 +93,16 @@ impl AssetManager {
         manager
     }
 
+    /// エリアのマップ画像のパス。
+    ///
+    /// 画像は透過で、テーマによらず1枚。背景はアプリ側が塗る。
+    fn area_image_path(area: &Area) -> String {
+        format!(assets_path!("images/map/{}.png"), area.id())
+    }
+
     fn load_area_images(&mut self, ctx: &Context) {
         for area in Area::all() {
-            let path = format!(
-                assets_path!("images/map/{}_{}.png"),
-                area.id(),
-                Theme::Dark.as_str()
-            );
+            let path = Self::area_image_path(&area);
 
             if let Ok(texture) = Self::load_texture_from_path(ctx, &path) {
                 self.area_images.insert(area.id().to_string(), texture);
@@ -285,6 +287,29 @@ impl AssetManager {
                     None
                 }
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// マップ画像は透過であること。
+    ///
+    /// 背景はアプリ側が塗る。背景を焼き込んだ画像だと、マップの外側と色を
+    /// 揃えられずテーマの切り替えもできない。
+    #[test]
+    fn map_images_are_transparent() {
+        for area in Area::all() {
+            let path = AssetManager::area_image_path(&area);
+            let bytes = AssetManager::load_file_bytes(&path)
+                .unwrap_or_else(|e| panic!("{path} を読めない: {e}"));
+            let image = image::load_from_memory(&bytes)
+                .unwrap_or_else(|e| panic!("{path} をデコードできない: {e}"));
+
+            let transparent = image.to_rgba8().pixels().any(|pixel| pixel.0[3] < 255);
+            assert!(transparent, "{path} に透過部分がない");
         }
     }
 }

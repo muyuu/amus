@@ -69,7 +69,6 @@ AppState (アプリケーション全体の状態)
 - `Color` - プレイヤーの色
 - `Role` - 役職（Crew, Impostor）
 - `Point` - 座標データ
-- `Theme` - UIテーマ
 - `DraggingLocation` / `LocationType` - 位置ドラッグの種別と対象
 - `SetupState` - ゲーム設定時の状態
 

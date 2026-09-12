@@ -24,11 +24,6 @@ impl MainView {
             return WelcomeFeature::render(slices, ui);
         }
 
-        // 全体の背景を灰色に
-        let full_rect = ui.max_rect();
-        ui.painter()
-            .rect_filled(full_rect, 0.0, MainConstants::BG_COLOR);
-
         Self::render_main(slices, features, ui)
     }
 

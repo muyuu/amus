@@ -11,10 +11,11 @@ impl AppConstants {
     pub const UI_SCALE_MAX: f32 = 3.0;
     pub const UI_SCALE_STEP: f32 = 0.25;
 
-    /// ウィンドウ
-    pub const WINDOW_BG_COLOR_DARK: Color32 = Color32::from_rgb(0, 0, 0);
-    #[allow(dead_code)]
-    pub const WINDOW_BG_COLOR_LIGHT: Color32 = Color32::from_rgb(255, 255, 255);
+    /// アプリの地の色。
+    ///
+    /// マップ画像は透過なので、画像の背景・画像の外側・パネル枠のすべてがこの色になる。
+    /// テーマを切り替えるときはここだけを差し替える。
+    pub const BG_COLOR: Color32 = Color32::from_rgb(0, 0, 0);
 
     /// コンポーネントの定数たち
     pub const COM_BG_LABEL_PADDING_X: f32 = 4.0;

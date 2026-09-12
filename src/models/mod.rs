@@ -8,7 +8,6 @@ pub mod role;
 pub mod route;
 pub mod sabotage;
 pub mod setup_state;
-pub mod theme;
 pub mod wave;
 
 pub use area::Area;
@@ -21,5 +20,4 @@ pub use role::Role;
 pub use route::Route;
 pub use sabotage::Sabotage;
 pub use setup_state::*;
-pub use theme::Theme;
 pub use wave::Wave;
