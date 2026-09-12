@@ -1,0 +1,141 @@
+name: リリース（配布用バイナリ）
+
+on:
+    push:
+        tags:
+            - "v*"
+    # タグを切らずにビルドだけ試せるようにする。成果物はアーティファクトに残る。
+    workflow_dispatch:
+
+concurrency:
+    group: release-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    # OS ごとに GPU 版と CPU 版を作る。whisper.cpp と Vulkan のシェーダを含むため
+    # クロスコンパイルはせず、それぞれのランナーでビルドする。
+    build:
+        strategy:
+            # 1つの組み合わせが落ちても、他の成果物は得られるようにする
+            fail-fast: false
+            matrix:
+                include:
+                    - os: windows-latest
+                      variant: gpu
+                      artifact: memongus-windows-gpu.exe
+                    - os: windows-latest
+                      variant: cpu
+                      artifact: memongus-windows-cpu.exe
+                    - os: ubuntu-latest
+                      variant: gpu
+                      artifact: memongus-linux-gpu
+                    - os: ubuntu-latest
+                      variant: cpu
+                      artifact: memongus-linux-cpu
+                    - os: macos-latest
+                      variant: gpu
+                      artifact: memongus-macos-gpu
+                    - os: macos-latest
+                      variant: cpu
+                      artifact: memongus-macos-cpu
+
+        runs-on: ${{ matrix.os }}
+
+        env:
+            # Windows の GPU ビルドは中間ファイルのパスが深くなり MAX_PATH を超えうる。
+            # ランナーの作業ディレクトリは元々短いので、リポジトリ内に置いて足りる。
+            AMUS_GPU_TARGET_DIR: target-gpu
+
+        steps:
+            - name: チェックアウト
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+            # native ビルドの依存:
+            #   libasound2-dev    : cpal (ALSA)
+            #   libudev-dev       : winit / wgpu
+            #   libxkbcommon-dev  : winit
+            #   cmake clang libclang-dev : whisper-rs (whisper.cpp ビルド + bindgen)
+            - name: システムライブラリのインストール（Linux）
+              if: runner.os == 'Linux'
+              run: |
+                sudo apt-get update
+                sudo apt-get install -y --no-install-recommends \
+                  libasound2-dev libudev-dev libxkbcommon-dev cmake clang libclang-dev
+
+            # SDK が要るのはビルドするマシンだけ。実行側はドライバ同梱のローダーで足りる。
+            - name: Vulkan SDK のインストール（Linux）
+              if: runner.os == 'Linux' && matrix.variant == 'gpu'
+              run: |
+                wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc \
+                  | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc > /dev/null
+                sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-noble.list \
+                  https://packages.lunarg.com/vulkan/lunarg-vulkan-noble.list
+                sudo apt-get update
+                sudo apt-get install -y vulkan-sdk
+                echo "VULKAN_SDK=/usr" >> "$GITHUB_ENV"
+
+            - name: Vulkan SDK のインストール（Windows）
+              if: runner.os == 'Windows' && matrix.variant == 'gpu'
+              shell: pwsh
+              run: |
+                $installer = "$env:RUNNER_TEMP\vulkan_sdk.exe"
+                Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/latest/windows/vulkan_sdk.exe" -OutFile $installer
+                $root = "$env:RUNNER_TEMP\VulkanSDK"
+                Start-Process -FilePath $installer -Wait -ArgumentList `
+                  "--root", $root, "--accept-licenses", "--default-answer", "--confirm-command", "install"
+                "VULKAN_SDK=$root" | Out-File -FilePath $env:GITHUB_ENV -Append
+                "$root\Bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+            - name: mise のセットアップ
+              uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # v3.5.1
+              env:
+                MISE_NODE_VERIFY: "false"
+
+            - name: Rust依存パッケージ・ビルド成果物のキャッシュ
+              uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+              with:
+                path: |
+                  ~/.cargo/registry
+                  ~/.cargo/git
+                  target
+                  target-gpu
+                key: ${{ runner.os }}-cargo-release-${{ matrix.variant }}-${{ hashFiles('**/Cargo.lock') }}
+                restore-keys: |
+                  ${{ runner.os }}-cargo-release-${{ matrix.variant }}-
+
+            # 手元と同じコマンドで作る。ここが食い違うと CI でしか出ない不具合が生まれる。
+            - name: リリースビルド
+              run: mise run release-${{ matrix.variant }}
+
+            - name: 成果物のアップロード
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              with:
+                name: ${{ matrix.artifact }}
+                path: dist/${{ matrix.artifact }}
+                if-no-files-found: error
+
+    # タグを切ったときだけ Release を作る。手動実行では成果物をアーティファクトに残すだけ。
+    release:
+        if: startsWith(github.ref, 'refs/tags/v')
+        needs: build
+        runs-on: ubuntu-latest
+
+        permissions:
+            contents: write
+
+        steps:
+            - name: 成果物のダウンロード
+              uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+              with:
+                path: dist
+                merge-multiple: true
+
+            - name: Release の作成
+              env:
+                GH_TOKEN: ${{ github.token }}
+              run: |
+                gh release create "${GITHUB_REF_NAME}" \
+                  --repo "${GITHUB_REPOSITORY}" \
+                  --title "${GITHUB_REF_NAME}" \
+                  --generate-notes \
+                  dist/*

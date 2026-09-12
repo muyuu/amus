@@ -7,3 +7,6 @@ node_modules/
 web/pkg/
 
 .claude/*.local.*
+
+# 配布用リリースビルドの成果物
+/dist

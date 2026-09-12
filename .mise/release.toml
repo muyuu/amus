@@ -1,24 +1,13 @@
-# リリースビルドタスク
-["release-linux"]
-description = "Linux用リリースビルドを作成する"
-run = '''
-  cargo build --release --target x86_64-unknown-linux-gnu
-  echo "Linux用バイナリが作成されました:"
-  echo "  target/x86_64-unknown-linux-gnu/release/amus"
-'''
+# 配布用リリースビルド
+#
+# 動かすマシンの OS 向けに作る。whisper.cpp と Vulkan のシェーダを含むため
+# クロスコンパイルはせず、配布する OS ごとにそのマシンで実行する。
+# 成果物は dist/ に置かれる。
 
-["release-windows"]
-description = "Windows用リリースビルドを作成する（GNU toolchain）"
-run = '''
-  cargo build --release --target x86_64-pc-windows-gnu
-  echo "Windows用バイナリが作成されました:"
-  echo "  target/x86_64-pc-windows-gnu/release/amus.exe"
-'''
+["release-cpu"]
+description = "CPU 版のリリースビルドを作る（この OS 向け）"
+run = "node scripts/release-build.js cpu"
 
-["release-windows-msvc"]
-description = "Windows用リリースビルドを作成する（MSVC toolchain）"
-run = '''
-  cargo build --release --target x86_64-pc-windows-msvc
-  echo "Windows用バイナリが作成されました:"
-  echo "  target/x86_64-pc-windows-msvc/release/amus.exe"
-'''
+["release-gpu"]
+description = "GPU 版のリリースビルドを作る（この OS 向け。Windows/Linux は Vulkan、macOS は Metal）"
+run = "node scripts/release-build.js gpu"
