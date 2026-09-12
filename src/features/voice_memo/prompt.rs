@@ -17,6 +17,22 @@ pub(super) struct Vocabulary {
     pub room_names: &'static [&'static str],
 }
 
+impl Vocabulary {
+    /// 語彙補正で正規表記として使う語。
+    ///
+    /// プロンプトと違いトークン予算が無いため、優先度で削らず全て対象にする。
+    /// 英語表記は日本語の発話から当たらず、当たっても出力として望ましくないので除く。
+    pub(super) fn known_terms(&self) -> Vec<&str> {
+        self.player_names
+            .iter()
+            .map(String::as_str)
+            .chain(game_terms())
+            .chain(self.room_names.iter().copied())
+            .filter(|name| !is_english_alias(name))
+            .collect()
+    }
+}
+
 /// 認識コンテキストを組み立てる。
 ///
 /// `count_tokens` は文字列のトークン数を返す。Whisper のトークナイザはモデルに

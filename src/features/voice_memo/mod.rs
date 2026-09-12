@@ -5,7 +5,9 @@
 //! 責務はファイルに分割している:
 //! - `types`: DTO / View 用状態
 //! - `vad`: 発話区間検出
+//! - `reading`: 読みの正規化と近似マッチ（hotword と vocabulary が共有する）
 //! - `hotword`: トリガーワードの照合とターン境界の決定
+//! - `vocabulary`: 書き起こし結果を既知語彙へ寄せる
 //! - `transcription`: 書き起こしスレッドとのやり取り・結果の取り込み
 //! - `download`: Whisper モデルのダウンロード制御
 //! - `recording`: ターン・録音のライフサイクル
@@ -14,15 +16,18 @@
 mod download;
 mod hotword;
 mod prompt;
+mod reading;
 mod recording;
 mod transcription;
 mod types;
 mod vad;
 pub mod view;
+mod vocabulary;
 
 pub use types::{Round, VoiceMemo, VoiceMemoState};
 
 use hotword::{BoundaryTracker, HotwordMatcher};
+use vocabulary::VocabularyCorrector;
 
 use crate::app_action::AppAction;
 use crate::i18n::keys as K;
@@ -66,6 +71,8 @@ pub struct VoiceMemoFeature {
     vocabulary: Option<prompt::Vocabulary>,
     /// `context` を組み立てた元の語彙。変化したときだけ組み直す。
     context_vocabulary: Option<prompt::Vocabulary>,
+    /// 書き起こし結果を既知語彙へ寄せる補正器
+    corrector: VocabularyCorrector,
     /// バックグラウンド書き起こしスレッド
     transcriber_thread: Option<TranscriberThread>,
     /// 発話開始位置（VoiceRecorder の SAMPLE_RATE 基準の絶対インデックス）
@@ -237,14 +244,21 @@ impl VoiceMemoFeature {
         players: &[(String, String)],
         room_names: &'static [&'static str],
     ) {
-        self.vocabulary = Some(prompt::Vocabulary {
+        let vocabulary = prompt::Vocabulary {
             player_names: players
                 .iter()
                 .map(|(name, _)| name.clone())
                 .filter(|name| !name.is_empty())
                 .collect(),
             room_names,
-        });
+        };
+
+        if self.vocabulary.as_ref() == Some(&vocabulary) {
+            return;
+        }
+
+        self.corrector = VocabularyCorrector::new(vocabulary.known_terms());
+        self.vocabulary = Some(vocabulary);
     }
 
     /// リアルタイム更新（中央 dispatch の①）。録音の維持・タイマー・ポーリング・VAD・
@@ -333,6 +347,7 @@ impl Default for VoiceMemoFeature {
             observed_game_generation: 0,
             vocabulary: None,
             context_vocabulary: None,
+            corrector: VocabularyCorrector::new([]),
             transcriber_thread: None,
             speech_start_sample: 0,
             last_vad_check_sample: 0,
