@@ -1,3 +1,4 @@
+use crate::constants::AppConstants;
 use crate::resources::AssetManager;
 use crate::state::Slices;
 use egui::*;
@@ -26,9 +27,8 @@ impl MapView {
         // 画像の縦横比を維持してセンタリング
         let image_rect = Self::calculate_centered_rect(rect, texture.size_vec2());
 
-        // 背景色を先に描画（透過部分の背景色として機能）
-        let background_color = Color32::BLACK; // カスタム背景色
-        painter.rect_filled(image_rect, 0.0, background_color);
+        // 画像は透過なので、下地と画像の外側をまとめて地の色で塗る
+        painter.rect_filled(rect, 0.0, AppConstants::BG_COLOR);
 
         painter.image(
             texture.id(),
@@ -36,15 +36,10 @@ impl MapView {
             Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
             Color32::WHITE,
         );
-
-        // 画像の外側を黒で塗りつぶし
-        if image_rect != rect {
-            Self::fill_outside_area(&painter, rect, image_rect);
-        }
     }
 
     fn render_default_area(painter: &Painter, rect: Rect) {
-        painter.rect_filled(rect, 0.0, Color32::from_gray(30));
+        painter.rect_filled(rect, 0.0, AppConstants::BG_COLOR);
     }
 
     /// 画像の縦横比を維持して中央配置するための矩形を計算
@@ -71,58 +66,5 @@ impl MapView {
             container_rect.min + Vec2::new(x_offset, y_offset),
             Vec2::new(scaled_width, scaled_height),
         )
-    }
-
-    /// 画像の外側の領域を黒で塗りつぶし
-    fn fill_outside_area(painter: &Painter, container_rect: Rect, image_rect: Rect) {
-        let black = Color32::BLACK;
-
-        // 上側
-        if image_rect.min.y > container_rect.min.y {
-            painter.rect_filled(
-                Rect::from_min_max(
-                    container_rect.min,
-                    pos2(container_rect.max.x, image_rect.min.y),
-                ),
-                0.0,
-                black,
-            );
-        }
-
-        // 下側
-        if image_rect.max.y < container_rect.max.y {
-            painter.rect_filled(
-                Rect::from_min_max(
-                    pos2(container_rect.min.x, image_rect.max.y),
-                    container_rect.max,
-                ),
-                0.0,
-                black,
-            );
-        }
-
-        // 左側
-        if image_rect.min.x > container_rect.min.x {
-            painter.rect_filled(
-                Rect::from_min_max(
-                    pos2(container_rect.min.x, image_rect.min.y),
-                    pos2(image_rect.min.x, image_rect.max.y),
-                ),
-                0.0,
-                black,
-            );
-        }
-
-        // 右側
-        if image_rect.max.x < container_rect.max.x {
-            painter.rect_filled(
-                Rect::from_min_max(
-                    pos2(image_rect.max.x, image_rect.min.y),
-                    pos2(container_rect.max.x, image_rect.max.y),
-                ),
-                0.0,
-                black,
-            );
-        }
     }
 }
