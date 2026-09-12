@@ -56,6 +56,11 @@ pub struct VoiceMemoState {
     pub round_elapsed_secs: f32,
     /// 処理待ちのチャンク数
     pub pending_chunks: usize,
+
+    /// GPU で動かすはずが CPU へ退避したときの構成表記。正常時は None。
+    pub fallback_label: Option<String>,
+    /// 必要なモデルの目安サイズ表記（ダウンロードを促すときに出す）
+    pub model_size_label: String,
 }
 
 impl Default for VoiceMemoState {
@@ -75,6 +80,8 @@ impl Default for VoiceMemoState {
             round_active: false,
             round_elapsed_secs: 0.0,
             pending_chunks: 0,
+            fallback_label: None,
+            model_size_label: String::new(),
         }
     }
 }

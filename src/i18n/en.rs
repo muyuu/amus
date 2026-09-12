@@ -68,9 +68,8 @@ pub fn translate(key: TextKey) -> String {
         }
         VoiceMemoModelNotFound => format!("⚠ {} not found", W::WHISPER_MODEL),
         VoiceMemoModelRequired => format!(
-            "{} requires {} {}",
+            "{} requires a {}",
             W::VOICE_RECOGNITION,
-            W::MODEL_REQUIRED_SIZE,
             W::MODEL.to_lowercase()
         ),
         VoiceMemoDownloadModel => format!("📥 {} {}", W::DOWNLOAD, W::MODEL.to_lowercase()),

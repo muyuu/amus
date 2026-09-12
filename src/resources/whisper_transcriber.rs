@@ -2,6 +2,7 @@
 //!
 //! whisper.cpp を使用して音声データをテキストに変換する。
 
+use super::whisper_backend::TranscribeSetup;
 use thiserror::Error;
 use whisper_rs::{
     FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters, WhisperState,
@@ -64,6 +65,33 @@ impl WhisperModel {
         expected_bytes: 487_601_967,
     };
 
+    /// 約1.5GB。GPU バックエンドを含むビルドで使う。
+    pub const MEDIUM: Self = Self {
+        file_name: "ggml-medium.bin",
+        url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-medium.bin",
+        sha256: "6c14d5adee5f86394037b4e4e8b59f1673b6cee10e3cf0b11bbdbee79c156208",
+        expected_bytes: 1_533_763_059,
+    };
+
+    /// モデルの通称（`small` / `medium`）。ログや画面に出す。
+    pub fn name(&self) -> &'static str {
+        self.file_name
+            .trim_start_matches("ggml-")
+            .trim_end_matches(".bin")
+    }
+
+    /// ダウンロード量の目安表記。`約 466 MB` / `約 1.4 GB` のような形。
+    pub fn size_label(&self) -> String {
+        const MB: f64 = 1024.0 * 1024.0;
+        let mb = self.expected_bytes as f64 / MB;
+
+        if mb >= 1024.0 {
+            format!("約 {:.1} GB", mb / 1024.0)
+        } else {
+            format!("約 {:.0} MB", mb)
+        }
+    }
+
     /// モデルファイルの保存先。
     pub fn path(&self) -> String {
         let data_dir = dirs_next::data_dir()
@@ -103,6 +131,9 @@ impl WhisperModel {
 /// Whisperによる音声書き起こし
 pub struct WhisperTranscriber {
     ctx: WhisperContext,
+    /// どの構成で動いているか。要求した構成とは限らず、GPU の初期化に失敗していれば
+    /// CPU に落ちたあとの実態を指す。
+    setup: TranscribeSetup,
     /// 推論状態。確保が重い（数百MB）ので使い回す。
     ///
     /// `whisper_full` は呼び出しの先頭で結果を破棄するため、跨いで持ち越すものはない。
@@ -111,18 +142,49 @@ pub struct WhisperTranscriber {
 }
 
 impl WhisperTranscriber {
-    /// 新しいWhisperTranscriberを作成
-    /// model_path: Whisperモデルファイルへのパス（.bin）
-    pub fn new(model_path: &str) -> Result<Self, TranscribeError> {
+    /// 指定の構成で書き起こしを用意する。
+    ///
+    /// GPU を含む構成で GPU が使えなかった場合は、CPU の構成で作り直して返す。
+    /// 実際に動いている構成は [`Self::setup`] で分かる。モデルファイルが無い、
+    /// あるいは CPU でも読めなかった場合だけ失敗する。
+    pub fn new(setup: TranscribeSetup) -> Result<Self, TranscribeError> {
+        match Self::open(setup) {
+            Ok(transcriber) => Ok(transcriber),
+            Err(e) if setup.gpu.is_some() => {
+                crate::log_error!(
+                    "WhisperTranscriber",
+                    format!("GPU での初期化に失敗したため CPU で続行する: {}", e)
+                );
+                Self::open(TranscribeSetup::CPU)
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    /// 構成どおりに開く。退避はしない。
+    fn open(setup: TranscribeSetup) -> Result<Self, TranscribeError> {
         // whisper.cpp / GGML は既定で stderr へ直接大量に出力し、こちらのログを埋める。
         // `log` へ寄せることでフィルタの対象になり、既定（自クレート以外は Off）では
         // 出なくなる。複数回呼んでも安全。
         whisper_rs::install_logging_hooks();
 
-        let ctx = WhisperContext::new_with_params(model_path, WhisperContextParameters::default())
+        let mut params = WhisperContextParameters::default();
+        // 既定は「ビルドに GPU バックエンドがあれば使う」。選択を反映するため明示する。
+        params.use_gpu(setup.gpu.is_some());
+
+        let ctx = WhisperContext::new_with_params(setup.model.path(), params)
             .map_err(TranscribeError::LoadModel)?;
 
-        Ok(Self { ctx, state: None })
+        Ok(Self {
+            ctx,
+            setup,
+            state: None,
+        })
+    }
+
+    /// 実際に動いている構成。
+    pub fn setup(&self) -> TranscribeSetup {
+        self.setup
     }
 
     /// テキストがモデルのトークナイザで何トークンになるかを返す。

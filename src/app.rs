@@ -26,6 +26,7 @@ pub struct AmusApp {
 impl Default for AmusApp {
     fn default() -> Self {
         let resources = Resources::new();
+
         #[cfg(not(target_arch = "wasm32"))]
         let features = StatefulFeatures::new(&resources);
         #[cfg(target_arch = "wasm32")]
@@ -42,6 +43,7 @@ impl Default for AmusApp {
 impl AmusApp {
     pub fn new(_cc: &eframe::CreationContext<'_>, state: AppState) -> Self {
         let resources = Resources::new();
+
         #[cfg(not(target_arch = "wasm32"))]
         let features = StatefulFeatures::new(&resources);
         #[cfg(target_arch = "wasm32")]

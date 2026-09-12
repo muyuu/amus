@@ -18,6 +18,8 @@ impl VoiceMemoView {
         let max_width = ui.available_width().min(600.0);
         ui.set_max_width(max_width);
 
+        Self::render_backend(state, ui);
+
         // モデルの状態表示
         if !state.model_available {
             if state.is_downloading {
@@ -47,7 +49,11 @@ impl VoiceMemoView {
                             .color(Color32::YELLOW),
                     );
                 });
-                ui.label(translator.t(K::VOICE_MEMO_MODEL_REQUIRED));
+                ui.label(format!(
+                    "{} ({})",
+                    translator.t(K::VOICE_MEMO_MODEL_REQUIRED),
+                    state.model_size_label
+                ));
 
                 if ui
                     .button(translator.t(K::VOICE_MEMO_DOWNLOAD_MODEL))
@@ -177,6 +183,22 @@ impl VoiceMemoView {
         }
 
         actions
+    }
+
+    /// GPU で動かすビルドが CPU へ退避したことを知らせる。
+    ///
+    /// 構成どおりなら何も出さない。GPU 版が遅いときの唯一の説明になるため、
+    /// 食い違ったときだけ見せる。
+    fn render_backend(state: &VoiceMemoState, ui: &mut Ui) {
+        let Some(label) = &state.fallback_label else {
+            return;
+        };
+
+        ui.label(
+            RichText::new(format!("⚠ GPU を使えないため {} で動作中", label))
+                .color(Color32::YELLOW),
+        );
+        ui.separator();
     }
 
     fn render_memo(ui: &mut Ui, memo: &VoiceMemo) {

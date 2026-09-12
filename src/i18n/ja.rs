@@ -57,12 +57,7 @@ pub fn translate(key: TextKey) -> String {
         VoiceMemoTitle => W::VOICE_MEMO.to_string(),
         VoiceMemoModelDownloading => format!("⏳ {}を{}...", W::MODEL, W::DOWNLOADING),
         VoiceMemoModelNotFound => format!("⚠ {}が見つかりません", W::WHISPER_MODEL),
-        VoiceMemoModelRequired => format!(
-            "{}には{}の{}が必要です",
-            W::VOICE_RECOGNITION,
-            W::MODEL_REQUIRED_SIZE,
-            W::MODEL
-        ),
+        VoiceMemoModelRequired => format!("{}には{}が必要です", W::VOICE_RECOGNITION, W::MODEL),
         VoiceMemoDownloadModel => format!("📥 {}を{}", W::MODEL, W::DOWNLOAD),
         VoiceMemoMicUnavailable => format!("⚠ {}が利用できません", W::MIC),
         VoiceMemoEnd => W::END.to_string(),

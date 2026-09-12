@@ -30,6 +30,33 @@ mise run serve       # http://localhost:8080
   キャッシュミス時にここがスパイクする。
 - macOS / Windows は追加パッケージ不要。WASM ビルドに音声機能は含まれない（`voice_memo` はネイティブ専用）。
 
+### 書き起こしの GPU ビルド
+
+whisper.cpp のバックエンドはコンパイル時に固定されるため、GPU を使うビルドは feature で
+指定する。既定は CPU。
+
+```bash
+mise run build-gpu   # GPU ビルド
+mise run start-gpu   # GPU 版を起動
+```
+
+バックエンドは OS で決まる（Windows / Linux は Vulkan、macOS は Metal）。NVIDIA 専用の
+`gpu-cuda` feature もあるが、実行側に CUDA ランタイムを要求するため配布には使わない。
+
+`gpu-vulkan` のビルドには **Vulkan SDK**（`VULKAN_SDK` 環境変数）が要る。要るのはビルドする
+マシンだけで、実行側には GPU ドライバ同梱のローダー（`vulkan-1.dll` / `libvulkan.so.1`）しか
+要らない。インストール直後はシェルを開き直さないと環境変数が反映されない。
+
+GPU ビルドは CPU ビルドと target ディレクトリを分ける。feature が違うとビルドグラフ全体が
+無効化されるため、共有すると切り替えるたびに全再ビルドになる。Windows ではこれが必須でもある。
+ggml-vulkan がシェーダ生成ツールを入れ子の ExternalProject として建てる都合で中間ファイルの
+パスが深くなり、リポジトリ内の `target/` では MAX_PATH(260) を超えて `cl.exe` が pdb を
+開けなくなる（OS の LongPathsEnabled は MSVC のツール群に効かない）。既定の移動先は
+`C:\amus-build` で、`AMUS_GPU_TARGET_DIR` で変えられる。
+
+GPU feature を付けると whisper.cpp のビルドがさらに重くなるため、CI と pre-push フックは
+CPU ビルドのまま回す。
+
 ### push 前ゲート（git pre-push フック）
 
 `mise run init`（worktree/clone 初期化）が `core.hooksPath` を `.githooks` に向け、push 前に

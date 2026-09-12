@@ -1,7 +1,11 @@
 # ビルドタスク
 [build]
-description = "アプリケーションをビルドする"
+description = "アプリケーションをビルドする（CPU で書き起こし）"
 run = "cargo build"
+
+["build-gpu"]
+description = "GPU バックエンド付きでビルドする（Windows/Linux は Vulkan、macOS は Metal）"
+run = "node scripts/gpu-cargo.js build"
 
 [check]
 description = "コードの構文チェックを行う"

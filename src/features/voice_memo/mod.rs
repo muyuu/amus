@@ -94,26 +94,40 @@ impl VoiceMemoFeature {
             ..Default::default()
         };
 
-        // モデルが利用可能ならTranscriberThreadを初期化
-        let transcriber_thread = if model_available {
-            match TranscriberThread::new() {
-                Ok(t) => Some(t),
-                Err(e) => {
-                    log_error!(
-                        "VoiceMemo",
-                        &format!("TranscriberThread初期化エラー: {}", e)
-                    );
-                    None
-                }
-            }
-        } else {
-            None
-        };
-
-        Self {
+        let mut feature = Self {
             state,
-            transcriber_thread,
             ..Default::default()
+        };
+        feature.sync_backend_state(resources);
+        if model_available {
+            feature.restart_transcriber_thread(resources);
+        }
+        feature
+    }
+
+    /// 構成まわりの表示を Resources の実態に合わせる。
+    fn sync_backend_state(&mut self, resources: &Resources) {
+        self.state.fallback_label = resources.transcribe_fallback().map(|s| s.label());
+        self.state.model_size_label = resources.transcribe_setup().model.size_label();
+    }
+
+    /// 書き起こしスレッドを今の構成で起動し直す。
+    ///
+    /// 前のスレッドは drop で join されるため、処理中のチャンクの結果は返ってこない。
+    /// 数え続けると「書き起こし中」が消えなくなるため、待ち数もここで捨てる。
+    fn restart_transcriber_thread(&mut self, resources: &Resources) {
+        self.transcriber_thread = None;
+        self.state.pending_chunks = 0;
+        self.state.is_processing = false;
+
+        match TranscriberThread::new(resources.transcribe_setup()) {
+            Ok(t) => self.transcriber_thread = Some(t),
+            Err(e) => {
+                log_error!(
+                    "VoiceMemo",
+                    &format!("TranscriberThread初期化エラー: {}", e)
+                );
+            }
         }
     }
 

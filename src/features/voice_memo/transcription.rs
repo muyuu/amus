@@ -230,6 +230,21 @@ mod tests {
     use super::*;
     use crate::features::voice_memo::Round;
     use crate::resources::voice_recorder::SAMPLE_RATE;
+    use crate::resources::Resources;
+
+    #[test]
+    fn restarting_transcription_drops_the_chunks_the_old_thread_held() {
+        // スレッドを作り直すと処理中のチャンクの結果は返ってこない。数えたままにすると
+        // 「書き起こし中」が出続ける。
+        let mut feature = VoiceMemoFeature::default();
+        feature.state.pending_chunks = 3;
+        feature.state.is_processing = true;
+
+        feature.restart_transcriber_thread(&Resources::without_hardware());
+
+        assert_eq!(feature.state.pending_chunks, 0);
+        assert!(!feature.state.is_processing);
+    }
 
     /// `[start, end)` のターンを並べた feature を作る。`None` は進行中のターン。
     fn feature_with_turns(turns: &[(usize, Option<usize>)]) -> VoiceMemoFeature {
