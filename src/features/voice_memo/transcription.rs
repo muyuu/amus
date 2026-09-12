@@ -1,6 +1,7 @@
 //! 書き起こしスレッドとのやり取り（リクエスト送信・結果ポーリング）
 
-use super::hotword::{self, Hotword, TurnBoundary};
+use super::hotword::{Hotword, TurnBoundary};
+use super::reading;
 use super::{VoiceMemo, VoiceMemoFeature};
 use crate::resources::voice_recorder::SAMPLE_RATE;
 use crate::resources::{RecordedSegment, TranscribeRequest};
@@ -180,11 +181,11 @@ impl VoiceMemoFeature {
 
     /// 中身があればメモとして積む。
     fn push_memo_text(&mut self, at: usize, text: &str) {
-        let text = hotword::trim_separators(text);
+        let text = reading::trim_separators(text);
         if text.is_empty() {
             return;
         }
-        self.push_memo_at(at, text.to_string());
+        self.push_memo_at(at, self.corrector.correct(text));
     }
 
     /// セグメント内の文字位置を録音上の位置へ直す。
@@ -338,6 +339,22 @@ mod hotword_tests {
             .iter()
             .map(|memo| memo.text.as_str())
             .collect()
+    }
+
+    #[test]
+    fn memos_are_written_in_the_known_form() {
+        let mut feature = feature();
+        feature.corrector = crate::features::voice_memo::vocabulary::VocabularyCorrector::new([
+            "エレキ",
+            "エンジン",
+        ]);
+
+        feature.apply_segments(vec![
+            segment(0, 1000, "ターン開始"),
+            segment(1000, 2000, "えれきからえんじんに移動"),
+        ]);
+
+        assert_eq!(memo_texts(&feature, 0), ["エレキからエンジンに移動"]);
     }
 
     #[test]
