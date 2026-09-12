@@ -36,14 +36,23 @@ whisper.cpp のバックエンドはコンパイル時に固定されるため�
 指定する。既定は CPU。
 
 ```bash
-cargo run --features gpu-vulkan   # Windows / Linux（NVIDIA / AMD / Intel）
-cargo run --features gpu-metal    # macOS
-cargo run --features gpu-cuda     # NVIDIA 専用。配布には使わない
+mise run build-gpu   # GPU ビルド
+mise run start-gpu   # GPU 版を起動
 ```
+
+バックエンドは OS で決まる（Windows / Linux は Vulkan、macOS は Metal）。NVIDIA 専用の
+`gpu-cuda` feature もあるが、実行側に CUDA ランタイムを要求するため配布には使わない。
 
 `gpu-vulkan` のビルドには **Vulkan SDK**（`VULKAN_SDK` 環境変数）が要る。要るのはビルドする
 マシンだけで、実行側には GPU ドライバ同梱のローダー（`vulkan-1.dll` / `libvulkan.so.1`）しか
-要らない。`gpu-cuda` は CUDA Toolkit を要求し、実行側にも CUDA ランタイムを要求する。
+要らない。インストール直後はシェルを開き直さないと環境変数が反映されない。
+
+GPU ビルドは CPU ビルドと target ディレクトリを分ける。feature が違うとビルドグラフ全体が
+無効化されるため、共有すると切り替えるたびに全再ビルドになる。Windows ではこれが必須でもある。
+ggml-vulkan がシェーダ生成ツールを入れ子の ExternalProject として建てる都合で中間ファイルの
+パスが深くなり、リポジトリ内の `target/` では MAX_PATH(260) を超えて `cl.exe` が pdb を
+開けなくなる（OS の LongPathsEnabled は MSVC のツール群に効かない）。既定の移動先は
+`C:\amus-build` で、`AMUS_GPU_TARGET_DIR` で変えられる。
 
 GPU feature を付けると whisper.cpp のビルドがさらに重くなるため、CI と pre-push フックは
 CPU ビルドのまま回す。
