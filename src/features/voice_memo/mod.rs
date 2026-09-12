@@ -107,7 +107,7 @@ impl VoiceMemoFeature {
 
     /// 構成まわりの表示を Resources の実態に合わせる。
     fn sync_backend_state(&mut self, resources: &Resources) {
-        self.state.backend_label = resources.transcribe_label();
+        self.state.fallback_label = resources.transcribe_fallback().map(|s| s.label());
         self.state.model_size_label = resources.transcribe_setup().model.size_label();
     }
 

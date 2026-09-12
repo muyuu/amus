@@ -185,15 +185,18 @@ impl VoiceMemoView {
         actions
     }
 
-    /// 動作中の実行構成。
+    /// GPU で動かすビルドが CPU へ退避したことを知らせる。
     ///
-    /// 認識がおかしいときに、GPU が効いているのか・どのモデルなのかを確かめる手がかり。
-    /// 構成はビルドで決まるため操作はできない。
+    /// 構成どおりなら何も出さない。GPU 版が遅いときの唯一の説明になるため、
+    /// 食い違ったときだけ見せる。
     fn render_backend(state: &VoiceMemoState, ui: &mut Ui) {
+        let Some(label) = &state.fallback_label else {
+            return;
+        };
+
         ui.label(
-            RichText::new(&state.backend_label)
-                .monospace()
-                .color(Color32::GRAY),
+            RichText::new(format!("⚠ GPU を使えないため {} で動作中", label))
+                .color(Color32::YELLOW),
         );
         ui.separator();
     }

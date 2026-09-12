@@ -102,14 +102,14 @@ impl Resources {
         self.transcribe_setup
     }
 
-    /// 実際に動いている構成の表記。まだ用意できていなければ要求した構成を返す。
+    /// GPU で動かすビルドなのに CPU へ退避した場合だけ、実際の構成を返す。
+    ///
+    /// 構成どおりに動いているなら知らせることはない。GPU 版が遅いときの唯一の説明に
+    /// なるため、食い違ったときだけ見せる。
     #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-    pub fn transcribe_label(&self) -> String {
-        self.whisper_transcriber
-            .as_ref()
-            .map(|t| t.setup())
-            .unwrap_or(self.transcribe_setup)
-            .label()
+    pub fn transcribe_fallback(&self) -> Option<TranscribeSetup> {
+        let actual = self.whisper_transcriber.as_ref()?.setup();
+        (actual != self.transcribe_setup).then_some(actual)
     }
 
     #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
