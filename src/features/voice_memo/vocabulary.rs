@@ -53,8 +53,10 @@ impl VocabularyCorrector {
                 }
                 taken[start..end].iter_mut().for_each(|t| *t = true);
 
-                // 読みの範囲を元テキストの範囲へ戻す
-                let from = reading.source_end(start);
+                // 読みの範囲を元テキストの範囲へ戻す。起点は語の先頭そのものを指す
+                // 必要がある。直前の文字の直後から取ると、間に落とした区切り記号が
+                // あったときにそれごと消してしまう。
+                let from = reading.source_start(start);
                 let to = reading.source_end(end);
                 replacement[from] = Some(canonical);
                 removed[from + 1..to].iter_mut().for_each(|r| *r = true);
@@ -114,6 +116,15 @@ mod tests {
         let corrector = VocabularyCorrector::new(["カフェテリア", "ターン"]);
 
         assert_eq!(corrector.correct("たあんの話"), "ターンの話");
+    }
+
+    #[test]
+    fn keeps_punctuation_that_sits_before_the_word() {
+        // 読みは区切り記号を落とすため、元の位置へ戻すときに巻き込みやすい
+        assert_eq!(
+            corrector().correct("そこで、えれきに行った"),
+            "そこで、エレキに行った"
+        );
     }
 
     #[test]

@@ -54,11 +54,20 @@ fn closest_substring(text: &[char], pattern: &[char]) -> (usize, usize) {
 /// 照合用に揃えた読みと、元テキストの文字位置との対応。
 pub(super) struct Reading {
     pub(super) chars: Vec<char>,
+    /// `chars[i]` が元テキストのどこから始まるか
+    source_start: Vec<usize>,
     /// `chars[i]` が元テキストのどこまでに対応するか（その文字の直後）
     source_end: Vec<usize>,
 }
 
 impl Reading {
+    /// 読みの `start` 文字目が、元テキストのどこから始まるか。
+    ///
+    /// 落とした区切り記号を巻き込まないよう、その文字自身の位置を返す。
+    pub(super) fn source_start(&self, start: usize) -> usize {
+        self.source_start.get(start).copied().unwrap_or(0)
+    }
+
     /// 読みの `end` 文字目までが、元テキストのどこまでに当たるか。
     pub(super) fn source_end(&self, end: usize) -> usize {
         end.checked_sub(1)
@@ -73,6 +82,7 @@ impl Reading {
 /// 長音符は直前の母音へ開く。同じ読みが「ターン」とも「たあん」とも書かれるため。
 pub(super) fn read(text: &str) -> Reading {
     let mut chars = Vec::new();
+    let mut source_start = Vec::new();
     let mut source_end = Vec::new();
 
     for (index, c) in text.chars().enumerate() {
@@ -90,10 +100,15 @@ pub(super) fn read(text: &str) -> Reading {
         } else {
             chars.push(c);
         }
+        source_start.push(index);
         source_end.push(index + 1);
     }
 
-    Reading { chars, source_end }
+    Reading {
+        chars,
+        source_start,
+        source_end,
+    }
 }
 
 /// 前後の区切り記号と空白を落とす。
