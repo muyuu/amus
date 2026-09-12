@@ -252,7 +252,7 @@ fn split_into_segments(tokens: Vec<SpokenToken>) -> Vec<TranscriptionSegment> {
         text.push_str(&token.text);
         end_secs = token.end_secs;
 
-        if ends_sentence(&token.text) {
+        if breaks_after(&token.text, &text) {
             push_segment(&mut segments, start_secs, end_secs, &text);
             text.clear();
         }
@@ -284,15 +284,42 @@ fn push_segment(segments: &mut Vec<TranscriptionSegment>, start: f32, end: f32, 
     });
 }
 
-fn ends_sentence(token_text: &str) -> bool {
-    token_text.chars().last().is_some_and(is_sentence_end)
+/// このトークンでセグメントを区切るか。`piece` はここまで溜めたテキスト。
+///
+/// 読点は息継ぎでも打たれるため、そこで必ず切ると「ラウンジで」「たぬころに遭遇」の
+/// ように一続きの発話が分断される。助詞で終わっていれば文が続いているとみなして繋げる。
+/// 句点は文の終わりなので助詞の後でも切る。
+fn breaks_after(token_text: &str, piece: &str) -> bool {
+    match token_text.chars().last() {
+        Some(c) if is_full_stop(c) => true,
+        Some(c) if is_comma(c) => !ends_with_particle(piece),
+        _ => false,
+    }
+}
+
+/// 助詞で終わっているか。区切り記号は落としてから見る。
+///
+/// 助詞で終わる名前（「かえで」など）は文の途中と誤判定するが、区切りが1つ減って
+/// メモが長くなるだけで、分断されるより害が小さい。
+fn ends_with_particle(piece: &str) -> bool {
+    let trimmed = piece.trim_end_matches(is_sentence_end);
+
+    matches!(
+        trimmed.chars().last(),
+        Some('で' | 'に' | 'と' | 'が' | 'は' | 'を' | 'へ' | 'の' | 'も')
+    )
 }
 
 fn is_sentence_end(c: char) -> bool {
-    matches!(
-        c,
-        '、' | '。' | '，' | '．' | ',' | '.' | '!' | '?' | '！' | '？'
-    )
+    is_comma(c) || is_full_stop(c)
+}
+
+fn is_comma(c: char) -> bool {
+    matches!(c, '、' | '，' | ',')
+}
+
+fn is_full_stop(c: char) -> bool {
+    matches!(c, '。' | '．' | '.' | '!' | '?' | '！' | '？')
 }
 
 /// 効果音（カッコ付きテキスト）を除去
@@ -397,6 +424,33 @@ mod tests {
 
         assert_eq!(summarize(&segments), [(0.2, "メイン")]);
     }
+
+    #[test]
+    fn a_piece_ending_in_a_particle_continues_into_the_next() {
+        let segments = split_into_segments(tokens(&[
+            (2.0, 2.8, "ラウンジ"),
+            (2.8, 3.0, "で"),
+            (3.0, 3.1, "、"),
+            (3.1, 3.8, "たぬころ"),
+            (3.8, 4.5, "に遭遇"),
+        ]));
+
+        // 「ラウンジで」で切ると一続きの発話が分断される
+        assert_eq!(summarize(&segments), [(2.0, "ラウンジで、たぬころに遭遇")]);
+    }
+
+    #[test]
+    fn a_full_stop_ends_a_piece_even_after_a_particle() {
+        let segments = split_into_segments(tokens(&[
+            (0.0, 0.8, "ラウンジ"),
+            (0.8, 1.0, "で"),
+            (1.0, 1.1, "。"),
+            (1.1, 1.8, "メイン"),
+        ]));
+
+        assert_eq!(summarize(&segments), [(0.0, "ラウンジで"), (1.1, "メイン")]);
+    }
+
     #[test]
     fn defaults_to_three_quarters_of_the_cores() {
         assert_eq!(resolve_thread_count(8, None), 6);
