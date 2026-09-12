@@ -56,6 +56,15 @@ pub struct VoiceMemoState {
     pub round_elapsed_secs: f32,
     /// 処理待ちのチャンク数
     pub pending_chunks: usize,
+
+    /// 書き起こしに GPU を使う選択。実際に使えているかは `backend_label` を見る。
+    pub use_gpu: bool,
+    /// このビルドに GPU バックエンドが含まれているか。無ければ選択肢を出さない。
+    pub gpu_selectable: bool,
+    /// 動作中の構成（`Vulkan / medium` など）
+    pub backend_label: String,
+    /// 必要なモデルの目安サイズ表記（ダウンロードを促すときに出す）
+    pub model_size_label: String,
 }
 
 impl Default for VoiceMemoState {
@@ -75,6 +84,10 @@ impl Default for VoiceMemoState {
             round_active: false,
             round_elapsed_secs: 0.0,
             pending_chunks: 0,
+            use_gpu: false,
+            gpu_selectable: false,
+            backend_label: String::new(),
+            model_size_label: String::new(),
         }
     }
 }

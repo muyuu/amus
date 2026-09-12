@@ -49,6 +49,10 @@ impl AppState {
             self.data.ui_scale = ui_scale;
         }
 
+        if let Ok(Some(use_gpu)) = AppStorage::get::<bool>(storage, StorageKeys::USE_GPU) {
+            self.data.use_gpu = use_gpu;
+        }
+
         Ok(())
     }
 
@@ -81,6 +85,7 @@ impl AppState {
             )?;
             AppStorage::set(Some(s), StorageKeys::ERASE_MODE, &self.data.erase_mode)?;
             AppStorage::set(Some(s), StorageKeys::UI_SCALE, &self.data.ui_scale)?;
+            AppStorage::set(Some(s), StorageKeys::USE_GPU, &self.data.use_gpu)?;
 
             Ok(())
         })
@@ -167,6 +172,8 @@ mod tests {
         src.select_wave(4);
         src.set_erase_mode(true);
         src.set_ui_scale(2.0);
+        #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+        src.set_use_gpu(false);
         let player_count = src.slices().player().players().unwrap().len();
 
         src.save_to_storage(Some(&mut storage)).unwrap();
@@ -178,6 +185,8 @@ mod tests {
         assert_eq!(dst.slices().wave().current_wave_index(), 4);
         assert!(dst.slices().ui().erase_mode());
         assert_eq!(dst.ui_scale(), Some(2.0));
+        #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+        assert!(!dst.use_gpu());
         assert_eq!(dst.slices().setup().selected_area(), &Area::Polus);
         let slices = dst.slices();
         let game = slices.game().game().expect("ゲームが復元される");

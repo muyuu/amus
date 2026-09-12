@@ -31,7 +31,10 @@ use crate::log_debug;
 use crate::log_error;
 use crate::models::Area;
 use crate::resources::voice_recorder::SAMPLE_RATE;
-use crate::resources::{DownloadError, DownloadProgress, Resources, TranscriberThread};
+use crate::resources::whisper_backend;
+use crate::resources::{
+    DownloadError, DownloadProgress, Resources, TranscribeSetup, TranscriberThread,
+};
 use crate::state::Slices;
 
 /// 音声メモのアクション
@@ -42,6 +45,8 @@ pub enum VoiceMemoAction {
     SelectRound(usize),
     ClearAllRounds,
     DownloadModel,
+    /// 書き起こしに GPU を使うかの切り替え。反映は `update` の追従で行う。
+    SetUseGpu(bool),
 }
 
 /// 音声メモ機能
@@ -62,6 +67,10 @@ pub struct VoiceMemoFeature {
     game_generation: u64,
     /// 追従済みのゲーム世代。これと違えばゲームが作り直されている。
     observed_game_generation: u64,
+    /// 描画時に拾った「GPU を使う」選択
+    prefer_gpu: bool,
+    /// 追従済みの選択。これと違えば構成を切り替える。
+    observed_prefer_gpu: bool,
     /// 描画時に集めた最新の語彙
     vocabulary: Option<prompt::Vocabulary>,
     /// `context` を組み立てた元の語彙。変化したときだけ組み直す。
@@ -94,26 +103,69 @@ impl VoiceMemoFeature {
             ..Default::default()
         };
 
-        // モデルが利用可能ならTranscriberThreadを初期化
-        let transcriber_thread = if model_available {
-            match TranscriberThread::new() {
-                Ok(t) => Some(t),
-                Err(e) => {
-                    log_error!(
-                        "VoiceMemo",
-                        &format!("TranscriberThread初期化エラー: {}", e)
-                    );
-                    None
-                }
-            }
-        } else {
-            None
-        };
-
-        Self {
+        let mut feature = Self {
             state,
-            transcriber_thread,
             ..Default::default()
+        };
+        feature.state.gpu_selectable = whisper_backend::compiled_backend().is_some();
+        feature.sync_backend_state(resources);
+        if model_available {
+            feature.restart_transcriber_thread(resources);
+        }
+        feature
+    }
+
+    /// 構成まわりの表示を Resources の実態に合わせる。
+    fn sync_backend_state(&mut self, resources: &Resources) {
+        self.state.backend_label = resources.transcribe_label();
+        self.state.model_size_label = resources.transcribe_setup().model.size_label();
+    }
+
+    /// 書き起こしスレッドを今の構成で起動し直す。
+    ///
+    /// 前のスレッドは drop で join されるため、処理中のチャンクの結果は返ってこない。
+    /// 数え続けると「書き起こし中」が消えなくなるため、待ち数もここで捨てる。
+    fn restart_transcriber_thread(&mut self, resources: &Resources) {
+        self.transcriber_thread = None;
+        self.state.pending_chunks = 0;
+        self.state.is_processing = false;
+
+        match TranscriberThread::new(resources.transcribe_setup()) {
+            Ok(t) => self.transcriber_thread = Some(t),
+            Err(e) => {
+                log_error!(
+                    "VoiceMemo",
+                    &format!("TranscriberThread初期化エラー: {}", e)
+                );
+            }
+        }
+    }
+
+    /// GPU を使うかの選択に追従する。
+    ///
+    /// 構成が変わるとモデルも変わるため、書き起こしを用意し直す。切り替え先のモデルが
+    /// まだ無ければ未取得の状態に戻り、ダウンロードを促す表示になる。
+    fn follow_gpu_preference(&mut self, resources: &mut Resources) {
+        if self.prefer_gpu == self.observed_prefer_gpu {
+            return;
+        }
+        self.observed_prefer_gpu = self.prefer_gpu;
+
+        let setup = TranscribeSetup::resolve(self.prefer_gpu);
+        if setup == resources.transcribe_setup() {
+            return;
+        }
+
+        resources.reload_transcriber(setup);
+        self.state.model_available = resources.whisper_transcriber.is_some();
+        self.sync_backend_state(resources);
+        // 認識コンテキストはモデルのトークナイザで組むため、組み直させる
+        self.context_vocabulary = None;
+
+        if self.state.model_available {
+            self.restart_transcriber_thread(resources);
+        } else {
+            self.transcriber_thread = None;
         }
     }
 
@@ -142,6 +194,8 @@ impl VoiceMemoFeature {
         // 2. ゲームの有無と認識語彙を記録（録音・プロンプトの反映は update 側）
         self.game_active = slices.game().has_game();
         self.game_generation = slices.game().generation();
+        self.prefer_gpu = slices.voice_memo().use_gpu();
+        self.state.use_gpu = self.prefer_gpu;
         self.set_vocabulary(&player_info, room_names);
 
         // 3. Viewを描画して Action を取得
@@ -236,6 +290,7 @@ impl VoiceMemoFeature {
     /// リアルタイム更新（中央 dispatch の①）。録音の維持・タイマー・ポーリング・VAD・
     /// ダウンロード進捗。
     pub fn update(&mut self, resources: &mut Resources, ctx: &egui::Context) {
+        self.follow_gpu_preference(resources);
         self.follow_game_lifecycle(resources);
 
         // 録音中なら経過時間を更新。ターンの経過は録音位置から求める。
@@ -302,6 +357,8 @@ impl VoiceMemoFeature {
             VoiceMemoAction::SelectRound(index) => self.select_round(index),
             VoiceMemoAction::ClearAllRounds => self.clear_all_rounds(),
             VoiceMemoAction::DownloadModel => self.start_download(resources),
+            // 設定値の書き込みは AmusApp が行う。Feature は次の update で追従する。
+            VoiceMemoAction::SetUseGpu(_) => {}
         }
     }
 }
@@ -317,6 +374,10 @@ impl Default for VoiceMemoFeature {
             game_active: false,
             game_generation: 0,
             observed_game_generation: 0,
+            // 起動時の構成は AmusApp が保存値から決めて Resources へ入れている。
+            // ここで差を検出して作り直さないよう、追従済みとして始める。
+            prefer_gpu: false,
+            observed_prefer_gpu: false,
             vocabulary: None,
             context_vocabulary: None,
             transcriber_thread: None,

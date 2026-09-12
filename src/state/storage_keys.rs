@@ -19,4 +19,7 @@ impl StorageKeys {
 
     /// UI 拡大率（None = ネイティブ DPI 追従）
     pub const UI_SCALE: &'static str = "ui_scale";
+
+    /// 書き起こしに GPU を使うか
+    pub const USE_GPU: &'static str = "use_gpu";
 }

@@ -57,12 +57,7 @@ pub fn translate(key: TextKey) -> String {
         VoiceMemoTitle => W::VOICE_MEMO.to_string(),
         VoiceMemoModelDownloading => format!("⏳ {}を{}...", W::MODEL, W::DOWNLOADING),
         VoiceMemoModelNotFound => format!("⚠ {}が見つかりません", W::WHISPER_MODEL),
-        VoiceMemoModelRequired => format!(
-            "{}には{}の{}が必要です",
-            W::VOICE_RECOGNITION,
-            W::MODEL_REQUIRED_SIZE,
-            W::MODEL
-        ),
+        VoiceMemoModelRequired => format!("{}には{}が必要です", W::VOICE_RECOGNITION, W::MODEL),
         VoiceMemoDownloadModel => format!("📥 {}を{}", W::MODEL, W::DOWNLOAD),
         VoiceMemoMicUnavailable => format!("⚠ {}が利用できません", W::MIC),
         VoiceMemoEnd => W::END.to_string(),
@@ -73,6 +68,8 @@ pub fn translate(key: TextKey) -> String {
         VoiceMemoStartPrompt => format!("{}を{}してください", W::TURN, W::START),
         VoiceMemoRecordHint => W::RECORD_BUTTON_HINT.to_string(),
         VoiceMemoMemoCount => W::NOTES.to_string(),
+        VoiceMemoUseGpu => W::USE_GPU.to_string(),
+        VoiceMemoGpuHint => "切り替えると使うモデルも変わります".to_string(),
         VoiceMemoTurnTime => format!("{}{}", W::TURN, W::TIME),
     }
 }

@@ -30,6 +30,24 @@ mise run serve       # http://localhost:8080
   キャッシュミス時にここがスパイクする。
 - macOS / Windows は追加パッケージ不要。WASM ビルドに音声機能は含まれない（`voice_memo` はネイティブ専用）。
 
+### 書き起こしの GPU ビルド
+
+whisper.cpp のバックエンドはコンパイル時に固定されるため、GPU を使うビルドは feature で
+指定する。既定は CPU。
+
+```bash
+cargo run --features gpu-vulkan   # Windows / Linux（NVIDIA / AMD / Intel）
+cargo run --features gpu-metal    # macOS
+cargo run --features gpu-cuda     # NVIDIA 専用。配布には使わない
+```
+
+`gpu-vulkan` のビルドには **Vulkan SDK**（`VULKAN_SDK` 環境変数）が要る。要るのはビルドする
+マシンだけで、実行側には GPU ドライバ同梱のローダー（`vulkan-1.dll` / `libvulkan.so.1`）しか
+要らない。`gpu-cuda` は CUDA Toolkit を要求し、実行側にも CUDA ランタイムを要求する。
+
+GPU feature を付けると whisper.cpp のビルドがさらに重くなるため、CI と pre-push フックは
+CPU ビルドのまま回す。
+
 ### push 前ゲート（git pre-push フック）
 
 `mise run init`（worktree/clone 初期化）が `core.hooksPath` を `.githooks` に向け、push 前に

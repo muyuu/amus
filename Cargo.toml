@@ -20,6 +20,14 @@ default = ["voice_memo"]
 # 抱えるため、テストを軽量化したいときは --no-default-features で切り離せる。
 voice_memo = ["dep:cpal", "dep:hound", "dep:whisper-rs", "dep:dirs-next", "dep:ureq", "dep:sha2"]
 
+# 書き起こしの GPU バックエンド。whisper.cpp の都合でビルド時に固定されるため、
+# 1 バイナリで全 GPU を賄うことはできない。いずれも default には入れない
+# （SDK / Toolkit をビルド環境に要求するため）。配布ビルドは Windows/Linux が
+# gpu-vulkan、macOS が gpu-metal。
+gpu-vulkan = ["voice_memo", "whisper-rs?/vulkan"]
+gpu-cuda = ["voice_memo", "whisper-rs?/cuda"]
+gpu-metal = ["voice_memo", "whisper-rs?/metal"]
+
 [dependencies]
 # GUI framework - egui is recommended for this use case
 # Alternatives: gpui, bevy, iced

@@ -42,6 +42,9 @@ pub struct AppData {
     /// `Some(x)` はユーザーが明示指定した倍率（設定時に有効範囲へクランプ済み）。
     pub(in crate::state) ui_scale: Option<f32>,
 
+    /// 書き起こしに GPU を使うか。ビルドに GPU バックエンドが無ければ無視される。
+    pub(in crate::state) use_gpu: bool,
+
     pub(in crate::state) translator: Translator,
 }
 
@@ -60,6 +63,7 @@ impl Default for AppData {
             show_setup_dialog: false,
             show_debug_view: false,
             ui_scale: None, // 既定はネイティブ DPI に追従
+            use_gpu: true,  // GPU バックエンドが無いビルドでは無視される
             translator: Translator::new(Language::Japanese), // デフォルトは日本語
         }
     }

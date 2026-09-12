@@ -153,10 +153,7 @@ mod tests {
 
     /// ハードウェアを持たない Resources。録音できない状況を再現する。
     fn resources_without_hardware() -> Resources {
-        Resources {
-            voice_recorder: None,
-            whisper_transcriber: None,
-        }
+        Resources::without_hardware()
     }
 
     #[test]

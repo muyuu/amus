@@ -68,9 +68,8 @@ pub fn translate(key: TextKey) -> String {
         }
         VoiceMemoModelNotFound => format!("⚠ {} not found", W::WHISPER_MODEL),
         VoiceMemoModelRequired => format!(
-            "{} requires {} {}",
+            "{} requires a {}",
             W::VOICE_RECOGNITION,
-            W::MODEL_REQUIRED_SIZE,
             W::MODEL.to_lowercase()
         ),
         VoiceMemoDownloadModel => format!("📥 {} {}", W::DOWNLOAD, W::MODEL.to_lowercase()),
@@ -87,6 +86,8 @@ pub fn translate(key: TextKey) -> String {
         ),
         VoiceMemoRecordHint => W::RECORD_BUTTON_HINT.to_string(),
         VoiceMemoMemoCount => W::NOTES.to_string(),
+        VoiceMemoUseGpu => W::USE_GPU.to_string(),
+        VoiceMemoGpuHint => "Switching also changes the model used".to_string(),
         VoiceMemoTurnTime => format!("{} {}", W::TURN, W::TIME),
     }
 }

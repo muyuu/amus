@@ -18,6 +18,8 @@ impl VoiceMemoView {
         let max_width = ui.available_width().min(600.0);
         ui.set_max_width(max_width);
 
+        Self::render_backend(state, translator, ui, &mut actions);
+
         // モデルの状態表示
         if !state.model_available {
             if state.is_downloading {
@@ -47,7 +49,11 @@ impl VoiceMemoView {
                             .color(Color32::YELLOW),
                     );
                 });
-                ui.label(translator.t(K::VOICE_MEMO_MODEL_REQUIRED));
+                ui.label(format!(
+                    "{} ({})",
+                    translator.t(K::VOICE_MEMO_MODEL_REQUIRED),
+                    state.model_size_label
+                ));
 
                 if ui
                     .button(translator.t(K::VOICE_MEMO_DOWNLOAD_MODEL))
@@ -177,6 +183,45 @@ impl VoiceMemoView {
         }
 
         actions
+    }
+
+    /// 書き起こしの実行構成。GPU を含むビルドでは切り替えも出す。
+    ///
+    /// 認識がおかしいときに、GPU が効いているのか・どのモデルなのかを確かめられるよう、
+    /// 動作中の構成は切り替えの可否によらず常に見せる。
+    fn render_backend(
+        state: &VoiceMemoState,
+        translator: &Translator,
+        ui: &mut Ui,
+        actions: &mut Vec<VoiceMemoAction>,
+    ) {
+        ui.horizontal(|ui| {
+            if state.gpu_selectable {
+                let mut use_gpu = state.use_gpu;
+                if ui
+                    .checkbox(&mut use_gpu, translator.t(K::VOICE_MEMO_USE_GPU))
+                    .changed()
+                {
+                    actions.push(VoiceMemoAction::SetUseGpu(use_gpu));
+                }
+            }
+
+            ui.label(
+                RichText::new(&state.backend_label)
+                    .monospace()
+                    .color(Color32::GRAY),
+            );
+        });
+
+        if state.gpu_selectable {
+            ui.label(
+                RichText::new(translator.t(K::VOICE_MEMO_GPU_HINT))
+                    .small()
+                    .color(Color32::GRAY),
+            );
+        }
+
+        ui.separator();
     }
 
     fn render_memo(ui: &mut Ui, memo: &VoiceMemo) {

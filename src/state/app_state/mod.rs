@@ -3,6 +3,8 @@ mod game;
 mod player;
 mod storage;
 mod ui;
+#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+mod voice_memo;
 mod wave;
 
 // TextKey はネイティブのウィンドウタイトル取得（t）でのみ使う。

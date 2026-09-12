@@ -7,7 +7,8 @@ use std::thread::{self, JoinHandle};
 use thiserror::Error;
 
 use super::voice_recorder::SAMPLE_RATE;
-use super::whisper_transcriber::{TranscriptionSegment, WhisperModel};
+use super::whisper_backend::TranscribeSetup;
+use super::whisper_transcriber::TranscriptionSegment;
 use crate::{log_debug, log_error};
 
 /// 書き起こしスレッドの起動が失敗した理由。
@@ -59,19 +60,20 @@ pub struct TranscriberThread {
 }
 
 impl TranscriberThread {
-    /// 新しいTranscriberThreadを作成
-    pub fn new() -> Result<Self, TranscriberThreadError> {
-        if !WhisperModel::SMALL.exists() {
-            return Err(TranscriberThreadError::ModelNotFound(
-                WhisperModel::SMALL.path(),
-            ));
+    /// 指定の構成で書き起こしスレッドを起動する。
+    ///
+    /// モデルの読み込みはスレッド側で行うため、ここで戻ってきてもまだ書き起こせるとは
+    /// 限らない（medium は読み込みに時間がかかる）。
+    pub fn new(setup: TranscribeSetup) -> Result<Self, TranscriberThreadError> {
+        if !setup.model.exists() {
+            return Err(TranscriberThreadError::ModelNotFound(setup.model.path()));
         }
 
         let (request_tx, request_rx) = mpsc::channel::<TranscribeRequest>();
         let (result_tx, result_rx) = mpsc::channel::<TranscribeResult>();
 
         let thread_handle = thread::spawn(move || {
-            Self::transcriber_loop(request_rx, result_tx);
+            Self::transcriber_loop(setup, request_rx, result_tx);
         });
 
         Ok(Self {
@@ -120,13 +122,14 @@ impl TranscriberThread {
 
     /// 書き起こしループ（バックグラウンドスレッド）
     fn transcriber_loop(
+        setup: TranscribeSetup,
         request_rx: Receiver<TranscribeRequest>,
         result_tx: Sender<TranscribeResult>,
     ) {
         use super::whisper_transcriber::WhisperTranscriber;
 
         // Whisperを初期化
-        let mut transcriber = match WhisperTranscriber::new(&WhisperModel::SMALL.path()) {
+        let mut transcriber = match WhisperTranscriber::new(setup) {
             Ok(t) => t,
             Err(e) => {
                 log_error!("TranscriberThread", format!("Whisper初期化エラー: {}", e));
@@ -137,7 +140,8 @@ impl TranscriberThread {
         log_debug!(
             "TranscriberThread",
             format!(
-                "書き起こしスレッド開始: {}スレッド",
+                "書き起こしスレッド開始: {} / {}スレッド",
+                transcriber.setup().label(),
                 super::whisper_transcriber::thread_count()
             )
         );

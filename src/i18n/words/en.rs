@@ -80,6 +80,6 @@ impl EnglishWords {
     pub const DOWNLOADING: &'static str = "Downloading";
     pub const VOICE_RECOGNITION: &'static str = "Voice recognition";
     pub const WHISPER_MODEL: &'static str = "Whisper model";
-    pub const MODEL_REQUIRED_SIZE: &'static str = "~142MB";
     pub const RECORD_BUTTON_HINT: &'static str = "Press record to capture speech";
+    pub const USE_GPU: &'static str = "Use GPU";
 }
