@@ -5,12 +5,12 @@
 //! 責務はファイルに分割している:
 //! - `types`: DTO / View 用状態
 //! - `vad`: 発話区間検出
-//! - `transcription`: 書き起こしスレッドとのやり取り
+//! - `hotword`: トリガーワードの照合とターン境界の決定
+//! - `transcription`: 書き起こしスレッドとのやり取り・結果の取り込み
 //! - `download`: Whisper モデルのダウンロード制御
 //! - `recording`: ターン・録音のライフサイクル
 //! - `view`: 描画
 
-mod detection;
 mod download;
 mod hotword;
 mod prompt;
@@ -31,9 +31,7 @@ use crate::log_debug;
 use crate::log_error;
 use crate::models::Area;
 use crate::resources::voice_recorder::SAMPLE_RATE;
-use crate::resources::{
-    DownloadError, DownloadProgress, HotwordThread, Resources, TranscriberThread,
-};
+use crate::resources::{DownloadError, DownloadProgress, Resources, TranscriberThread};
 use crate::state::Slices;
 
 /// 音声メモのアクション
@@ -78,17 +76,13 @@ pub struct VoiceMemoFeature {
     silence_start: Option<std::time::Instant>,
     /// 現在発話中かどうか
     is_speaking: bool,
+    /// 現在の録音が始まった絶対サンプル位置
+    recording_start_sample: usize,
 
-    /// バックグラウンド検知スレッド
-    hotword_thread: Option<HotwordThread>,
     /// トリガーワードの照合器
     matcher: HotwordMatcher,
     /// 検出をターン境界へ変換する
     boundary_tracker: BoundaryTracker,
-    /// 検知窓を処理中か。溜め込むと検知が実時間から遅れる。
-    hotword_pending: bool,
-    /// 最後に送った検知窓の終端位置
-    last_hotword_end: usize,
 }
 
 impl VoiceMemoFeature {
@@ -98,15 +92,6 @@ impl VoiceMemoFeature {
             model_available,
             recorder_available: resources.voice_recorder.is_some(),
             ..Default::default()
-        };
-
-        // 検知は tiny を使う。書き起こし用とは別のモデルなので独立して判定する。
-        let hotword_thread = match HotwordThread::new() {
-            Ok(t) => Some(t),
-            Err(e) => {
-                log_debug!("VoiceMemo", format!("ホットワード検知は無効: {}", e));
-                None
-            }
         };
 
         // モデルが利用可能ならTranscriberThreadを初期化
@@ -127,30 +112,8 @@ impl VoiceMemoFeature {
 
         Self {
             state,
-            download_rx: None,
-            download_handle: None,
-            download_cancel: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            context: None,
-            game_active: false,
-            game_generation: 0,
-            observed_game_generation: 0,
-            vocabulary: None,
-            context_vocabulary: None,
             transcriber_thread,
-            speech_start_sample: 0,
-            last_vad_check_sample: 0,
-            silence_start: None,
-            is_speaking: false,
-            hotword_thread,
-            matcher: HotwordMatcher::new(
-                detection::DEFAULT_START_WORDS,
-                detection::DEFAULT_END_WORDS,
-            ),
-            boundary_tracker: BoundaryTracker::new(
-                (SAMPLE_RATE as f32 * detection::COOLDOWN_SECS) as usize,
-            ),
-            hotword_pending: false,
-            last_hotword_end: 0,
+            ..Default::default()
         }
     }
 
@@ -293,21 +256,15 @@ impl VoiceMemoFeature {
             ctx.request_repaint();
         }
 
-        // ホットワード検知。ターン外も含め録音中はずっと回す。
-        if self.state.is_recording {
-            self.send_hotword_window(resources);
-        }
-        self.poll_hotword_results();
-
         // 語彙が変わっていれば認識コンテキストを組み直す
         self.refresh_context(resources);
 
-        // 書き起こし結果をポーリング
+        // 書き起こし結果をポーリング。ターン境界もここで決まる。
         self.poll_transcription_results();
 
-        // ターン進行中のみVADチェックしてチャンクを送信。録音はターン外も続くが、
-        // メモはターンに属するため書き起こしはターン内に限る。
-        if self.state.round_active {
+        // 録音中はターン外もVADチェックしてチャンクを送信。ターンはトリガーワードの
+        // 書き起こしで開くため、開く前の発話も書き起こしておく必要がある。
+        if self.state.is_recording {
             self.check_vad_and_send(resources);
         }
 
@@ -367,16 +324,11 @@ impl Default for VoiceMemoFeature {
             last_vad_check_sample: 0,
             silence_start: None,
             is_speaking: false,
-            hotword_thread: None,
-            matcher: HotwordMatcher::new(
-                detection::DEFAULT_START_WORDS,
-                detection::DEFAULT_END_WORDS,
-            ),
+            recording_start_sample: 0,
+            matcher: HotwordMatcher::new(hotword::DEFAULT_START_WORDS, hotword::DEFAULT_END_WORDS),
             boundary_tracker: BoundaryTracker::new(
-                (SAMPLE_RATE as f32 * detection::COOLDOWN_SECS) as usize,
+                (SAMPLE_RATE as f32 * hotword::COOLDOWN_SECS) as usize,
             ),
-            hotword_pending: false,
-            last_hotword_end: 0,
         }
     }
 }

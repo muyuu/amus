@@ -74,13 +74,15 @@ impl VoiceMemoFeature {
         if let Some(recorder) = &mut resources.voice_recorder {
             match recorder.start_recording() {
                 Ok(_) => {
+                    let at = recorder.buffer_len();
                     self.state.is_recording = true;
                     self.state.error = None;
-                    self.speech_start_sample = 0;
-                    self.last_vad_check_sample = 0;
+                    self.recording_start_sample = at;
+                    self.speech_start_sample = at;
+                    self.last_vad_check_sample = at;
                     self.silence_start = None;
                     self.is_speaking = false;
-                    log_debug!("VoiceMemo", "録音開始");
+                    log_debug!("VoiceMemo", &format!("録音開始: at={}", at));
                 }
                 Err(e) => {
                     log_error!("VoiceMemo", &format!("録音開始エラー: {}", e));

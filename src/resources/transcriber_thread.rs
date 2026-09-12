@@ -6,6 +6,7 @@ use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::thread::{self, JoinHandle};
 use thiserror::Error;
 
+use super::voice_recorder::SAMPLE_RATE;
 use super::whisper_transcriber::{TranscriptionSegment, WhisperModel};
 use crate::{log_debug, log_error};
 
@@ -20,21 +21,31 @@ pub enum TranscriberThreadError {
 pub struct TranscribeRequest {
     /// 音声サンプル（16kHz, mono, f32）
     pub samples: Vec<f32>,
-    /// 録音開始からのオフセット（秒）
-    pub offset_secs: f32,
+    /// サンプル列の先頭の絶対サンプル位置
+    pub start_sample: usize,
     /// 認識コンテキスト
     pub context: Option<String>,
-    /// どのラウンドか
-    pub round_index: usize,
+}
+
+/// 録音上の位置を持つ書き起こしセグメント。
+///
+/// 位置は `SAMPLE_RATE` 基準の絶対サンプルインデックス。ターンの開閉は書き起こしより
+/// 後に決まりうるため、所属ではなく位置を持たせて呼び出し側に判断させる。
+#[derive(Debug, Clone)]
+pub struct RecordedSegment {
+    /// セグメント開始位置
+    pub start_sample: usize,
+    /// セグメント終了位置
+    pub end_sample: usize,
+    /// 書き起こしテキスト
+    pub text: String,
 }
 
 /// 書き起こし結果
 #[derive(Debug, Clone)]
 pub struct TranscribeResult {
     /// 書き起こしセグメント
-    pub segments: Vec<TranscriptionSegment>,
-    /// どのラウンドか
-    pub round_index: usize,
+    pub segments: Vec<RecordedSegment>,
     /// エラーメッセージ（あれば）
     pub error: Option<String>,
 }
@@ -90,6 +101,23 @@ impl TranscriberThread {
         results
     }
 
+    /// チャンク相対の秒を録音上の絶対サンプル位置へ直す。
+    fn to_recorded(
+        segments: Vec<TranscriptionSegment>,
+        start_sample: usize,
+    ) -> Vec<RecordedSegment> {
+        let to_sample = |secs: f32| start_sample + (secs * SAMPLE_RATE as f32) as usize;
+
+        segments
+            .into_iter()
+            .map(|seg| RecordedSegment {
+                start_sample: to_sample(seg.start_secs),
+                end_sample: to_sample(seg.end_secs),
+                text: seg.text,
+            })
+            .collect()
+    }
+
     /// 書き起こしループ（バックグラウンドスレッド）
     fn transcriber_loop(
         request_rx: Receiver<TranscribeRequest>,
@@ -113,22 +141,19 @@ impl TranscriberThread {
             match request_rx.recv() {
                 Ok(req) => {
                     let samples_len = req.samples.len();
-                    let duration_secs = samples_len as f32 / 16000.0;
+                    let duration_secs = samples_len as f32 / SAMPLE_RATE as f32;
                     log_debug!(
                         "TranscriberThread",
                         format!(
-                            "書き起こし開始: {:.1}秒分 ({}サンプル), offset={:.1}s, round={}",
-                            duration_secs, samples_len, req.offset_secs, req.round_index
+                            "書き起こし開始: {:.1}秒分 ({}サンプル), start_sample={}",
+                            duration_secs, samples_len, req.start_sample
                         )
                     );
 
                     let result = match transcriber.transcribe(&req.samples, req.context.as_deref())
                     {
-                        Ok(mut segments) => {
-                            // オフセットを加算
-                            for seg in &mut segments {
-                                seg.timestamp_secs += req.offset_secs;
-                            }
+                        Ok(segments) => {
+                            let segments = Self::to_recorded(segments, req.start_sample);
                             // 書き起こし全文は発話内容そのものなのでログに残さない（プライバシー）。
                             // 件数のみ記録する。
                             log_debug!(
@@ -137,7 +162,6 @@ impl TranscriberThread {
                             );
                             TranscribeResult {
                                 segments,
-                                round_index: req.round_index,
                                 error: None,
                             }
                         }
@@ -145,7 +169,6 @@ impl TranscriberThread {
                             log_error!("TranscriberThread", format!("書き起こしエラー: {}", e));
                             TranscribeResult {
                                 segments: Vec::new(),
-                                round_index: req.round_index,
                                 error: Some(e.to_string()),
                             }
                         }

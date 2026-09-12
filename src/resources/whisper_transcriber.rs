@@ -16,11 +16,15 @@ pub enum TranscribeError {
     Run(whisper_rs::WhisperError),
 }
 
-/// 書き起こし結果のセグメント
+/// 書き起こし結果のセグメント。
+///
+/// 時刻は渡したサンプル列の先頭を 0 とする相対秒であり、録音上の位置ではない。
 #[derive(Debug, Clone)]
 pub struct TranscriptionSegment {
-    /// 録音開始からの秒数
-    pub timestamp_secs: f32,
+    /// セグメント開始（秒）
+    pub start_secs: f32,
+    /// セグメント終了（秒）
+    pub end_secs: f32,
     /// 書き起こしテキスト
     pub text: String,
 }
@@ -30,9 +34,6 @@ pub struct TranscriptionSegment {
 // =============================================================================
 
 /// ダウンロードして使う Whisper モデル。
-///
-/// 用途ごとに大きさの違うモデルを使う。書き起こしは精度、ホットワード検知は
-/// 短い窓を繰り返し処理するため速度を優先する。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WhisperModel {
     file_name: &'static str,
@@ -44,20 +45,12 @@ pub struct WhisperModel {
 }
 
 impl WhisperModel {
-    /// 書き起こし用（約466MB）。
+    /// 約466MB。
     pub const SMALL: Self = Self {
         file_name: "ggml-small.bin",
         url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-small.bin",
         sha256: "1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b",
         expected_bytes: 487_601_967,
-    };
-
-    /// ホットワード検知用（約74MB）。
-    pub const TINY: Self = Self {
-        file_name: "ggml-tiny.bin",
-        url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-tiny.bin",
-        sha256: "be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21",
-        expected_bytes: 77_691_713,
     };
 
     /// モデルファイルの保存先。
@@ -170,11 +163,10 @@ impl WhisperTranscriber {
                 let clean_text = clean_text.trim();
 
                 if !clean_text.is_empty() {
-                    // セグメントの開始時刻（ミリ秒）
-                    let start_secs = segment.start_timestamp() as f32 / 1000.0;
-
+                    // whisper.cpp のタイムスタンプはセンチ秒（10ms 単位）
                     segments.push(TranscriptionSegment {
-                        timestamp_secs: start_secs,
+                        start_secs: segment.start_timestamp() as f32 / 100.0,
+                        end_secs: segment.end_timestamp() as f32 / 100.0,
                         text: clean_text.to_string(),
                     });
                 }

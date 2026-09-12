@@ -125,6 +125,16 @@ impl BoundaryTracker {
             .is_some_and(|last| at.saturating_sub(last) < self.cooldown_samples)
     }
 }
+
+/// 既定のトリガーワード。
+///
+/// 漢字とかなの違いは照合で吸収できないため、想定する表記を並べる。
+pub(super) const DEFAULT_START_WORDS: &[&str] = &["ターン開始", "ターンかいし"];
+pub(super) const DEFAULT_END_WORDS: &[&str] = &["ターン終了", "ターンしゅうりょう"];
+
+/// 同じ発話を重ねて拾わないためのクールダウン。
+pub(super) const COOLDOWN_SECS: f32 = 3.0;
+
 #[cfg(test)]
 mod tests {
     use super::*;
