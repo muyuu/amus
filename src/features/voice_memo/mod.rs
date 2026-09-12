@@ -5,12 +5,14 @@
 //! 責務はファイルに分割している:
 //! - `types`: DTO / View 用状態
 //! - `vad`: 発話区間検出
-//! - `transcription`: 書き起こしスレッドとのやり取り
+//! - `hotword`: トリガーワードの照合とターン境界の決定
+//! - `transcription`: 書き起こしスレッドとのやり取り・結果の取り込み
 //! - `download`: Whisper モデルのダウンロード制御
 //! - `recording`: ターン・録音のライフサイクル
 //! - `view`: 描画
 
 mod download;
+mod hotword;
 mod prompt;
 mod recording;
 mod transcription;
@@ -20,12 +22,15 @@ pub mod view;
 
 pub use types::{Round, VoiceMemo, VoiceMemoState};
 
+use hotword::{BoundaryTracker, HotwordMatcher};
+
 use crate::app_action::AppAction;
 use crate::i18n::keys as K;
 use crate::i18n::words::ja::JapaneseWords;
 use crate::log_debug;
 use crate::log_error;
 use crate::models::Area;
+use crate::resources::voice_recorder::SAMPLE_RATE;
 use crate::resources::{DownloadError, DownloadProgress, Resources, TranscriberThread};
 use crate::state::Slices;
 
@@ -71,6 +76,13 @@ pub struct VoiceMemoFeature {
     silence_start: Option<std::time::Instant>,
     /// 現在発話中かどうか
     is_speaking: bool,
+    /// 現在の録音が始まった絶対サンプル位置
+    recording_start_sample: usize,
+
+    /// トリガーワードの照合器
+    matcher: HotwordMatcher,
+    /// 検出をターン境界へ変換する
+    boundary_tracker: BoundaryTracker,
 }
 
 impl VoiceMemoFeature {
@@ -100,20 +112,8 @@ impl VoiceMemoFeature {
 
         Self {
             state,
-            download_rx: None,
-            download_handle: None,
-            download_cancel: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            context: None,
-            game_active: false,
-            game_generation: 0,
-            observed_game_generation: 0,
-            vocabulary: None,
-            context_vocabulary: None,
             transcriber_thread,
-            speech_start_sample: 0,
-            last_vad_check_sample: 0,
-            silence_start: None,
-            is_speaking: false,
+            ..Default::default()
         }
     }
 
@@ -259,12 +259,12 @@ impl VoiceMemoFeature {
         // 語彙が変わっていれば認識コンテキストを組み直す
         self.refresh_context(resources);
 
-        // 書き起こし結果をポーリング
+        // 書き起こし結果をポーリング。ターン境界もここで決まる。
         self.poll_transcription_results();
 
-        // ターン進行中のみVADチェックしてチャンクを送信。録音はターン外も続くが、
-        // メモはターンに属するため書き起こしはターン内に限る。
-        if self.state.round_active {
+        // 録音中はターン外もVADチェックしてチャンクを送信。ターンはトリガーワードの
+        // 書き起こしで開くため、開く前の発話も書き起こしておく必要がある。
+        if self.state.is_recording {
             self.check_vad_and_send(resources);
         }
 
@@ -324,6 +324,11 @@ impl Default for VoiceMemoFeature {
             last_vad_check_sample: 0,
             silence_start: None,
             is_speaking: false,
+            recording_start_sample: 0,
+            matcher: HotwordMatcher::new(hotword::DEFAULT_START_WORDS, hotword::DEFAULT_END_WORDS),
+            boundary_tracker: BoundaryTracker::new(
+                (SAMPLE_RATE as f32 * hotword::COOLDOWN_SECS) as usize,
+            ),
         }
     }
 }

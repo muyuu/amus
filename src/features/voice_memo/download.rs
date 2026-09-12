@@ -1,10 +1,7 @@
 //! Whisper モデルのダウンロード制御
 
 use super::VoiceMemoFeature;
-use crate::resources::{
-    download_file, get_model_download_url, get_model_max_download_bytes, get_model_path,
-    get_model_sha256, IntegrityCheck, Resources, TranscriberThread,
-};
+use crate::resources::{download_file, IntegrityCheck, Resources, TranscriberThread, WhisperModel};
 use crate::{log_debug, log_error};
 
 impl VoiceMemoFeature {
@@ -19,8 +16,9 @@ impl VoiceMemoFeature {
         self.state.download_progress = Some(0.0);
         self.state.error = None;
 
-        let url = get_model_download_url().to_string();
-        let dest_path = get_model_path();
+        let model = WhisperModel::SMALL;
+        let url = model.url().to_string();
+        let dest_path = model.path();
 
         // 前回終了時に立てたフラグが残っていることはないが、開始時に必ず倒す
         self.download_cancel
@@ -29,8 +27,8 @@ impl VoiceMemoFeature {
 
         let handle = std::thread::spawn(move || {
             let check = IntegrityCheck {
-                max_bytes: Some(get_model_max_download_bytes()),
-                sha256_hex: Some(get_model_sha256()),
+                max_bytes: Some(model.max_download_bytes()),
+                sha256_hex: Some(model.sha256()),
             };
             download_file(&url, &dest_path, tx, cancel, &check)
         });

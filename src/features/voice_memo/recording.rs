@@ -11,36 +11,45 @@ impl VoiceMemoFeature {
     ///
     /// ターンは録音上の区間なので、録音が回っていないと始点を決められない。
     pub(super) fn start_round(&mut self, resources: &mut Resources) {
-        let Some(start_sample) = self.recorded_position(resources) else {
+        let Some(at) = self.recorded_position(resources) else {
             return;
         };
+        self.open_turn(at);
+    }
 
+    /// ターンを終了して区間を確定する。録音は止めない。
+    pub(super) fn end_round(&mut self, resources: &mut Resources) {
+        let Some(at) = self.recorded_position(resources) else {
+            return;
+        };
+        self.close_turn(at);
+    }
+
+    /// 指定位置でターンを開く。
+    pub(super) fn open_turn(&mut self, at: usize) {
         self.state.rounds.push(Round {
-            start_sample,
+            start_sample: at,
             ..Default::default()
         });
         self.state.selected_round = self.state.rounds.len() - 1;
         self.state.round_active = true;
         self.state.round_elapsed_secs = 0.0;
 
-        log_debug!(
-            "VoiceMemo",
-            &format!("ターン開始: start_sample={}", start_sample)
-        );
+        log_debug!("VoiceMemo", &format!("ターン開始: start_sample={}", at));
     }
 
-    /// ターンを終了して区間を確定する。録音は止めない。
-    pub(super) fn end_round(&mut self, resources: &mut Resources) {
-        let end_sample = self.recorded_position(resources);
-
+    /// 指定位置で進行中のターンを閉じる。
+    pub(super) fn close_turn(&mut self, at: usize) {
         if let Some(round) = self.state.rounds.last_mut() {
-            round.end_sample = end_sample;
+            round.end_sample = Some(at);
         }
         self.state.round_active = false;
+
+        log_debug!("VoiceMemo", &format!("ターン終了: end_sample={}", at));
     }
 
     /// 現在の録音位置（絶対サンプルインデックス）。録音中でなければ `None`。
-    fn recorded_position(&self, resources: &Resources) -> Option<usize> {
+    pub(super) fn recorded_position(&self, resources: &Resources) -> Option<usize> {
         if !self.state.is_recording {
             return None;
         }
@@ -65,13 +74,15 @@ impl VoiceMemoFeature {
         if let Some(recorder) = &mut resources.voice_recorder {
             match recorder.start_recording() {
                 Ok(_) => {
+                    let at = recorder.buffer_len();
                     self.state.is_recording = true;
                     self.state.error = None;
-                    self.speech_start_sample = 0;
-                    self.last_vad_check_sample = 0;
+                    self.recording_start_sample = at;
+                    self.speech_start_sample = at;
+                    self.last_vad_check_sample = at;
                     self.silence_start = None;
                     self.is_speaking = false;
-                    log_debug!("VoiceMemo", "録音開始");
+                    log_debug!("VoiceMemo", &format!("録音開始: at={}", at));
                 }
                 Err(e) => {
                     log_error!("VoiceMemo", &format!("録音開始エラー: {}", e));

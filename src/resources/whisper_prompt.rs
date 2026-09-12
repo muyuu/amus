@@ -77,15 +77,17 @@ mod tests {
 mod measurement {
     use super::*;
     use crate::i18n::words::ja::JapaneseWords;
-    use crate::resources::whisper_transcriber::get_model_path;
+    use crate::resources::whisper_transcriber::WhisperModel;
     use whisper_rs::{WhisperContext, WhisperContextParameters};
 
     #[test]
     #[ignore]
     fn measure_prompt_token_budget() {
-        let ctx =
-            WhisperContext::new_with_params(get_model_path(), WhisperContextParameters::default())
-                .expect("モデルの読み込みに失敗");
+        let ctx = WhisperContext::new_with_params(
+            WhisperModel::SMALL.path(),
+            WhisperContextParameters::default(),
+        )
+        .expect("モデルの読み込みに失敗");
         let count = |text: &str| ctx.tokenize(text, 4096).expect("tokenizeに失敗").len();
 
         let terms = [
@@ -143,9 +145,11 @@ mod measurement {
     #[test]
     #[ignore]
     fn compare_prompt_variants() {
-        let ctx =
-            WhisperContext::new_with_params(get_model_path(), WhisperContextParameters::default())
-                .expect("モデルの読み込みに失敗");
+        let ctx = WhisperContext::new_with_params(
+            WhisperModel::SMALL.path(),
+            WhisperContextParameters::default(),
+        )
+        .expect("モデルの読み込みに失敗");
         let count = |text: &str| ctx.tokenize(text, 4096).expect("tokenizeに失敗").len();
 
         let is_ascii_only = |s: &&str| s.chars().all(|c| c.is_ascii_alphanumeric() || c == ' ');

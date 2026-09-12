@@ -63,9 +63,13 @@ impl RecordingBuffer {
         }
     }
 
+    /// 保持しているサンプルを捨てる。絶対位置は巻き戻さない。
+    ///
+    /// 絶対位置はレコーダーの生涯で単調増加する。録音を取り直したときに位置が
+    /// 振り直されると、前の録音を指す位置が新しい録音の位置と衝突するため。
     fn clear(&mut self) {
+        self.base = self.len_abs();
         self.samples.clear();
-        self.base = 0;
     }
 
     /// 範囲外の値は ±1.0 に丸めて格納する。
@@ -280,20 +284,22 @@ impl VoiceRecorder {
         // ストリームを停止
         self.stream = None;
 
-        let total_samples = lock_recover(&self.buffer).len_abs();
+        let at = lock_recover(&self.buffer).len_abs();
 
         crate::log_debug!(
             "VoiceRecorder",
             format!(
-                "録音停止: {}サンプル取得, 録音時間={:.1}秒, デバイスレート={}",
-                total_samples,
-                total_samples as f32 / SAMPLE_RATE as f32,
+                "録音停止: at={}, 累計={:.1}秒, デバイスレート={}",
+                at,
+                at as f32 / SAMPLE_RATE as f32,
                 self.device_sample_rate
             )
         );
     }
 
-    /// これまでに録音した総サンプル数（失われた分を含む絶対長）
+    /// 現在の絶対サンプル位置（失われた分・過去の録音分を含む累計）。
+    ///
+    /// 録音を取り直しても巻き戻らないため、位置は録音をまたいで一意になる。
     pub fn buffer_len(&self) -> usize {
         lock_recover(&self.buffer).len_abs()
     }
@@ -426,5 +432,20 @@ mod tests {
         // poison していても panic せず中身を読める
         let guard = lock_recover(&m);
         assert_eq!(&*guard, &[1.0, 2.0]);
+    }
+
+    #[test]
+    fn clearing_the_buffer_does_not_rewind_absolute_indices() {
+        let mut buf = RecordingBuffer::with_capacity(6);
+        for i in 0..10i16 {
+            buf.push(s(i));
+        }
+
+        // 録音を取り直しても、以前の位置を新しい録音が名乗り直すことはない
+        buf.clear();
+
+        assert_eq!(buf.len_abs(), 10);
+        buf.push(s(99));
+        assert_eq!(buf.samples_since(10).start, 10);
     }
 }
