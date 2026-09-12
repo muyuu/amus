@@ -98,6 +98,11 @@ impl WhisperTranscriber {
     /// 新しいWhisperTranscriberを作成
     /// model_path: Whisperモデルファイルへのパス（.bin）
     pub fn new(model_path: &str) -> Result<Self, TranscribeError> {
+        // whisper.cpp / GGML は既定で stderr へ直接大量に出力し、こちらのログを埋める。
+        // `log` へ寄せることでフィルタの対象になり、既定（自クレート以外は Off）では
+        // 出なくなる。複数回呼んでも安全。
+        whisper_rs::install_logging_hooks();
+
         let ctx = WhisperContext::new_with_params(model_path, WhisperContextParameters::default())
             .map_err(TranscribeError::LoadModel)?;
 
