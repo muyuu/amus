@@ -15,58 +15,85 @@ pub(super) enum Hotword {
 /// 1つのトリガーワードに複数の表記を登録できる。漢字の読みは求められないため
 /// （「ターン開始」と「ターンかいし」は別物として扱われる）、想定する表記を並べて登録する。
 pub(super) struct HotwordMatcher {
-    start_forms: Vec<String>,
-    end_forms: Vec<String>,
+    start_forms: Vec<Vec<char>>,
+    end_forms: Vec<Vec<char>>,
 }
 
 impl HotwordMatcher {
     pub(super) fn new(start_words: &[&str], end_words: &[&str]) -> Self {
+        let reading = |w: &&str| read(w).chars;
+
         Self {
-            start_forms: start_words.iter().map(|w| normalize(w)).collect(),
-            end_forms: end_words.iter().map(|w| normalize(w)).collect(),
+            start_forms: start_words.iter().map(reading).collect(),
+            end_forms: end_words.iter().map(reading).collect(),
         }
     }
 
-    /// テキストにトリガーワードが含まれていればその種類を返す。
-    pub(super) fn find(&self, text: &str) -> Option<Hotword> {
-        let text: Vec<char> = normalize(text).chars().collect();
+    /// テキストにトリガーワードが含まれていればその位置とともに返す。
+    pub(super) fn find(&self, text: &str) -> Option<HotwordMatch> {
+        let reading = read(text);
 
         // 開始と終了が同時に含まれることは想定しない。先に開始を見る。
-        if self
-            .start_forms
-            .iter()
-            .any(|form| contains_close(&text, form))
-        {
-            return Some(Hotword::TurnStart);
-        }
-        if self
-            .end_forms
-            .iter()
-            .any(|form| contains_close(&text, form))
-        {
-            return Some(Hotword::TurnEnd);
+        for (forms, hotword) in [
+            (&self.start_forms, Hotword::TurnStart),
+            (&self.end_forms, Hotword::TurnEnd),
+        ] {
+            let Some((start, end)) = forms
+                .iter()
+                .filter_map(|form| match_range(&reading.chars, form))
+                .min_by_key(|&(_, end)| end)
+            else {
+                continue;
+            };
+
+            return Some(HotwordMatch {
+                hotword,
+                word_start: reading.source_end(start),
+                word_end: reading.source_end(end),
+            });
         }
         None
     }
 }
 
-/// テキストのどこかに、そのトリガーワードと十分近い並びがあるか。
+/// 見つかったトリガーワード。位置は元テキストの文字位置。
+///
+/// 1つの認識結果には語の前後の発話も入りうる。範囲で返すことで、前はこれから閉じる
+/// ターンへ、後ろは開いたターンへ、それぞれ残せる。
+pub(super) struct HotwordMatch {
+    pub(super) hotword: Hotword,
+    /// 語の先頭
+    pub(super) word_start: usize,
+    /// 語の直後
+    pub(super) word_end: usize,
+}
+
+/// テキスト中の、そのトリガーワードと十分近い並びの範囲。無ければ `None`。
 ///
 /// 音声認識は語の一部を取り違えるため、完全一致では取り逃す。許容する誤りは語長に
 /// 比例させ、短い語で誤爆しないようにする。
-fn contains_close(text: &[char], form: &str) -> bool {
-    let pattern: Vec<char> = form.chars().collect();
-    if pattern.is_empty() {
-        return false;
+fn match_range(text: &[char], form: &[char]) -> Option<(usize, usize)> {
+    if form.is_empty() {
+        return None;
     }
 
-    min_distance_to_substring(text, &pattern) <= pattern.len() / 4
+    let (distance, end) = closest_substring(text, form);
+    if distance > form.len() / 4 {
+        return None;
+    }
+
+    // 後ろ向きに同じことをすると先頭が出る
+    let head: Vec<char> = text[..end].iter().rev().copied().collect();
+    let reversed: Vec<char> = form.iter().rev().copied().collect();
+    let (_, length) = closest_substring(&head, &reversed);
+
+    Some((end - length, end))
 }
 
-/// パターンと、テキストの部分文字列との最小編集距離。
+/// パターンに最も近い部分文字列の、編集距離とその終了位置。
 ///
 /// 先頭行を 0 で埋めることで、テキストのどの位置から照合を始めてもよいことを表す。
-fn min_distance_to_substring(text: &[char], pattern: &[char]) -> usize {
+fn closest_substring(text: &[char], pattern: &[char]) -> (usize, usize) {
     let mut prev = vec![0usize; text.len() + 1];
     let mut cur = vec![0usize; text.len() + 1];
 
@@ -79,31 +106,62 @@ fn min_distance_to_substring(text: &[char], pattern: &[char]) -> usize {
         std::mem::swap(&mut prev, &mut cur);
     }
 
-    prev.iter().copied().min().unwrap_or(pattern.len())
+    // 同じ距離なら手前で切る。語の後ろの発話を巻き込まないため。
+    prev.iter()
+        .enumerate()
+        .min_by_key(|&(end, &distance)| (distance, end))
+        .map(|(end, &distance)| (distance, end))
+        .unwrap_or((pattern.len(), 0))
+}
+
+/// 照合用に揃えた読みと、元テキストの文字位置との対応。
+struct Reading {
+    chars: Vec<char>,
+    /// `chars[i]` が元テキストのどこまでに対応するか（その文字の直後）
+    source_end: Vec<usize>,
+}
+
+impl Reading {
+    /// 読みの `end` 文字目までが、元テキストのどこまでに当たるか。
+    fn source_end(&self, end: usize) -> usize {
+        end.checked_sub(1)
+            .and_then(|last| self.source_end.get(last).copied())
+            .unwrap_or(0)
+    }
 }
 
 /// 照合用に読みを揃える。
 ///
 /// 音声認識の結果は区切り記号や空白が入りうるため落とし、ひらがなはカタカナへ寄せる。
 /// 長音符は直前の母音へ開く。同じ読みが「ターン」とも「たあん」とも書かれるため。
-fn normalize(text: &str) -> String {
-    let kana = text
-        .chars()
-        .filter(|c| !c.is_whitespace() && !is_separator(*c))
-        .map(to_katakana);
+fn read(text: &str) -> Reading {
+    let mut chars = Vec::new();
+    let mut source_end = Vec::new();
 
-    let mut normalized = String::new();
-    for c in kana {
-        if c == 'ー' {
-            // 直前に母音がなければ開きようがないので落とす
-            if let Some(vowel) = normalized.chars().last().and_then(vowel_of) {
-                normalized.push(vowel);
-            }
+    for (index, c) in text.chars().enumerate() {
+        if c.is_whitespace() || is_separator(c) {
             continue;
         }
-        normalized.push(c);
+
+        let c = to_katakana(c);
+        if c == 'ー' {
+            // 直前に母音がなければ開きようがないので落とす
+            match chars.last().copied().and_then(vowel_of) {
+                Some(vowel) => chars.push(vowel),
+                None => continue,
+            }
+        } else {
+            chars.push(c);
+        }
+        source_end.push(index + 1);
     }
-    normalized
+
+    Reading { chars, source_end }
+}
+
+/// 前後の区切り記号と空白を落とす。
+pub(super) fn trim_separators(text: &str) -> &str {
+    text.trim_matches(|c: char| c.is_whitespace() || is_separator(c))
 }
 
 /// カタカナの母音。母音を持たない文字（「ン」「ッ」や漢字）は `None`。
@@ -223,7 +281,10 @@ mod tests {
         let matcher = HotwordMatcher::new(&["ターンかいし"], &["ターンしゅうりょう"]);
 
         // 「ター」と「たあ」は同じ読み
-        assert_eq!(matcher.find("たあんかいし"), Some(Hotword::TurnStart));
+        assert_eq!(
+            matcher.find("たあんかいし").map(|m| m.hotword),
+            Some(Hotword::TurnStart)
+        );
     }
 
     #[test]
@@ -231,21 +292,24 @@ mod tests {
         let matcher = HotwordMatcher::new(&["ターンかいし"], &["ターンしゅうりょう"]);
 
         // 実際の認識結果。「ターン」が「はあん」に化けている
-        assert_eq!(matcher.find("はあん、かいし"), Some(Hotword::TurnStart));
+        assert_eq!(
+            matcher.find("はあん、かいし").map(|m| m.hotword),
+            Some(Hotword::TurnStart)
+        );
     }
 
     #[test]
     fn does_not_match_unrelated_speech_of_a_similar_length() {
         let matcher = HotwordMatcher::new(&["ターンかいし"], &["ターンしゅうりょう"]);
 
-        assert_eq!(matcher.find("さっきのタスクやった"), None);
-        assert_eq!(matcher.find("カフェテリアにいた"), None);
+        assert!(matcher.find("さっきのタスクやった").is_none());
+        assert!(matcher.find("カフェテリアにいた").is_none());
     }
 
     #[test]
     fn finds_the_start_word_in_surrounding_text() {
         assert_eq!(
-            matcher().find("じゃあターン開始します"),
+            matcher().find("じゃあターン開始します").map(|m| m.hotword),
             Some(Hotword::TurnStart)
         );
     }
@@ -255,17 +319,20 @@ mod tests {
         let matcher = HotwordMatcher::new(&["ターンかいし"], &["ターンしゅうりょう"]);
 
         // ひらがな・カタカナの違いを無視する
-        assert_eq!(matcher.find("ターンカイシ"), Some(Hotword::TurnStart));
+        assert_eq!(
+            matcher.find("ターンカイシ").map(|m| m.hotword),
+            Some(Hotword::TurnStart)
+        );
         // 区切り記号や空白が混ざっても拾う
         assert_eq!(
-            matcher.find("ターン、しゅう りょう"),
+            matcher.find("ターン、しゅう りょう").map(|m| m.hotword),
             Some(Hotword::TurnEnd)
         );
     }
 
     #[test]
     fn returns_none_without_a_trigger_word() {
-        assert_eq!(matcher().find("エレキで死体見つけた"), None);
+        assert!(matcher().find("エレキで死体見つけた").is_none());
     }
 
     /// クールダウンは検証したい振る舞いではないので、十分短くしておく。

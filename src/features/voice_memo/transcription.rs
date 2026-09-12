@@ -1,6 +1,6 @@
 //! 書き起こしスレッドとのやり取り（リクエスト送信・結果ポーリング）
 
-use super::hotword::{Hotword, TurnBoundary};
+use super::hotword::{self, Hotword, TurnBoundary};
 use super::{VoiceMemo, VoiceMemoFeature};
 use crate::resources::voice_recorder::SAMPLE_RATE;
 use crate::resources::TranscribeRequest;
@@ -96,8 +96,8 @@ impl VoiceMemoFeature {
 
     /// 書き起こしセグメントを1件取り込む。位置は録音上の絶対サンプル位置。
     ///
-    /// トリガーワードを含むセグメントはターン境界の指示として扱い、メモにはしない。
-    /// 境界はセグメントの終端に置くため、ワード自体の発話はターンに入らない。
+    /// トリガーワードを含むセグメントは、語の位置で切り分ける。語自体はメモにせず、
+    /// 前の発話はこれから閉じるターンへ、後ろの発話は開いたターンへ入れる。
     ///
     /// 録音を取り直した後に前の録音の結果が返ることがある。位置が現在の録音より前の
     /// セグメントは捨てる。
@@ -106,7 +106,7 @@ impl VoiceMemoFeature {
             return;
         }
 
-        let hotword = self.matcher.find(text);
+        let matched = self.matcher.find(text);
 
         // トリガーワードが外れたときに、認識結果がどうなっていたのかを確かめるための記録。
         // 発話内容そのものなので、既定では出さず RUST_LOG=trace のときだけ出す。
@@ -114,16 +114,49 @@ impl VoiceMemoFeature {
             "VoiceMemo",
             &format!(
                 "セグメント [{}, {}) hotword={:?} text={}",
-                start_sample, end_sample, hotword, text
+                start_sample,
+                end_sample,
+                matched.as_ref().map(|m| m.hotword),
+                text
             )
         );
 
-        if let Some(hotword) = hotword {
-            self.move_turn_boundary(hotword, end_sample);
+        let Some(matched) = matched else {
+            self.push_memo_text(start_sample, text);
+            return;
+        };
+
+        let chars: Vec<char> = text.chars().collect();
+        let at = Self::interpolate(start_sample, end_sample, matched.word_end, chars.len());
+
+        // 語より前の発話は、これから閉じるターンのもの。境界を動かす前に積む。
+        let before: String = chars[..matched.word_start].iter().collect();
+        self.push_memo_text(start_sample, &before);
+
+        self.move_turn_boundary(matched.hotword, at);
+
+        // 語より後ろの発話は、開いたばかりのターンのもの
+        let after: String = chars[matched.word_end..].iter().collect();
+        self.push_memo_text(at, &after);
+    }
+
+    /// 中身があればメモとして積む。
+    fn push_memo_text(&mut self, at: usize, text: &str) {
+        let text = hotword::trim_separators(text);
+        if text.is_empty() {
             return;
         }
+        self.push_memo_at(at, text.to_string());
+    }
 
-        self.push_memo_at(start_sample, text.to_string());
+    /// セグメント内の文字位置を録音上の位置へ直す。
+    ///
+    /// セグメント内のどこで何を話したかは分からないため、文字数で按分する。
+    fn interpolate(start: usize, end: usize, index: usize, len: usize) -> usize {
+        if len == 0 {
+            return end;
+        }
+        start + (end - start) * index.min(len) / len
     }
 
     /// 検出したトリガーワードに応じてターン境界を動かす。
@@ -264,6 +297,57 @@ mod hotword_tests {
         feature.apply_segment(1000, 2000, "ターン開始");
 
         assert!(feature.state.rounds[0].memos.is_empty());
+    }
+
+    #[test]
+    fn speech_after_the_trigger_word_in_the_same_segment_is_kept() {
+        let mut feature = feature();
+
+        // 「ターン開始」に続けて喋ったため1セグメントになった場合
+        feature.apply_segment(0, 1200, "ターン開始、エンジン湧き");
+
+        assert_eq!(
+            feature.state.rounds[0]
+                .memos
+                .iter()
+                .map(|m| m.text.as_str())
+                .collect::<Vec<_>>(),
+            ["エンジン湧き"]
+        );
+    }
+
+    #[test]
+    fn the_turn_starts_right_after_the_trigger_word_not_at_the_segment_end() {
+        let mut feature = feature();
+
+        // 12文字中、5文字目「始」の直後で切れてほしい
+        feature.apply_segment(0, 1200, "ターン開始、エンジン湧き");
+
+        assert_eq!(feature.state.rounds[0].start_sample, 500);
+    }
+
+    #[test]
+    fn speech_before_the_trigger_word_stays_in_the_turn_being_closed() {
+        let mut feature = feature();
+        feature
+            .state
+            .rounds
+            .push(crate::features::voice_memo::Round {
+                start_sample: 0,
+                ..Default::default()
+            });
+        feature.state.round_active = true;
+
+        feature.apply_segment(1000, 2000, "エレキ白ターン開始");
+
+        assert_eq!(
+            feature.state.rounds[0]
+                .memos
+                .iter()
+                .map(|m| m.text.as_str())
+                .collect::<Vec<_>>(),
+            ["エレキ白"]
+        );
     }
 
     #[test]
