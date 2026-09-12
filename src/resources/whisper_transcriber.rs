@@ -132,11 +132,7 @@ impl WhisperTranscriber {
         // Whisperパラメータ設定
         let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
         params.set_language(Some("ja"));
-        // CPUコア数の75%を使用（最低4、最大12）
-        let n_threads = std::thread::available_parallelism()
-            .map(|n| (n.get() * 3 / 4).clamp(4, 12) as i32)
-            .unwrap_or(4);
-        params.set_n_threads(n_threads);
+        params.set_n_threads(thread_count() as i32);
         params.set_no_context(true);
         params.set_single_segment(false); // 複数セグメント許可
 
@@ -181,6 +177,26 @@ impl WhisperTranscriber {
 // ヘルパー関数
 // =============================================================================
 
+/// 書き起こしに使うスレッド数。
+///
+/// 書き起こしはゲーム本体・ボイスチャットと同時に動くため、割り当ての妥当性は
+/// 環境によって変わる。実測しながら振れるよう `AMUS_WHISPER_THREADS` で上書きできる。
+pub fn thread_count() -> usize {
+    let available = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(4);
+    let requested = std::env::var("AMUS_WHISPER_THREADS")
+        .ok()
+        .and_then(|value| value.parse().ok());
+
+    resolve_thread_count(available, requested)
+}
+
+/// 既定は論理コア数の 75%。上限は割り当てても頭打ちになる範囲、下限は最低限の並列度。
+fn resolve_thread_count(available: usize, requested: Option<usize>) -> usize {
+    requested.unwrap_or((available * 3 / 4).clamp(4, 12)).max(1)
+}
+
 /// 効果音（カッコ付きテキスト）を除去
 fn remove_sound_effects(text: &str) -> String {
     let mut result = text.to_string();
@@ -213,4 +229,34 @@ fn remove_sound_effects(text: &str) -> String {
     }
 
     result.trim().to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn defaults_to_three_quarters_of_the_cores() {
+        assert_eq!(resolve_thread_count(8, None), 6);
+    }
+
+    #[test]
+    fn keeps_the_default_within_bounds() {
+        // 少ないコアでも最低限の並列度は確保する
+        assert_eq!(resolve_thread_count(2, None), 4);
+        // 増やしても頭打ちになるため上限で止める
+        assert_eq!(resolve_thread_count(32, None), 12);
+    }
+
+    #[test]
+    fn an_explicit_request_wins_over_the_default() {
+        assert_eq!(resolve_thread_count(8, Some(2)), 2);
+        // 実測用なので上限を超える値も通す
+        assert_eq!(resolve_thread_count(8, Some(16)), 16);
+    }
+
+    #[test]
+    fn zero_threads_is_not_a_valid_request() {
+        assert_eq!(resolve_thread_count(8, Some(0)), 1);
+    }
 }

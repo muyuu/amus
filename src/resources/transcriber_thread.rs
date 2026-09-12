@@ -134,7 +134,13 @@ impl TranscriberThread {
             }
         };
 
-        log_debug!("TranscriberThread", "書き起こしスレッド開始");
+        log_debug!(
+            "TranscriberThread",
+            format!(
+                "書き起こしスレッド開始: {}スレッド",
+                super::whisper_transcriber::thread_count()
+            )
+        );
 
         loop {
             // リクエストを待機（ブロッキング）
@@ -150,15 +156,26 @@ impl TranscriberThread {
                         )
                     );
 
-                    let result = match transcriber.transcribe(&req.samples, req.context.as_deref())
-                    {
+                    let started = std::time::Instant::now();
+                    let transcribed = transcriber.transcribe(&req.samples, req.context.as_deref());
+                    let elapsed = started.elapsed().as_secs_f32();
+
+                    let result = match transcribed {
                         Ok(segments) => {
                             let segments = Self::to_recorded(segments, req.start_sample);
                             // 書き起こし全文は発話内容そのものなのでログに残さない（プライバシー）。
-                            // 件数のみ記録する。
+                            // 件数と処理時間のみ記録する。
+                            //
+                            // RTF（処理時間 / 音声長）が 1 を超えると入力に追いつかず、
+                            // 待ち行列が伸び続ける。スレッド数を決める指標。
                             log_debug!(
                                 "TranscriberThread",
-                                format!("書き起こし完了: {}セグメント", segments.len())
+                                format!(
+                                    "書き起こし完了: {}セグメント, {:.2}秒 (RTF={:.2})",
+                                    segments.len(),
+                                    elapsed,
+                                    elapsed / duration_secs.max(f32::EPSILON)
+                                )
                             );
                             TranscribeResult {
                                 segments,
