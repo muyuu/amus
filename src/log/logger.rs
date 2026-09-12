@@ -17,9 +17,12 @@ impl Log {
                 .and_then(|s| s.parse::<log::LevelFilter>().ok())
                 .unwrap_or(log::LevelFilter::Info);
 
+            // 依存クレートのログを巻き込まないよう、全体は OFF にして自分のクレートだけ通す。
+            // 対象はクレート名で指定する必要があるため、パッケージ名の変更に追従するよう
+            // ビルド時のクレート名を使う。
             builder
-                .filter_level(log::LevelFilter::Off) // 全体はOFFに
-                .filter_module("amus", log_level); // 自分のアプリのみRUST_LOGのレベル
+                .filter_level(log::LevelFilter::Off)
+                .filter_module(env!("CARGO_CRATE_NAME"), log_level);
 
             // env_loggerのフォーマットをシンプルにする
             builder.format(|buf, record| {
@@ -218,6 +221,22 @@ macro_rules! log_debug {
     };
     ($tag:expr, $message:expr, $data:expr) => {
         $crate::log::Log::debug(
+            $crate::log::LogEntry::new($tag, $message)
+                .with_data($data)
+                .with_location(file!(), line!()),
+        );
+    };
+}
+
+#[macro_export]
+macro_rules! log_trace {
+    ($tag:expr, $message:expr) => {
+        $crate::log::Log::trace(
+            $crate::log::LogEntry::new($tag, $message).with_location(file!(), line!()),
+        );
+    };
+    ($tag:expr, $message:expr, $data:expr) => {
+        $crate::log::Log::trace(
             $crate::log::LogEntry::new($tag, $message)
                 .with_data($data)
                 .with_location(file!(), line!()),

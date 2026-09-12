@@ -4,7 +4,7 @@ use super::hotword::{Hotword, TurnBoundary};
 use super::{VoiceMemo, VoiceMemoFeature};
 use crate::resources::voice_recorder::SAMPLE_RATE;
 use crate::resources::TranscribeRequest;
-use crate::{log_debug, log_error};
+use crate::{log_debug, log_error, log_trace};
 
 impl VoiceMemoFeature {
     /// 書き起こし結果をポーリングして取り込む。
@@ -106,7 +106,19 @@ impl VoiceMemoFeature {
             return;
         }
 
-        if let Some(hotword) = self.matcher.find(text) {
+        let hotword = self.matcher.find(text);
+
+        // トリガーワードが外れたときに、認識結果がどうなっていたのかを確かめるための記録。
+        // 発話内容そのものなので、既定では出さず RUST_LOG=trace のときだけ出す。
+        log_trace!(
+            "VoiceMemo",
+            &format!(
+                "セグメント [{}, {}) hotword={:?} text={}",
+                start_sample, end_sample, hotword, text
+            )
+        );
+
+        if let Some(hotword) = hotword {
             self.move_turn_boundary(hotword, end_sample);
             return;
         }
