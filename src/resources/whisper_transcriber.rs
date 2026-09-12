@@ -18,6 +18,15 @@ pub enum TranscribeError {
     Run(whisper_rs::WhisperError),
 }
 
+/// 書き起こされたトークン1つ。
+///
+/// 時刻は渡したサンプル列の先頭を 0 とする相対秒。
+struct SpokenToken {
+    start_secs: f32,
+    end_secs: f32,
+    text: String,
+}
+
 /// 書き起こし結果のセグメント。
 ///
 /// 時刻は渡したサンプル列の先頭を 0 とする相対秒であり、録音上の位置ではない。
@@ -146,11 +155,17 @@ impl WhisperTranscriber {
         params.set_language(Some("ja"));
         params.set_n_threads(thread_count() as i32);
         params.set_no_context(true);
-        params.set_single_segment(false); // 複数セグメント許可
+        // 複数セグメント許可
+        params.set_single_segment(false);
+        // トークンごとの時刻を求めさせる。セグメントを句読点で区切り直すのに使う。
+        params.set_token_timestamps(true);
 
         if let Some(ctx) = context {
             params.set_initial_prompt(ctx);
         }
+
+        // 特殊トークン（タイムスタンプ等）の判定に使う。state を借りる前に取っておく。
+        let first_special = self.ctx.token_eot();
 
         // 書き起こし実行
         if self.state.is_none() {
@@ -164,28 +179,34 @@ impl WhisperTranscriber {
 
         state.full(params, samples).map_err(TranscribeError::Run)?;
 
-        // テキストを取得
-        let mut segments = Vec::new();
+        // トークンを時刻付きで集める
+        let mut tokens = Vec::new();
 
         for segment in state.as_iter() {
-            if let Ok(text) = segment.to_str_lossy() {
-                // 文字化け（置換文字）を除去
-                let clean_text: String = text.chars().filter(|c| *c != '\u{FFFD}').collect();
-                let clean_text = remove_sound_effects(&clean_text);
-                let clean_text = clean_text.trim();
+            for index in 0..segment.n_tokens() {
+                let Some(token) = segment.get_token(index) else {
+                    continue;
+                };
 
-                if !clean_text.is_empty() {
-                    // whisper.cpp のタイムスタンプはセンチ秒（10ms 単位）
-                    segments.push(TranscriptionSegment {
-                        start_secs: segment.start_timestamp() as f32 / 100.0,
-                        end_secs: segment.end_timestamp() as f32 / 100.0,
-                        text: clean_text.to_string(),
-                    });
+                let data = token.token_data();
+                // タイムスタンプ等の特殊トークンは本文ではない
+                if data.id >= first_special {
+                    continue;
                 }
+                let Ok(text) = token.to_str_lossy() else {
+                    continue;
+                };
+
+                // whisper.cpp のタイムスタンプはセンチ秒（10ms 単位）
+                tokens.push(SpokenToken {
+                    start_secs: data.t0 as f32 / 100.0,
+                    end_secs: data.t1 as f32 / 100.0,
+                    text: text.into_owned(),
+                });
             }
         }
 
-        Ok(segments)
+        Ok(split_into_segments(tokens))
     }
 }
 
@@ -211,6 +232,67 @@ pub fn thread_count() -> usize {
 /// 既定は論理コア数の 75%。上限は割り当てても頭打ちになる範囲、下限は最低限の並列度。
 fn resolve_thread_count(available: usize, requested: Option<usize>) -> usize {
     requested.unwrap_or((available * 3 / 4).clamp(4, 12)).max(1)
+}
+
+/// トークン列を句読点で区切ってセグメントにする。
+///
+/// Whisper が返すセグメントは無音の切れ目で決まるため、続けて喋ると数秒分が1つに
+/// まとまり、どの発話がいつだったのかが失われる。メモは「いつ何を言ったか」を残す
+/// ものなので、句読点で区切り直してトークンの時刻をそのまま持たせる。
+fn split_into_segments(tokens: Vec<SpokenToken>) -> Vec<TranscriptionSegment> {
+    let mut segments = Vec::new();
+    let mut text = String::new();
+    let mut start_secs = 0.0;
+    let mut end_secs = 0.0;
+
+    for token in tokens {
+        if text.is_empty() {
+            start_secs = token.start_secs;
+        }
+        text.push_str(&token.text);
+        end_secs = token.end_secs;
+
+        if ends_sentence(&token.text) {
+            push_segment(&mut segments, start_secs, end_secs, &text);
+            text.clear();
+        }
+    }
+
+    // 句読点で終わらなかった分
+    if !text.is_empty() {
+        push_segment(&mut segments, start_secs, end_secs, &text);
+    }
+
+    segments
+}
+
+/// 中身が残るなら整形してセグメントにする。
+fn push_segment(segments: &mut Vec<TranscriptionSegment>, start: f32, end: f32, text: &str) {
+    // 文字化け（置換文字）と効果音を落とす
+    let clean: String = text.chars().filter(|c| *c != '\u{FFFD}').collect();
+    let clean = remove_sound_effects(&clean);
+    let clean = clean.trim_matches(|c: char| c.is_whitespace() || is_sentence_end(c));
+
+    if clean.is_empty() {
+        return;
+    }
+
+    segments.push(TranscriptionSegment {
+        start_secs: start,
+        end_secs: end,
+        text: clean.to_string(),
+    });
+}
+
+fn ends_sentence(token_text: &str) -> bool {
+    token_text.chars().last().is_some_and(is_sentence_end)
+}
+
+fn is_sentence_end(c: char) -> bool {
+    matches!(
+        c,
+        '、' | '。' | '，' | '．' | ',' | '.' | '!' | '?' | '！' | '？'
+    )
 }
 
 /// 効果音（カッコ付きテキスト）を除去
@@ -251,6 +333,70 @@ fn remove_sound_effects(text: &str) -> String {
 mod tests {
     use super::*;
 
+    /// (開始秒, 終了秒, テキスト) のトークン列を作る。
+    fn tokens(items: &[(f32, f32, &str)]) -> Vec<SpokenToken> {
+        items
+            .iter()
+            .map(|&(start_secs, end_secs, text)| SpokenToken {
+                start_secs,
+                end_secs,
+                text: text.to_string(),
+            })
+            .collect()
+    }
+
+    fn summarize(segments: &[TranscriptionSegment]) -> Vec<(f32, &str)> {
+        segments
+            .iter()
+            .map(|s| (s.start_secs, s.text.as_str()))
+            .collect()
+    }
+
+    #[test]
+    fn splits_at_punctuation_with_the_time_it_was_spoken() {
+        let segments = split_into_segments(tokens(&[
+            (0.0, 1.0, "エンジン"),
+            (1.0, 1.8, "湧き"),
+            (1.8, 2.0, "、"),
+            (2.0, 2.6, "メイン"),
+            (2.6, 2.8, "、"),
+            (2.8, 4.2, "シャワーでしおりぬ"),
+        ]));
+
+        assert_eq!(
+            summarize(&segments),
+            [
+                (0.0, "エンジン湧き"),
+                (2.0, "メイン"),
+                (2.8, "シャワーでしおりぬ"),
+            ]
+        );
+    }
+
+    #[test]
+    fn the_last_piece_without_punctuation_still_becomes_a_segment() {
+        let segments = split_into_segments(tokens(&[(0.0, 0.5, "はい"), (0.5, 1.2, "了解")]));
+
+        assert_eq!(summarize(&segments), [(0.0, "はい了解")]);
+    }
+
+    #[test]
+    fn a_segment_ends_when_its_last_token_ends() {
+        let segments = split_into_segments(tokens(&[(0.0, 1.0, "メイン"), (1.0, 1.2, "。")]));
+
+        assert_eq!(segments[0].end_secs, 1.2);
+    }
+
+    #[test]
+    fn punctuation_only_pieces_are_dropped() {
+        let segments = split_into_segments(tokens(&[
+            (0.0, 0.2, "、"),
+            (0.2, 1.0, "メイン"),
+            (1.0, 1.2, "。"),
+        ]));
+
+        assert_eq!(summarize(&segments), [(0.2, "メイン")]);
+    }
     #[test]
     fn defaults_to_three_quarters_of_the_cores() {
         assert_eq!(resolve_thread_count(8, None), 6);

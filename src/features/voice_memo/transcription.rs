@@ -3,7 +3,7 @@
 use super::hotword::{self, Hotword, TurnBoundary};
 use super::{VoiceMemo, VoiceMemoFeature};
 use crate::resources::voice_recorder::SAMPLE_RATE;
-use crate::resources::TranscribeRequest;
+use crate::resources::{RecordedSegment, TranscribeRequest};
 use crate::{log_debug, log_error, log_trace};
 
 impl VoiceMemoFeature {
@@ -25,13 +25,7 @@ impl VoiceMemoFeature {
                 continue;
             }
 
-            for segment in result.segments {
-                let text = segment.text.trim();
-                if text.is_empty() {
-                    continue;
-                }
-                self.apply_segment(segment.start_sample, segment.end_sample, text);
-            }
+            self.apply_segments(result.segments);
         }
 
         // 処理待ちがなくなったらis_processingをfalseに
@@ -94,50 +88,94 @@ impl VoiceMemoFeature {
         })
     }
 
-    /// 書き起こしセグメントを1件取り込む。位置は録音上の絶対サンプル位置。
+    /// 1チャンク分のセグメントを取り込む。位置は録音上の絶対サンプル位置。
     ///
-    /// トリガーワードを含むセグメントは、語の位置で切り分ける。語自体はメモにせず、
-    /// 前の発話はこれから閉じるターンへ、後ろの発話は開いたターンへ入れる。
+    /// 照合はチャンク全体の結合テキストに対して行う。セグメントは句読点で区切られる
+    /// ため、トリガーワードがセグメントをまたいで割れうる（「ターン、開始」など）。
+    ///
+    /// トリガーワードが見つかったら語の位置で切り分ける。語自体はメモにせず、前の
+    /// 発話はこれから閉じるターンへ、後ろの発話は開いたターンへ入れる。
     ///
     /// 録音を取り直した後に前の録音の結果が返ることがある。位置が現在の録音より前の
     /// セグメントは捨てる。
-    pub(super) fn apply_segment(&mut self, start_sample: usize, end_sample: usize, text: &str) {
-        if start_sample < self.recording_start_sample {
+    pub(super) fn apply_segments(&mut self, segments: Vec<RecordedSegment>) {
+        let segments: Vec<RecordedSegment> = segments
+            .into_iter()
+            .filter(|segment| segment.start_sample >= self.recording_start_sample)
+            .collect();
+        if segments.is_empty() {
             return;
         }
 
-        let matched = self.matcher.find(text);
+        // 結合テキストと、各セグメントがその何文字目から何文字目に当たるか
+        let mut joined = String::new();
+        let mut ranges = Vec::with_capacity(segments.len());
+        for segment in &segments {
+            let start = joined.chars().count();
+            joined.push_str(&segment.text);
+            ranges.push(start..joined.chars().count());
+        }
+
+        let matched = self.matcher.find(&joined);
 
         // トリガーワードが外れたときに、認識結果がどうなっていたのかを確かめるための記録。
         // 発話内容そのものなので、既定では出さず RUST_LOG=trace のときだけ出す。
         log_trace!(
             "VoiceMemo",
             &format!(
-                "セグメント [{}, {}) hotword={:?} text={}",
-                start_sample,
-                end_sample,
+                "チャンク {}セグメント hotword={:?} text={}",
+                segments.len(),
                 matched.as_ref().map(|m| m.hotword),
-                text
+                joined
             )
         );
 
         let Some(matched) = matched else {
-            self.push_memo_text(start_sample, text);
+            for segment in &segments {
+                self.push_memo_text(segment.start_sample, &segment.text);
+            }
             return;
         };
 
-        let chars: Vec<char> = text.chars().collect();
-        let at = Self::interpolate(start_sample, end_sample, matched.word_end, chars.len());
+        let boundary = Self::sample_at(&segments, &ranges, matched.word_end);
 
         // 語より前の発話は、これから閉じるターンのもの。境界を動かす前に積む。
-        let before: String = chars[..matched.word_start].iter().collect();
-        self.push_memo_text(start_sample, &before);
+        for (segment, range) in segments.iter().zip(&ranges) {
+            let before = take_chars(
+                &segment.text,
+                matched.word_start.saturating_sub(range.start),
+            );
+            self.push_memo_text(segment.start_sample, &before);
+        }
 
-        self.move_turn_boundary(matched.hotword, at);
+        self.move_turn_boundary(matched.hotword, boundary);
 
         // 語より後ろの発話は、開いたばかりのターンのもの
-        let after: String = chars[matched.word_end..].iter().collect();
-        self.push_memo_text(at, &after);
+        for (segment, range) in segments.iter().zip(&ranges) {
+            let after = skip_chars(&segment.text, matched.word_end.saturating_sub(range.start));
+            self.push_memo_text(segment.start_sample.max(boundary), &after);
+        }
+    }
+
+    /// 結合テキスト上の文字位置を録音上の位置へ直す。
+    fn sample_at(
+        segments: &[RecordedSegment],
+        ranges: &[std::ops::Range<usize>],
+        index: usize,
+    ) -> usize {
+        for (segment, range) in segments.iter().zip(ranges) {
+            if index < range.end {
+                let offset = index.saturating_sub(range.start);
+                return Self::interpolate(
+                    segment.start_sample,
+                    segment.end_sample,
+                    offset,
+                    range.len(),
+                );
+            }
+        }
+
+        segments.last().map_or(0, |segment| segment.end_sample)
     }
 
     /// 中身があればメモとして積む。
@@ -261,6 +299,7 @@ mod tests {
 mod hotword_tests {
     use super::*;
     use crate::features::voice_memo::hotword::BoundaryTracker;
+    use crate::features::voice_memo::Round;
 
     /// クールダウンは検証したい振る舞いではないので無効にしておく。
     fn feature() -> VoiceMemoFeature {
@@ -270,102 +309,118 @@ mod hotword_tests {
         }
     }
 
+    fn segment(start_sample: usize, end_sample: usize, text: &str) -> RecordedSegment {
+        RecordedSegment {
+            start_sample,
+            end_sample,
+            text: text.to_string(),
+        }
+    }
+
+    fn memo_texts(feature: &VoiceMemoFeature, round: usize) -> Vec<&str> {
+        feature.state.rounds[round]
+            .memos
+            .iter()
+            .map(|memo| memo.text.as_str())
+            .collect()
+    }
+
     #[test]
     fn a_start_word_opens_a_turn() {
         let mut feature = feature();
 
-        feature.apply_segment(1000, 2000, "じゃあターン開始します");
+        feature.apply_segments(vec![segment(1000, 2000, "じゃあターン開始します")]);
 
         assert!(feature.state.round_active);
         assert_eq!(feature.state.rounds.len(), 1);
     }
 
     #[test]
-    fn the_turn_starts_after_the_trigger_word_itself() {
+    fn a_trigger_word_split_across_segments_is_still_found() {
         let mut feature = feature();
 
-        feature.apply_segment(1000, 2000, "ターン開始");
+        // 句読点で区切られるため語が割れることがある
+        feature.apply_segments(vec![
+            segment(0, 1000, "はあん"),
+            segment(1000, 2000, "かいし"),
+        ]);
 
-        // ワードの発話そのものはターンに含めない
-        assert_eq!(feature.state.rounds[0].start_sample, 2000);
+        assert!(feature.state.round_active, "分割されたワードを取り逃した");
     }
 
     #[test]
     fn a_trigger_word_does_not_become_a_memo() {
         let mut feature = feature();
 
-        feature.apply_segment(1000, 2000, "ターン開始");
+        feature.apply_segments(vec![segment(1000, 2000, "ターン開始")]);
 
         assert!(feature.state.rounds[0].memos.is_empty());
     }
 
     #[test]
-    fn speech_after_the_trigger_word_in_the_same_segment_is_kept() {
+    fn the_turn_starts_right_after_the_trigger_word() {
         let mut feature = feature();
 
-        // 「ターン開始」に続けて喋ったため1セグメントになった場合
-        feature.apply_segment(0, 1200, "ターン開始、エンジン湧き");
+        // 10文字中5文字目「始」の直後
+        feature.apply_segments(vec![segment(0, 1000, "ターン開始エンジン湧き")]);
 
-        assert_eq!(
-            feature.state.rounds[0]
-                .memos
-                .iter()
-                .map(|m| m.text.as_str())
-                .collect::<Vec<_>>(),
-            ["エンジン湧き"]
-        );
+        assert_eq!(feature.state.rounds[0].start_sample, 454);
     }
 
     #[test]
-    fn the_turn_starts_right_after_the_trigger_word_not_at_the_segment_end() {
+    fn segments_after_the_trigger_word_go_to_the_opened_turn() {
         let mut feature = feature();
 
-        // 12文字中、5文字目「始」の直後で切れてほしい
-        feature.apply_segment(0, 1200, "ターン開始、エンジン湧き");
+        feature.apply_segments(vec![
+            segment(0, 1000, "ターン開始"),
+            segment(1000, 2000, "エンジン湧き"),
+            segment(2000, 3000, "メイン"),
+        ]);
 
-        assert_eq!(feature.state.rounds[0].start_sample, 500);
+        assert_eq!(memo_texts(&feature, 0), ["エンジン湧き", "メイン"]);
     }
 
     #[test]
-    fn speech_before_the_trigger_word_stays_in_the_turn_being_closed() {
+    fn segments_before_the_trigger_word_stay_in_the_turn_being_closed() {
         let mut feature = feature();
-        feature
-            .state
-            .rounds
-            .push(crate::features::voice_memo::Round {
-                start_sample: 0,
-                ..Default::default()
-            });
+        feature.state.rounds.push(Round {
+            start_sample: 0,
+            ..Default::default()
+        });
         feature.state.round_active = true;
 
-        feature.apply_segment(1000, 2000, "エレキ白ターン開始");
+        feature.apply_segments(vec![
+            segment(1000, 2000, "エレキ白"),
+            segment(2000, 3000, "ターン開始"),
+            segment(3000, 4000, "貨物でかえで"),
+        ]);
 
-        assert_eq!(
-            feature.state.rounds[0]
-                .memos
-                .iter()
-                .map(|m| m.text.as_str())
-                .collect::<Vec<_>>(),
-            ["エレキ白"]
-        );
+        assert_eq!(memo_texts(&feature, 0), ["エレキ白"]);
+        assert_eq!(memo_texts(&feature, 1), ["貨物でかえで"]);
     }
 
     #[test]
-    fn speech_after_the_start_word_becomes_a_memo() {
+    fn each_segment_keeps_the_time_it_was_spoken() {
         let mut feature = feature();
-        feature.apply_segment(1000, 2000, "ターン開始");
+        let second = SAMPLE_RATE as usize;
 
-        feature.apply_segment(2000, 3000, "エレキで死体見つけた");
+        feature.apply_segments(vec![
+            segment(0, second, "ターン開始"),
+            segment(second, second * 3, "エンジン湧き"),
+            segment(second * 3, second * 4, "メイン"),
+        ]);
 
-        assert_eq!(feature.state.rounds[0].memos.len(), 1);
+        let memos = &feature.state.rounds[0].memos;
+        assert_eq!(memos[0].timestamp_secs, 0.0);
+        assert_eq!(memos[1].timestamp_secs, 2.0);
     }
 
     #[test]
     fn an_end_word_closes_the_open_turn() {
         let mut feature = feature();
-        feature.apply_segment(1000, 2000, "ターン開始");
+        feature.apply_segments(vec![segment(1000, 2000, "ターン開始")]);
 
-        feature.apply_segment(5000, 6000, "ターン終了");
+        feature.apply_segments(vec![segment(5000, 6000, "ターン終了")]);
 
         assert!(!feature.state.round_active);
         assert_eq!(feature.state.rounds[0].end_sample, Some(6000));
@@ -386,12 +441,20 @@ mod stale_segment_tests {
         }
     }
 
+    fn segment(start_sample: usize, end_sample: usize, text: &str) -> RecordedSegment {
+        RecordedSegment {
+            start_sample,
+            end_sample,
+            text: text.to_string(),
+        }
+    }
+
     #[test]
     fn a_trigger_word_from_a_previous_recording_does_not_open_a_turn() {
         let mut feature = feature();
 
         // 録音停止後に返ってきた前の録音のセグメント
-        feature.apply_segment(100, 200, "ターン開始");
+        feature.apply_segments(vec![segment(100, 200, "ターン開始")]);
 
         assert!(!feature.state.round_active);
         assert!(feature.state.rounds.is_empty());
@@ -401,8 +464,18 @@ mod stale_segment_tests {
     fn a_trigger_word_in_the_current_recording_still_opens_a_turn() {
         let mut feature = feature();
 
-        feature.apply_segment(1000, 1200, "ターン開始");
+        feature.apply_segments(vec![segment(1000, 1200, "ターン開始")]);
 
         assert!(feature.state.round_active);
     }
+}
+
+/// 先頭から `count` 文字。
+fn take_chars(text: &str, count: usize) -> String {
+    text.chars().take(count).collect()
+}
+
+/// 先頭 `count` 文字を落とした残り。
+fn skip_chars(text: &str, count: usize) -> String {
+    text.chars().skip(count).collect()
 }

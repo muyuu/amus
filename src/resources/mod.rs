@@ -31,7 +31,7 @@ pub mod whisper_transcriber;
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub use file_downloader::{download_file, DownloadError, DownloadProgress, IntegrityCheck};
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-pub use transcriber_thread::{TranscribeRequest, TranscriberThread};
+pub use transcriber_thread::{RecordedSegment, TranscribeRequest, TranscriberThread};
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub use voice_recorder::VoiceRecorder;
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
