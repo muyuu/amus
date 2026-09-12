@@ -3,7 +3,9 @@
 //! whisper.cpp を使用して音声データをテキストに変換する。
 
 use thiserror::Error;
-use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
+use whisper_rs::{
+    FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters, WhisperState,
+};
 
 /// Whisper による書き起こしが失敗した理由。
 #[derive(Debug, Error)]
@@ -92,6 +94,11 @@ impl WhisperModel {
 /// Whisperによる音声書き起こし
 pub struct WhisperTranscriber {
     ctx: WhisperContext,
+    /// 推論状態。確保が重い（数百MB）ので使い回す。
+    ///
+    /// `whisper_full` は呼び出しの先頭で結果を破棄するため、跨いで持ち越すものはない。
+    /// トークナイズにしか使わないインスタンスもあるため、最初の書き起こしまで作らない。
+    state: Option<WhisperState>,
 }
 
 impl WhisperTranscriber {
@@ -106,7 +113,7 @@ impl WhisperTranscriber {
         let ctx = WhisperContext::new_with_params(model_path, WhisperContextParameters::default())
             .map_err(TranscribeError::LoadModel)?;
 
-        Ok(Self { ctx })
+        Ok(Self { ctx, state: None })
     }
 
     /// テキストがモデルのトークナイザで何トークンになるかを返す。
@@ -125,7 +132,7 @@ impl WhisperTranscriber {
     /// context: 認識精度向上のためのコンテキスト（プレイヤー名など）
     /// 戻り値: タイムスタンプ付きのテキストセグメント
     pub fn transcribe(
-        &self,
+        &mut self,
         samples: &[f32],
         context: Option<&str>,
     ) -> Result<Vec<TranscriptionSegment>, TranscribeError> {
@@ -146,10 +153,14 @@ impl WhisperTranscriber {
         }
 
         // 書き起こし実行
-        let mut state = self
-            .ctx
-            .create_state()
-            .map_err(TranscribeError::CreateState)?;
+        if self.state.is_none() {
+            self.state = Some(
+                self.ctx
+                    .create_state()
+                    .map_err(TranscribeError::CreateState)?,
+            );
+        }
+        let state = self.state.as_mut().expect("直前に用意している");
 
         state.full(params, samples).map_err(TranscribeError::Run)?;
 

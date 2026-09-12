@@ -126,7 +126,7 @@ impl TranscriberThread {
         use super::whisper_transcriber::WhisperTranscriber;
 
         // Whisperを初期化
-        let transcriber = match WhisperTranscriber::new(&WhisperModel::SMALL.path()) {
+        let mut transcriber = match WhisperTranscriber::new(&WhisperModel::SMALL.path()) {
             Ok(t) => t,
             Err(e) => {
                 log_error!("TranscriberThread", format!("Whisper初期化エラー: {}", e));
