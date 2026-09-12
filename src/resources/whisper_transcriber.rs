@@ -229,9 +229,13 @@ pub fn thread_count() -> usize {
     resolve_thread_count(available, requested)
 }
 
-/// 既定は論理コア数の 75%。上限は割り当てても頭打ちになる範囲、下限は最低限の並列度。
+/// 既定は論理コア数の半分。
+///
+/// 書き起こしの処理時間は音声長にほとんど依存しない固定費で、その大半は 30 秒窓の
+/// エンコードが占める。スレッドを 8 から 12 へ増やしても処理時間は 1 割ほどしか
+/// 縮まないため、残りのコアはゲーム側へ空ける。
 fn resolve_thread_count(available: usize, requested: Option<usize>) -> usize {
-    requested.unwrap_or((available * 3 / 4).clamp(4, 12)).max(1)
+    requested.unwrap_or((available / 2).clamp(4, 8)).max(1)
 }
 
 /// トークン列を句読点で区切ってセグメントにする。
@@ -452,16 +456,16 @@ mod tests {
     }
 
     #[test]
-    fn defaults_to_three_quarters_of_the_cores() {
-        assert_eq!(resolve_thread_count(8, None), 6);
+    fn defaults_to_half_the_cores() {
+        assert_eq!(resolve_thread_count(16, None), 8);
     }
 
     #[test]
     fn keeps_the_default_within_bounds() {
         // 少ないコアでも最低限の並列度は確保する
         assert_eq!(resolve_thread_count(2, None), 4);
-        // 増やしても頭打ちになるため上限で止める
-        assert_eq!(resolve_thread_count(32, None), 12);
+        // 増やしても処理時間はほとんど縮まないため上限で止める
+        assert_eq!(resolve_thread_count(32, None), 8);
     }
 
     #[test]
