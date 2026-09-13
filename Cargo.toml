@@ -56,7 +56,7 @@ eframe = { version = "0.33", features = ["wgpu"] }
 wgpu = { version = "27", features = ["dx12"] }
 
 [target.'cfg(windows)'.build-dependencies]
-winres = { version = "0.1"}
+embed-resource = "3"
 
 # Linux: wgpu + Vulkan
 [target.'cfg(unix)'.dependencies]
