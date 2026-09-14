@@ -7,6 +7,10 @@
 //! 使い方:
 //!   transcribe-check --model small|medium [--gpu vulkan|cuda|metal] \
 //!       [--prompt "テキスト"] <音声ファイル.wav>...
+//!
+//! `--model-path <ファイル>` で、アプリのレジストリに無い任意の GGML ファイルを
+//! 直接指定できる（ダウンロード・SHA-256検証はしない、既に手元にある前提）。
+//! `--model` と併用した場合は `--model-path` が優先される。
 
 use std::process::ExitCode;
 use std::sync::atomic::AtomicBool;
@@ -21,6 +25,7 @@ fn main() -> ExitCode {
 
     let args: Vec<String> = std::env::args().skip(1).collect();
     let mut model = WhisperModel::SMALL;
+    let mut model_path: Option<String> = None;
     let mut gpu = None;
     let mut prompt: Option<String> = None;
     let mut files = Vec::new();
@@ -41,6 +46,14 @@ fn main() -> ExitCode {
                         return ExitCode::FAILURE;
                     }
                 };
+                i += 2;
+            }
+            "--model-path" => {
+                let Some(value) = args.get(i + 1) else {
+                    eprintln!("--model-path には値が要ります");
+                    return ExitCode::FAILURE;
+                };
+                model_path = Some(value.clone());
                 i += 2;
             }
             "--gpu" => {
@@ -76,22 +89,33 @@ fn main() -> ExitCode {
 
     if files.is_empty() {
         eprintln!(
-            "使い方: transcribe-check --model small|medium [--gpu vulkan|cuda|metal] \\\n    [--prompt \"テキスト\"] <音声ファイル.wav>..."
+            "使い方: transcribe-check --model small|medium | --model-path <ファイル> \\\n    [--gpu vulkan|cuda|metal] [--prompt \"テキスト\"] <音声ファイル.wav>..."
         );
         return ExitCode::FAILURE;
     }
 
-    if !model.exists() {
-        println!(
-            "モデル {} が未取得のためダウンロードします（{}）...",
-            model.name(),
-            model.size_label()
-        );
-        if let Err(e) = download_model(model) {
-            eprintln!("ダウンロードに失敗: {e}");
+    let model = if let Some(path) = model_path {
+        let path: &'static str = Box::leak(path.into_boxed_str());
+        let model = WhisperModel::at_path(path);
+        if !model.exists() {
+            eprintln!("指定されたモデルファイルが見つかりません: {path}");
             return ExitCode::FAILURE;
         }
-    }
+        model
+    } else {
+        if !model.exists() {
+            println!(
+                "モデル {} が未取得のためダウンロードします（{}）...",
+                model.name(),
+                model.size_label()
+            );
+            if let Err(e) = download_model(model) {
+                eprintln!("ダウンロードに失敗: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+        model
+    };
 
     let setup = TranscribeSetup { gpu, model };
     let mut transcriber = match WhisperTranscriber::new(setup) {
