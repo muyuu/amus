@@ -214,8 +214,10 @@ impl VoiceMemoFeature {
             return;
         };
 
-        let context =
-            prompt::build_recognition_context(vocabulary, |text| transcriber.count_tokens(text));
+        let budget = transcriber.setup().model.prompt_token_budget();
+        let context = prompt::build_recognition_context(vocabulary, budget, |text| {
+            transcriber.count_tokens(text)
+        });
 
         // 認識結果が期待と違うとき、語彙がプロンプトに載っていないのか、載った上で
         // モデルが採用しなかったのかを切り分けるために残す。発話内容ではなく設定値。

@@ -116,9 +116,13 @@ impl RecordingBuffer {
 
 /// 録音コールバックを作る。
 ///
-/// デバイスから届くインターリーブされたサンプルの先頭チャンネルだけを取り、
+/// デバイスから届くインターリーブされたサンプルを全チャンネル平均でモノラル化し、
 /// `SAMPLE_RATE` へ変換してバッファへ積む。リサンプラはチャンクをまたいで
 /// 位相を保つ必要があるため、クロージャが保持する。
+///
+/// 先頭チャンネルだけを使うと、マイクの実信号が別チャンネルにしか乗っていない
+/// 環境（ステレオデバイスの片chだけに入力がある等）でほぼ無音を拾ってしまう。
+/// 平均を取ればどちらのchに信号があっても取りこぼさない。
 fn capture<T: Copy>(
     buffer: Arc<Mutex<RecordingBuffer>>,
     channels: usize,
@@ -133,7 +137,7 @@ fn capture<T: Copy>(
         mono.clear();
         mono.extend(
             data.chunks(channels)
-                .filter_map(|frame| frame.first().map(|&s| to_f32(s))),
+                .map(|frame| frame.iter().map(|&s| to_f32(s)).sum::<f32>() / frame.len() as f32),
         );
 
         let mut buffer = lock_recover(&buffer);

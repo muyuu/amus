@@ -65,19 +65,44 @@ impl WhisperModel {
         expected_bytes: 487_601_967,
     };
 
-    /// 約1.5GB。GPU バックエンドを含むビルドで使う。
-    pub const MEDIUM: Self = Self {
-        file_name: "ggml-medium.bin",
-        url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-medium.bin",
-        sha256: "6c14d5adee5f86394037b4e4e8b59f1673b6cee10e3cf0b11bbdbee79c156208",
-        expected_bytes: 1_533_763_059,
+    /// 約1.4GB。GPU バックエンドを含むビルドで使う。
+    ///
+    /// distil-whisper-large-v3 ベースの日本語特化モデル（kotoba-whisper-v2.0）。
+    /// エンコーダは large-v3 のフルサイズをそのまま使うため CPU では small より
+    /// はるかに遅く実用にならないが、GPU ならその差はほぼ吸収される。ReazonSpeech
+    /// （日本のTV音声）で学習されており、雑談寄りの音声で multilingual な
+    /// large-v3/medium より高い精度が出るとされる。
+    ///
+    /// デコーダが2層しかなく、長い initial_prompt を渡すと生成が空になる
+    /// （0セグメント）不具合が実測で確認されている。詳細は
+    /// [`Self::prompt_token_budget`] を参照。
+    pub const KOTOBA_V2: Self = Self {
+        file_name: "ggml-kotoba-whisper-v2.0.bin",
+        url: "https://huggingface.co/kotoba-tech/kotoba-whisper-v2.0-ggml/resolve/e3a0cf6a62b95911703cfb97d819292e058f12c3/ggml-kotoba-whisper-v2.0.bin",
+        sha256: "eff70a8a236e731abba774ba71e1f6d0fce53302137208c32207e694e0bf4546",
+        expected_bytes: 1_519_521_155,
     };
 
-    /// モデルの通称（`small` / `medium`）。ログや画面に出す。
+    /// モデルの通称（`small` / `kotoba-whisper-v2.0`）。ログや画面に出す。
     pub fn name(&self) -> &'static str {
         self.file_name
             .trim_start_matches("ggml-")
             .trim_end_matches(".bin")
+    }
+
+    /// `initial_prompt` に安全に渡せるトークン数の上限。
+    ///
+    /// アーキテクチャ上の上限は `n_text_ctx / 2`（[`crate::resources::whisper_prompt::PROMPT_TOKEN_LIMIT`]、224）
+    /// だが、これは「壊れずに載る」上限であって「壊れずに動く」上限ではない。
+    /// kotoba-whisper-v2.0 は実機で 103トークンは正常、165トークンで生成が
+    /// 空になる（0セグメント）ことを確認した。デコーダが2層しかなく、長い
+    /// 条件文を正しく扱いきれないためと見られる。安全マージンを見て90に抑える。
+    pub fn prompt_token_budget(&self) -> usize {
+        if *self == Self::KOTOBA_V2 {
+            90
+        } else {
+            crate::resources::whisper_prompt::PROMPT_TOKEN_LIMIT
+        }
     }
 
     /// ダウンロード量の目安表記。`約 466 MB` / `約 1.4 GB` のような形。
@@ -221,6 +246,11 @@ impl WhisperTranscriber {
         params.set_single_segment(false);
         // トークンごとの時刻を求めさせる。セグメントを句読点で区切り直すのに使う。
         params.set_token_timestamps(true);
+        // whisper.cpp 内蔵の無音判定を無効化する。VAD（vad.rs）で発話と判定した区間
+        // しか渡していないため二重にゲートする意味がなく、モデルによっては無音確率の
+        // 較正がずれて全区間を無音扱いしてしまう（kotoba-whisper の 2 層デコーダで
+        // 全セグメントが 0 件になる不具合が実際に起きた）。
+        params.set_no_speech_thold(1.0);
 
         if let Some(ctx) = context {
             params.set_initial_prompt(ctx);
@@ -540,5 +570,193 @@ mod tests {
     #[test]
     fn zero_threads_is_not_a_valid_request() {
         assert_eq!(resolve_thread_count(8, Some(0)), 1);
+    }
+}
+
+/// 用意した音声サンプルで実際の書き起こし精度を確認する。
+///
+/// `test-audio/` 配下に `<名前>.mp3` と、期待する書き起こし文を書いた `<名前>.txt` を
+/// 同名で置くと、それぞれ書き起こして期待テキストとの一致率を表示する。個人の録音を
+/// 扱うためリポジトリには含めず（`.gitignore` 参照）、手元でのモデル比較用に使う。
+/// CI では使わない。
+///
+/// 実行: cargo test --release --lib -- --ignored --nocapture verify_recognition
+#[cfg(test)]
+mod recognition_check {
+    use super::*;
+    use crate::resources::resampler::Resampler;
+    use crate::resources::voice_recorder::SAMPLE_RATE;
+    use crate::resources::TranscribeSetup;
+    use std::path::Path;
+
+    #[test]
+    #[ignore]
+    fn verify_recognition_against_fixtures() {
+        let dir = Path::new("test-audio");
+        if !dir.exists() {
+            println!(
+                "test-audio/ が見つからない。<名前>.mp3 と、期待する書き起こし文を書いた \
+                 <名前>.txt を置くと使える。"
+            );
+            return;
+        }
+
+        let mut cases: Vec<_> = std::fs::read_dir(dir)
+            .expect("test-audio の読み込みに失敗")
+            .filter_map(|e| e.ok())
+            .map(|e| e.path())
+            .filter(|p| p.extension().is_some_and(|ext| ext == "mp3"))
+            .collect();
+        cases.sort();
+
+        if cases.is_empty() {
+            println!("test-audio/ に .mp3 が無い");
+            return;
+        }
+
+        let mut transcriber =
+            WhisperTranscriber::new(TranscribeSetup::CPU).expect("モデルの読み込みに失敗");
+
+        let mut total_similarity = 0.0;
+        for mp3_path in &cases {
+            let txt_path = mp3_path.with_extension("txt");
+            let expected = std::fs::read_to_string(&txt_path)
+                .unwrap_or_else(|_| panic!("{} が無い", txt_path.display()));
+            let expected = expected.trim();
+
+            let samples = decode_mp3_as_16k_mono(mp3_path);
+            let segments = transcriber
+                .transcribe(&samples, None)
+                .expect("書き起こしに失敗");
+            let actual: String = segments.iter().map(|s| s.text.as_str()).collect();
+
+            let sim = similarity(expected, &actual);
+            total_similarity += sim;
+
+            println!("\n[{}]", mp3_path.file_name().unwrap().to_string_lossy());
+            println!("  期待: {expected}");
+            println!("  実際: {actual}");
+            println!("  一致率: {:.0}%", sim * 100.0);
+        }
+
+        println!(
+            "\n=== 平均一致率: {:.0}% ({}件) ===",
+            total_similarity / cases.len() as f64,
+            cases.len()
+        );
+    }
+
+    /// mp3 を読み、Whisper が要求する 16kHz mono f32 へ変換する。
+    fn decode_mp3_as_16k_mono(path: &Path) -> Vec<f32> {
+        use symphonia::core::audio::SampleBuffer;
+        use symphonia::core::codecs::{DecoderOptions, CODEC_TYPE_NULL};
+        use symphonia::core::formats::FormatOptions;
+        use symphonia::core::io::MediaSourceStream;
+        use symphonia::core::meta::MetadataOptions;
+        use symphonia::core::probe::Hint;
+
+        let file = std::fs::File::open(path)
+            .unwrap_or_else(|e| panic!("{} を開けない: {e}", path.display()));
+        let mss = MediaSourceStream::new(Box::new(file), Default::default());
+
+        let mut hint = Hint::new();
+        hint.with_extension("mp3");
+
+        let probed = symphonia::default::get_probe()
+            .format(
+                &hint,
+                mss,
+                &FormatOptions::default(),
+                &MetadataOptions::default(),
+            )
+            .expect("mp3 のフォーマット判定に失敗");
+        let mut format = probed.format;
+
+        let track = format
+            .tracks()
+            .iter()
+            .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
+            .expect("音声トラックが無い")
+            .clone();
+        let track_id = track.id;
+        let src_rate = track.codec_params.sample_rate.expect("サンプルレート不明");
+        let channels = track
+            .codec_params
+            .channels
+            .map(|c| c.count())
+            .unwrap_or(1)
+            .max(1);
+
+        let mut decoder = symphonia::default::get_codecs()
+            .make(&track.codec_params, &DecoderOptions::default())
+            .expect("デコーダの作成に失敗");
+
+        let mut mono = Vec::new();
+        while let Ok(packet) = format.next_packet() {
+            if packet.track_id() != track_id {
+                continue;
+            }
+            let Ok(decoded) = decoder.decode(&packet) else {
+                continue;
+            };
+
+            let mut buf = SampleBuffer::<f32>::new(decoded.capacity() as u64, *decoded.spec());
+            buf.copy_interleaved_ref(decoded);
+            mono.extend(
+                buf.samples()
+                    .chunks(channels)
+                    .map(|frame| frame.iter().sum::<f32>() / channels as f32),
+            );
+        }
+
+        let mut resampler = Resampler::new(src_rate, SAMPLE_RATE);
+        let mut out = Vec::new();
+        resampler.process(&mono, |s| out.push(s));
+        out
+    }
+
+    /// 文字ベースの編集距離から一致率(0.0〜1.0)を求める。句読点や表記揺れも
+    /// 違いとして数えるため、大まかな目安として使う。
+    fn similarity(expected: &str, actual: &str) -> f64 {
+        let a: Vec<char> = expected.chars().collect();
+        let b: Vec<char> = actual.chars().collect();
+        let max_len = a.len().max(b.len());
+        if max_len == 0 {
+            return 1.0;
+        }
+
+        1.0 - (levenshtein(&a, &b) as f64 / max_len as f64)
+    }
+
+    fn levenshtein(a: &[char], b: &[char]) -> usize {
+        let mut prev: Vec<usize> = (0..=b.len()).collect();
+        let mut curr = vec![0; b.len() + 1];
+
+        for (i, &ca) in a.iter().enumerate() {
+            curr[0] = i + 1;
+            for (j, &cb) in b.iter().enumerate() {
+                let cost = if ca == cb { 0 } else { 1 };
+                curr[j + 1] = (prev[j + 1] + 1).min(curr[j] + 1).min(prev[j] + cost);
+            }
+            std::mem::swap(&mut prev, &mut curr);
+        }
+
+        prev[b.len()]
+    }
+
+    #[test]
+    fn similarity_is_1_for_identical_text() {
+        assert_eq!(similarity("エレキで会った", "エレキで会った"), 1.0);
+    }
+
+    #[test]
+    fn similarity_drops_with_edits() {
+        let sim = similarity("エレキで会った", "エレキで会あった");
+        assert!(sim > 0.5 && sim < 1.0, "sim={sim}");
+    }
+
+    #[test]
+    fn similarity_is_1_for_two_empty_strings() {
+        assert_eq!(similarity("", ""), 1.0);
     }
 }

@@ -63,7 +63,7 @@ impl TranscriberThread {
     /// 指定の構成で書き起こしスレッドを起動する。
     ///
     /// モデルの読み込みはスレッド側で行うため、ここで戻ってきてもまだ書き起こせるとは
-    /// 限らない（medium は読み込みに時間がかかる）。
+    /// 限らない（GPU 版のモデルは読み込みに時間がかかる）。
     pub fn new(setup: TranscribeSetup) -> Result<Self, TranscriberThreadError> {
         if !setup.model.exists() {
             return Err(TranscriberThreadError::ModelNotFound(setup.model.path()));

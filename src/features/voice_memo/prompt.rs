@@ -4,7 +4,7 @@
 //! 予算超過時に切り捨てられないよう、重要度の低い部屋名から落とす。
 
 use crate::i18n::words::ja::JapaneseWords;
-use crate::resources::whisper_prompt::{build_prompt, PROMPT_TOKEN_LIMIT};
+use crate::resources::whisper_prompt::build_prompt;
 
 /// 認識コンテキストの元になる語彙。
 ///
@@ -35,12 +35,14 @@ impl Vocabulary {
 
 /// 認識コンテキストを組み立てる。
 ///
+/// `budget` はモデルごとの安全なトークン上限（[`crate::resources::whisper_transcriber::WhisperModel::prompt_token_budget`]）。
 /// `count_tokens` は文字列のトークン数を返す。Whisper のトークナイザはモデルに
 /// 紐づくため呼び出し側から渡す。
 ///
 /// 予算に収まらない場合は部屋名から落とす。プレイヤー名と用語は残る。
 pub(super) fn build_recognition_context(
     vocabulary: &Vocabulary,
+    budget: usize,
     count_tokens: impl Fn(&str) -> usize,
 ) -> String {
     let players: Vec<&str> = vocabulary.player_names.iter().map(String::as_str).collect();
@@ -58,7 +60,7 @@ pub(super) fn build_recognition_context(
     // 出さず、出なければターン境界が決まらない。数語なので予算も脅かさない。
     let groups: [&[&str]; 4] = [&players, super::hotword::PROMPT_WORDS, &terms, &rooms];
 
-    build_prompt(&groups, PROMPT_TOKEN_LIMIT, count_tokens)
+    build_prompt(&groups, budget, count_tokens)
 }
 
 /// 部屋名の英語表記かどうか。
@@ -100,11 +102,14 @@ mod tests {
         }
     }
 
+    /// 予算を気にしないテストで使う、十分に大きい値。
+    const AMPLE_BUDGET: usize = 1000;
+
     #[test]
     fn carries_the_trigger_words() {
         let vocab = vocabulary(&["ゆう"], &["カフェテリア"]);
 
-        let prompt = build_recognition_context(&vocab, count_chars);
+        let prompt = build_recognition_context(&vocab, AMPLE_BUDGET, count_chars);
 
         // トリガーワードが出力に現れないと検知が成立しない
         assert!(prompt.contains("ターン開始"), "prompt={}", prompt);
@@ -115,7 +120,7 @@ mod tests {
     fn places_player_names_last() {
         let vocab = vocabulary(&["ゆう"], &["カフェテリア"]);
 
-        let prompt = build_recognition_context(&vocab, count_chars);
+        let prompt = build_recognition_context(&vocab, AMPLE_BUDGET, count_chars);
 
         assert!(
             prompt.ends_with("ゆう"),
@@ -128,7 +133,7 @@ mod tests {
     fn drops_english_room_aliases() {
         let vocab = vocabulary(&[], &["カフェテリア", "Cafeteria", "リアクター", "Reactor"]);
 
-        let prompt = build_recognition_context(&vocab, count_chars);
+        let prompt = build_recognition_context(&vocab, AMPLE_BUDGET, count_chars);
 
         assert!(prompt.contains("カフェテリア"), "実際: {prompt}");
         assert!(
@@ -143,10 +148,7 @@ mod tests {
         // 予算を用語とプレイヤー名だけで埋まる程度に絞る。
         let budget = game_terms().join("、").chars().count() + "、ゆう".chars().count();
 
-        let prompt = build_recognition_context(&vocab, move |t| {
-            // PROMPT_TOKEN_LIMIT を budget とみなすよう文字数を換算する。
-            t.chars().count() * PROMPT_TOKEN_LIMIT / budget
-        });
+        let prompt = build_recognition_context(&vocab, budget, count_chars);
 
         assert!(prompt.ends_with("ゆう"), "プレイヤー名が落ちた: {prompt}");
         assert!(
@@ -195,7 +197,9 @@ mod verification {
                 room_names: rooms,
             };
 
-            let prompt = build_recognition_context(&vocabulary, |t| transcriber.count_tokens(t));
+            let budget = transcriber.setup().model.prompt_token_budget();
+            let prompt =
+                build_recognition_context(&vocabulary, budget, |t| transcriber.count_tokens(t));
             let tokens = transcriber.count_tokens(&prompt);
             let kept_rooms = rooms.iter().filter(|r| prompt.contains(**r)).count();
 

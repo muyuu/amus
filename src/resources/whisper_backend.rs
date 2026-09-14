@@ -69,7 +69,7 @@ impl TranscribeSetup {
         Self::select(compiled_backend())
     }
 
-    /// 何で動いているかを一目で示す表記。`Vulkan / medium` のような形。
+    /// 何で動いているかを一目で示す表記。`Vulkan / kotoba-whisper-v2.0` のような形。
     ///
     /// 認識がおかしいときに、GPU が効いているのか・どのモデルなのかを確かめる手がかり。
     pub fn label(&self) -> String {
@@ -81,7 +81,7 @@ impl TranscribeSetup {
         match available {
             Some(gpu) => Self {
                 gpu: Some(gpu),
-                model: WhisperModel::MEDIUM,
+                model: WhisperModel::KOTOBA_V2,
             },
             None => Self::CPU,
         }
@@ -97,7 +97,7 @@ mod tests {
         let setup = TranscribeSetup::select(Some(GpuBackend::Vulkan));
 
         assert_eq!(setup.gpu, Some(GpuBackend::Vulkan));
-        assert_eq!(setup.model, WhisperModel::MEDIUM);
+        assert_eq!(setup.model, WhisperModel::KOTOBA_V2);
     }
 
     #[test]

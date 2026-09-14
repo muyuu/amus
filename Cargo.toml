@@ -58,6 +58,10 @@ wgpu = { version = "27", features = ["dx12"] }
 [target.'cfg(windows)'.build-dependencies]
 embed-resource = "3"
 
+# 音声認識の検証テスト（test-audio/ 配下の mp3 を読む）専用。開発時のみ使う。
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+symphonia = { version = "0.5", default-features = false, features = ["mp3"] }
+
 # Linux: wgpu + Vulkan
 [target.'cfg(unix)'.dependencies]
 eframe = { version = "0.33", features = ["wgpu"] }
