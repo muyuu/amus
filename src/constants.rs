@@ -5,11 +5,15 @@ pub struct AppConstants;
 impl AppConstants {
     pub const DEFAULT_FONT_SIZE: f32 = 16.0;
 
-    /// UI 拡大率（pixels_per_point）のユーザー指定可能な範囲と刻み。
+    /// UI 拡大率（pixels_per_point）のユーザー指定可能な範囲。
     /// 範囲外の値は設定時にクランプされる。
     pub const UI_SCALE_MIN: f32 = 0.5;
     pub const UI_SCALE_MAX: f32 = 3.0;
-    pub const UI_SCALE_STEP: f32 = 0.25;
+
+    /// 軌跡描画の線の太さのユーザー指定可能な範囲。
+    pub const ROUTE_LINE_WIDTH_MIN: f32 = 2.0;
+    pub const ROUTE_LINE_WIDTH_MAX: f32 = 16.0;
+    pub const ROUTE_LINE_WIDTH_DEFAULT: f32 = 6.0;
 
     /// アプリの地の色。
     ///
@@ -25,7 +29,6 @@ impl AppConstants {
 pub struct PanelIds;
 impl PanelIds {
     pub const PLAYER_INFO: &str = "player_info_panel";
-    pub const MENU: &str = "menu_panel";
 }
 
 pub struct GridIds;
@@ -42,6 +45,7 @@ pub struct SelectIds;
 impl SelectIds {
     pub const SETUP_AREA: &str = "setup_area_select";
     pub const SETUP_PLAYER_COLOR: &str = "setup_player_color_select";
+    pub const SETTINGS_UI_SCALE: &str = "settings_ui_scale_select";
 }
 
 pub struct ContextIds;

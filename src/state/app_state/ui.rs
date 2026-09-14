@@ -1,5 +1,6 @@
 use crate::constants::AppConstants;
 use crate::models::{Area, PlayerId};
+use crate::state::SettingsTab;
 
 use super::AppState;
 
@@ -7,6 +8,32 @@ use super::AppState;
 impl AppState {
     pub fn show_setup_dialog(&self) -> bool {
         self.data.show_setup_dialog
+    }
+
+    pub fn show_settings(&self) -> bool {
+        self.data.show_settings
+    }
+
+    /// 設定モーダルの表示を切り替える。
+    pub fn toggle_settings(&mut self) {
+        self.data.show_settings = !self.data.show_settings;
+    }
+
+    /// 設定モーダルを閉じる。
+    pub fn close_settings(&mut self) {
+        self.data.show_settings = false;
+    }
+
+    pub fn set_settings_tab(&mut self, tab: SettingsTab) {
+        self.data.settings_tab = tab;
+    }
+
+    /// 軌跡描画の線の太さを設定する。値は有効範囲へクランプされる。
+    pub fn set_route_line_width(&mut self, width: f32) {
+        self.data.route_line_width = width.clamp(
+            AppConstants::ROUTE_LINE_WIDTH_MIN,
+            AppConstants::ROUTE_LINE_WIDTH_MAX,
+        );
     }
 
     /// UI 拡大率。`None` はネイティブ DPI 追従（明示的な上書きをしない）、
@@ -79,5 +106,36 @@ mod tests {
         state.set_ui_scale(2.0);
         state.reset_ui_scale();
         assert_eq!(state.ui_scale(), None);
+    }
+
+    #[test]
+    fn set_route_line_width_clamps_to_range() {
+        let mut state = AppState::new();
+
+        state.set_route_line_width(10.0);
+        assert_eq!(state.slices().ui().route_line_width(), 10.0);
+
+        state.set_route_line_width(99.0);
+        assert_eq!(
+            state.slices().ui().route_line_width(),
+            AppConstants::ROUTE_LINE_WIDTH_MAX
+        );
+
+        state.set_route_line_width(0.0);
+        assert_eq!(
+            state.slices().ui().route_line_width(),
+            AppConstants::ROUTE_LINE_WIDTH_MIN
+        );
+    }
+
+    #[test]
+    fn toggle_settings_flips_visibility() {
+        let mut state = AppState::new();
+
+        assert!(!state.show_settings());
+        state.toggle_settings();
+        assert!(state.show_settings());
+        state.close_settings();
+        assert!(!state.show_settings());
     }
 }

@@ -4,6 +4,7 @@ use crate::app_action::AppAction;
 use crate::constants::{AppConstants, PanelIds};
 use crate::features::main::MainView;
 use crate::features::player_info::PlayerInfoFeature;
+use crate::features::settings::SettingsFeature;
 use crate::features::setup_dialog::SetupDialogFeature;
 use crate::features::StatefulFeatures;
 use crate::i18n::keys;
@@ -104,11 +105,15 @@ impl eframe::App for AmusApp {
         #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
         self.features.voice_memo.update(&mut self.resources, ctx);
 
-        // 上部のメニュー（アプリシェル）
-        self.build_menu_ui(ctx, frame);
-
         // ② 描画して Action を収集
-        let actions = self.build_main_ui(ctx, frame);
+        let mut actions = self.build_main_ui(ctx, frame);
+
+        // 設定モーダルはゲーム画面を覆い隠さず、上に重ねて描く
+        // （軌跡の太さなど、背後を見ながら変更したい設定があるため）。
+        if self.state.show_settings() {
+            let slices = self.state.slices();
+            actions.extend(SettingsFeature::render(&slices, ctx));
+        }
 
         // ③ Action を 1 箇所で dispatch
         self.handle_actions(actions);
@@ -139,13 +144,66 @@ impl AmusApp {
             });
         actions.extend(side.inner);
 
-        // 残りの中央領域
+        // 残りの中央領域（設定・リセットのアイコンはここに重ねる。倍率やデバイスは
+        // ゲームのライフサイクルと無関係なので、アプリシェルとして直接 state を触る）
+        let mut toggle_settings = false;
+        let mut toggle_setup = false;
         let central = CentralPanel::default()
             .frame(Self::get_frame())
-            .show(ctx, |ui| MainView::render(&slices, features, ui));
+            .show(ctx, |ui| {
+                Self::render_shell_icons(&slices, ui, &mut toggle_settings, &mut toggle_setup);
+                MainView::render(&slices, features, ui)
+            });
         actions.extend(central.inner);
 
+        if toggle_settings {
+            self.state.toggle_settings();
+        }
+        if toggle_setup {
+            self.state.toggle_setup_dialog();
+        }
+
         actions
+    }
+
+    /// メイン画面右上の設定・リセットアイコン（アプリシェル）。
+    fn render_shell_icons(
+        slices: &crate::state::Slices<'_>,
+        ui: &mut Ui,
+        toggle_settings: &mut bool,
+        toggle_setup: &mut bool,
+    ) {
+        // 通常の button() の倍サイズ（アイコン文字・当たり判定とも）。
+        let icon_text_size = 28.0;
+        let icon_button_size = Vec2::new(48.0, 48.0);
+        // 画面端との余白。
+        let margin = 8.0;
+
+        ui.add_space(margin);
+        ui.horizontal(|ui| {
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                ui.add_space(margin);
+                let gear =
+                    Button::new(RichText::new("⚙").size(icon_text_size)).min_size(icon_button_size);
+                if ui
+                    .add(gear)
+                    .on_hover_text(slices.t(keys::SETTINGS_TITLE))
+                    .clicked()
+                {
+                    *toggle_settings = true;
+                }
+                let reset = Button::new(RichText::new("🔄").size(icon_text_size))
+                    .min_size(icon_button_size);
+                if ui
+                    .add(reset)
+                    .on_hover_text(slices.t(keys::SETTINGS_RESET_GAME))
+                    .clicked()
+                {
+                    *toggle_setup = true;
+                }
+            });
+        });
+        ui.add_space(margin);
     }
 
     /// 全 Feature が返した Action を 1 箇所で dispatch する（中央 dispatch の③）。
@@ -159,6 +217,7 @@ impl AmusApp {
                 AppAction::RouteDrawing(a) => Actions::new(&mut self.state).handle_route_drawing(a),
                 AppAction::Eraser(a) => Actions::new(&mut self.state).handle_eraser(a),
                 AppAction::Setup(a) => Actions::new(&mut self.state).handle_setup(a),
+                AppAction::Settings(a) => Actions::new(&mut self.state).handle_settings(a),
                 AppAction::Wave(a) => Actions::new(&mut self.state).handle_wave(a),
                 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
                 AppAction::VoiceMemo(a) => self
@@ -166,79 +225,6 @@ impl AmusApp {
                     .voice_memo
                     .handle_action(&mut self.resources, a),
             }
-        }
-    }
-
-    fn build_menu_ui(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
-        let mut toggle_setup = false;
-        #[cfg(debug_assertions)]
-        let mut toggle_debug = false;
-        // UI 拡大率の操作（右から left_to_right で並ぶため、視覚順とは逆に積まれる）
-        let mut scale_inc = false;
-        let mut scale_dec = false;
-        let mut scale_auto = false;
-
-        TopBottomPanel::top(PanelIds::MENU)
-            .resizable(false)
-            .default_height(50.0)
-            .frame(Self::get_frame())
-            .show(ctx, |ui| {
-                ui.horizontal(|ui| {
-                    // 左: アプリのバージョン（ビルド時の Cargo.toml の値）
-                    ui.weak(concat!("v", env!("CARGO_PKG_VERSION")));
-
-                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        // リセットボタン
-                        if ui.button("🔄 リセット").clicked() {
-                            toggle_setup = true;
-                        }
-
-                        // デバッグボタン
-                        #[cfg(debug_assertions)]
-                        if ui.button("🐛 デバッグ").clicked() {
-                            toggle_debug = true;
-                        }
-
-                        // UI 拡大率コントロール（現在の実効倍率を % 表示し ±/auto で操作）
-                        ui.separator();
-                        if ui
-                            .small_button("auto")
-                            .on_hover_text("DPI に追従")
-                            .clicked()
-                        {
-                            scale_auto = true;
-                        }
-                        if ui.small_button("＋").clicked() {
-                            scale_inc = true;
-                        }
-                        ui.label(format!("{:.0}%", ui.ctx().pixels_per_point() * 100.0));
-                        if ui.small_button("−").clicked() {
-                            scale_dec = true;
-                        }
-                        ui.label("🔍");
-                    });
-                });
-            });
-
-        if toggle_setup {
-            self.state.toggle_setup_dialog();
-        }
-        #[cfg(debug_assertions)]
-        if toggle_debug {
-            self.state.toggle_debug_view();
-        }
-        // 現在の実効倍率を基準に増減（None=自動状態からでも自然に明示倍率へ移行する）
-        let current_ppp = ctx.pixels_per_point();
-        if scale_inc {
-            self.state
-                .set_ui_scale(current_ppp + AppConstants::UI_SCALE_STEP);
-        }
-        if scale_dec {
-            self.state
-                .set_ui_scale(current_ppp - AppConstants::UI_SCALE_STEP);
-        }
-        if scale_auto {
-            self.state.reset_ui_scale();
         }
     }
 

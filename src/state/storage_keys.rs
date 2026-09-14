@@ -19,4 +19,7 @@ impl StorageKeys {
 
     /// UI 拡大率（None = ネイティブ DPI 追従）
     pub const UI_SCALE: &'static str = "ui_scale";
+
+    /// 軌跡描画の線の太さ
+    pub const ROUTE_LINE_WIDTH: &'static str = "route_line_width";
 }

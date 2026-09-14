@@ -87,5 +87,18 @@ pub fn translate(key: TextKey) -> String {
         VoiceMemoRecordHint => W::RECORD_BUTTON_HINT.to_string(),
         VoiceMemoMemoCount => W::NOTES.to_string(),
         VoiceMemoTurnTime => format!("{} {}", W::TURN, W::TIME),
+        SettingsTitle => W::SETTINGS.to_string(),
+        SettingsTabGame => W::GAME.to_string(),
+        SettingsTabDisplay => W::DISPLAY.to_string(),
+        SettingsTabVoice => W::VOICE.to_string(),
+        SettingsTabApp => W::APP.to_string(),
+        SettingsRouteLineWidth => format!("Route {}", W::WIDTH),
+        SettingsUiScale => "UI Scale".to_string(),
+        SettingsUiScaleAuto => "Follow display DPI".to_string(),
+        SettingsVoicePlaceholder => "No settings yet".to_string(),
+        SettingsAppVersion => W::VERSION.to_string(),
+        SettingsDebugToggle => "🐛 Debug view".to_string(),
+        SettingsClose => W::CLOSE.to_string(),
+        SettingsResetGame => format!("{} {}", W::RESET, W::GAME),
     }
 }

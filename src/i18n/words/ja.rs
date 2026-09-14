@@ -19,6 +19,8 @@ impl JapaneseWords {
     pub const CLEAR: &'static str = "クリア";
     pub const RECORD: &'static str = "録音";
     pub const DOWNLOAD: &'static str = "ダウンロード";
+    pub const RESET: &'static str = "リセット";
+    pub const CLOSE: &'static str = "閉じる";
 
     // 基本名詞
     pub const GAME: &'static str = "ゲーム";
@@ -45,6 +47,11 @@ impl JapaneseWords {
     pub const TIME: &'static str = "時間";
     pub const SECOND: &'static str = "秒";
     pub const ITEM: &'static str = "件";
+    pub const DISPLAY: &'static str = "画面";
+    pub const VOICE: &'static str = "音声";
+    pub const APP: &'static str = "アプリ";
+    pub const WIDTH: &'static str = "太さ";
+    pub const VERSION: &'static str = "バージョン";
 
     // 音声メモ関連
     pub const VOICE_MEMO: &'static str = "音声メモ";

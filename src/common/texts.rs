@@ -7,6 +7,7 @@ pub struct CommonTexts {
     pub button_new_game: String,
     pub button_start_game: String,
     pub button_cancel: String,
+    pub button_close: String,
 }
 
 impl CommonTexts {
@@ -16,6 +17,7 @@ impl CommonTexts {
             button_new_game: slices.t(MENU_NEW_GAME),
             button_start_game: slices.t(SETUP_START_GAME),
             button_cancel: slices.t(SETUP_CANCEL),
+            button_close: slices.t(SETTINGS_CLOSE),
         }
     }
 }

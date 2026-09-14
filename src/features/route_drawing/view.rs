@@ -146,13 +146,19 @@ impl RouteDrawingView {
             Some(p) => p,
             None => return,
         };
+        let stroke_width = slices.ui().route_line_width();
+        let color = to_egui_color(&player.color);
 
         for line in route.lines.iter() {
             let mut prev_pos = if let Some(first_point) = line.first() {
-                pos2(
+                let p = pos2(
                     rect.min.x + first_point.x * rect.size().x,
                     rect.min.y + first_point.y * rect.size().y,
-                )
+                );
+                // line_segment 同士の継ぎ目は太さが増すほど隙間が目立つため、
+                // 各点に丸を重ねて途切れないようにする。
+                painter.circle_filled(p, stroke_width / 2.0, color);
+                p
             } else {
                 return;
             };
@@ -163,11 +169,8 @@ impl RouteDrawingView {
                     rect.min.x + point.x * rect.size().x,
                     rect.min.y + point.y * rect.size().y,
                 );
-                let stroke_width = 6.0;
-                painter.line_segment(
-                    [prev_pos, pos],
-                    (stroke_width, to_egui_color(&player.color)),
-                );
+                painter.line_segment([prev_pos, pos], (stroke_width, color));
+                painter.circle_filled(pos, stroke_width / 2.0, color);
                 prev_pos = pos;
             }
         }

@@ -4,6 +4,7 @@ mod location;
 mod player;
 mod player_info;
 mod route_drawing;
+mod settings;
 mod setup;
 mod wave;
 
@@ -13,6 +14,7 @@ pub use location::LocationAction;
 pub use player::PlayerAction;
 pub use player_info::PlayerInfoAction;
 pub use route_drawing::RouteDrawingAction;
+pub use settings::SettingsAction;
 pub use setup::SetupAction;
 pub use wave::WaveAction;
 

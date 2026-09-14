@@ -6,6 +6,7 @@ pub mod map;
 pub mod player_info;
 pub mod player_list;
 pub mod route_drawing;
+pub mod settings;
 pub mod setup_dialog;
 // voice_memo は録音・Whisper 書き起こし（cpal / whisper-rs）を使うネイティブ専用機能。
 // 重い native 依存を切り離せるよう voice_memo feature（default on）で opt-out 可能。
