@@ -92,7 +92,7 @@ impl WhisperModel {
 
     /// `initial_prompt` に安全に渡せるトークン数の上限。
     ///
-    /// アーキテクチャ上の上限は `n_text_ctx / 2`（[`crate::resources::whisper_prompt::PROMPT_TOKEN_LIMIT`]、224）
+    /// アーキテクチャ上の上限は `n_text_ctx / 2`（[`crate::whisper_prompt::PROMPT_TOKEN_LIMIT`]、224）
     /// だが、これは「壊れずに載る」上限であって「壊れずに動く」上限ではない。
     /// kotoba-whisper-v2.0 は実機で 103トークンは正常、165トークンで生成が
     /// 空になる（0セグメント）ことを確認した。デコーダが2層しかなく、長い
@@ -101,7 +101,7 @@ impl WhisperModel {
         if *self == Self::KOTOBA_V2 {
             90
         } else {
-            crate::resources::whisper_prompt::PROMPT_TOKEN_LIMIT
+            crate::whisper_prompt::PROMPT_TOKEN_LIMIT
         }
     }
 
@@ -584,9 +584,9 @@ mod tests {
 #[cfg(test)]
 mod recognition_check {
     use super::*;
-    use crate::resources::resampler::Resampler;
-    use crate::resources::voice_recorder::SAMPLE_RATE;
-    use crate::resources::TranscribeSetup;
+    use crate::resampler::Resampler;
+    use crate::voice_recorder::SAMPLE_RATE;
+    use crate::whisper_backend::TranscribeSetup;
     use std::path::Path;
 
     #[test]

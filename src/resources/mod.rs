@@ -6,29 +6,25 @@
 //! ## 含まれるリソース
 //!
 //! - `AssetManager` - 画像テクスチャの読み込み・管理（egui context経由）
-//! - `VoiceRecorder` - マイク音声の録音（ネイティブのみ）
-//! - `WhisperTranscriber` - 音声の書き起こし（ネイティブのみ）
-//! - `file_downloader` - 大きなファイルのダウンロード（ネイティブのみ）
+//! - `VoiceRecorder` - マイク音声の録音（ネイティブのみ、`transcribe` クレート）
+//! - `WhisperTranscriber` - 音声の書き起こし（ネイティブのみ、`transcribe` クレート）
+//! - `file_downloader` - 大きなファイルのダウンロード（ネイティブのみ、`transcribe` クレート）
+//!
+//! 音声認識まわりは GUI（egui/wgpu）に依存しない別クレート `transcribe` に切り出して
+//! ある。モデルや認識パラメータの検証をアプリの再ビルドなしに行うため（`transcribe-check`
+//! CLI、詳細は `crates/transcribe`）。ここではそのまま re-export し、既存の呼び出し側
+//! （`crate::resources::whisper_transcriber::...` 等）を変えずに済むようにしている。
 
 pub mod asset_manager;
 
 pub use asset_manager::AssetManager;
 
-// 音声メモ関連リソース（ネイティブのみ）
+// 音声メモ関連リソース（ネイティブのみ、実体は `transcribe` クレート）
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-pub mod file_downloader;
-#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-pub mod resampler;
-#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-pub mod transcriber_thread;
-#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-pub mod voice_recorder;
-#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-pub mod whisper_backend;
-#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-pub mod whisper_prompt;
-#[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-pub mod whisper_transcriber;
+pub use transcribe::{
+    file_downloader, transcriber_thread, voice_recorder, whisper_backend, whisper_prompt,
+    whisper_transcriber,
+};
 
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub use file_downloader::{download_file, DownloadError, DownloadProgress, IntegrityCheck};
