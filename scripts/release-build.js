@@ -25,6 +25,10 @@ if (variant !== "gpu" && variant !== "cpu") {
     process.exit(1);
 }
 
+// 実機でのモデル比較検証用データ収集ビルド。書き起こしチャンクを ./recorded/*.mp3 に
+// 保存する（transcribe クレートの record-audio feature）。配布はしない。
+const recordAudio = process.argv.includes("--record-audio");
+
 const osLabel = OS_LABEL[process.platform];
 if (!osLabel) {
     console.error(`対応していない OS です: ${process.platform}`);
@@ -40,6 +44,8 @@ if (feature) {
     requireVulkanSdk(feature);
 }
 
+const features = [feature, recordAudio ? "record-audio" : null].filter(Boolean);
+
 const env = { ...process.env };
 // GPU 版だけ target を移す。CPU 版は既定のままでよく、分けておけば互いに温まったまま残る。
 const targetDir = variant === "gpu" ? windowsTargetDir() : null;
@@ -47,11 +53,14 @@ if (targetDir) {
     env.CARGO_TARGET_DIR = targetDir;
 }
 
-console.log(`対象: ${osLabel} / ${variant}${feature ? ` (${feature})` : ""}`);
+console.log(`対象: ${osLabel} / ${variant}${features.length ? ` (${features.join(", ")})` : ""}`);
+if (recordAudio) {
+    console.log("※ record-audio 有効: 配布しない。実機データ収集専用のビルド。");
+}
 
 const args = ["build", "--release"];
-if (feature) {
-    args.push("--features", feature);
+if (features.length) {
+    args.push("--features", features.join(","));
 }
 
 const built = spawnSync("cargo", args, {
@@ -68,7 +77,8 @@ const from = path.join(
     "release",
     `memongus${exeSuffix}`,
 );
-const to = path.join("dist", `memongus-${osLabel}-${variant}${exeSuffix}`);
+const suffix = recordAudio ? "-record-audio" : "";
+const to = path.join("dist", `memongus-${osLabel}-${variant}${suffix}${exeSuffix}`);
 
 fs.mkdirSync("dist", { recursive: true });
 fs.copyFileSync(from, to);

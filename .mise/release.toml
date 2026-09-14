@@ -11,3 +11,10 @@ run = "node scripts/release-build.js cpu"
 ["release-gpu"]
 description = "GPU 版のリリースビルドを作る（この OS 向け。Windows/Linux は Vulkan、macOS は Metal）"
 run = "node scripts/release-build.js gpu"
+
+["release-gpu-record-audio"]
+# モデル比較検証用の実機データ収集ビルド。書き起こしチャンクを実行ファイルの隣の
+# ./recorded/*.mp3 に保存する（transcribe クレートの record-audio feature）。
+# 配布はしない。実際にアモアスで使ってもらい、後で複数モデルにかけ直せるデータを集める。
+description = "GPU 版 + 実機データ収集用の音声保存を足したビルド（配布しない）"
+run = "node scripts/release-build.js gpu --record-audio"
