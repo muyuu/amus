@@ -6,6 +6,7 @@
 
 pub mod file_downloader;
 pub mod resampler;
+pub mod speech;
 pub mod transcriber_thread;
 pub mod voice_recorder;
 pub mod whisper_backend;
@@ -13,6 +14,7 @@ pub mod whisper_prompt;
 pub mod whisper_transcriber;
 
 pub use file_downloader::{download_file, DownloadError, DownloadProgress, IntegrityCheck};
+pub use speech::SpeechDetector;
 pub use transcriber_thread::{RecordedSegment, TranscribeRequest, TranscriberThread};
 pub use voice_recorder::VoiceRecorder;
 pub use whisper_backend::TranscribeSetup;

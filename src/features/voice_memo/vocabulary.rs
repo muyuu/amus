@@ -134,4 +134,219 @@ mod tests {
             "さっきタスクやってた"
         );
     }
+
+    /// 候補モデルの生の書き起こし結果に語彙補正をかけ、実際の語彙（プレイヤー名・
+    /// 部屋名・用語）がどれだけ復元できるかを比較する。
+    /// 実行: cargo test --lib -- --ignored --nocapture compare_candidate_models
+    #[test]
+    #[ignore]
+    fn compare_candidate_models() {
+        use crate::i18n::words::ja::JapaneseWords;
+
+        let player_names = [
+            "りょーちゃん",
+            "えんがわ",
+            "しおりぬ",
+            "なあこ",
+            "ふく",
+            "たぬころ",
+            "にゃんばる",
+            "れもん",
+            "かえで",
+            "ぼっくり",
+            "かいくん",
+            "にこ",
+        ];
+        let rooms = JapaneseWords::AIRSHIP_ROOMS
+            .iter()
+            .copied()
+            .filter(|s| !s.chars().all(|c| c.is_ascii_alphabetic() || c == ' '));
+        let terms = [
+            JapaneseWords::SABOTAGE,
+            JapaneseWords::SABOTAGE_COMMS,
+            JapaneseWords::SABOTAGE_LIGHTS,
+            JapaneseWords::SABOTAGE_O2,
+            JapaneseWords::SABOTAGE_REACTOR,
+            JapaneseWords::SABOTAGE_DOORS,
+            JapaneseWords::SPAWN,
+            JapaneseWords::VENT,
+            JapaneseWords::TASK,
+            JapaneseWords::DISCUSSION,
+        ];
+
+        let known: Vec<&str> = player_names
+            .iter()
+            .copied()
+            .chain(terms.iter().copied())
+            .chain(rooms)
+            .collect();
+        let corrector = VocabularyCorrector::new(known.iter().copied());
+
+        // sample01.wav を各モデルでそのまま書き起こした生の結果（プロンプト無し）。
+        let raw_transcripts: [(&str, &str); 5] = [
+            (
+                "small",
+                "ターン開始行エンジンメインリョーちゃんに相談カモツエレキでカイ君に相談セキューキッチンでナーコに相談ブキコでしおりに相談ターン終了ご視ありがとうございました",
+            ),
+            (
+                "medium(現行GPU)",
+                "ターン開始 金エンジン インでちゃんに物 エレキでカイ君にセキュ キッチンでナアコに武器でしおりに ターン終了ご視ありがとうございました",
+            ),
+            (
+                "kotoba-whisper-v2.0",
+                "ターン開始キンコ脇エンジンメインでりょうに遭遇ターン終了ターン終了エレキで開くんに遭遇",
+            ),
+            (
+                "whisper-large-v3-turbo-ja",
+                "ターン開始金エンジンメインでちゃんに物エレキで海君に石油キッチンでナアコに武器でしおりにターン終了ありがとうございました",
+            ),
+            (
+                "anime-whisper",
+                "unboxing回し金切エンジンメインで良ちゃんに物…エレキで開くんに石油キッチンで子にドキ子でしおりにターン終了…失料S点香は照れていた",
+            ),
+        ];
+
+        // test-audio/live_chunk_000〜009.wav（実ライブ音声、短い断片10個）を
+        // それぞれ書き起こしたものを連結（プロンプト無し）。
+        let chunk_transcripts: [(&str, &str); 2] = [
+            (
+                "small(live chunks)",
+                "ターン開始 金 んじん ですよりにそう キッチ エレキでレモニソーグ 次の週にお会いしましょう はぁ やりにくい",
+            ),
+            (
+                "medium(live chunks)",
+                "ターン開始 金 うんじん で理にそこに行ってください では以上です きっちー エレキでレモンに業 ターン終了 んー… はい よっこい おれ様でした",
+            ),
+        ];
+
+        for (label, raw) in raw_transcripts.into_iter().chain(chunk_transcripts) {
+            let corrected = corrector.correct(raw);
+            let hits: Vec<&str> = known
+                .iter()
+                .copied()
+                .filter(|term| corrected.contains(term))
+                .collect();
+            let hotwords: Vec<&str> = ["ターン開始", "ターン終了"]
+                .into_iter()
+                .filter(|w| raw.contains(w))
+                .collect();
+            println!(
+                "\n[{label}] {}/{} 復元: {:?} / ホットワード: {:?}",
+                hits.len(),
+                known.len(),
+                hits,
+                hotwords
+            );
+            println!("  補正後: {corrected}");
+        }
+    }
+
+    /// `sample01.wav` をアプリと同じVAD（[`transcribe::speech::SpeechDetector`]）で短い発話単位に
+    /// 切り出してから、各モデルで独立に（`no_context=true`で、状態は使い回して）書き起こし、
+    /// 語彙補正後の復元数とホットワード検知を比較する。全体を1回で渡す（whisper.cpp内蔵の
+    /// 長尺アルゴリズムに乗る）テストとは条件が異なるため、実運用に近いのはこちら。
+    /// 実行: cargo test --release --lib -- --ignored --nocapture compare_with_real_chunking
+    #[test]
+    #[ignore]
+    fn compare_with_real_chunking() {
+        use crate::i18n::words::ja::JapaneseWords;
+        use transcribe::speech::SpeechDetector;
+        use transcribe::whisper_backend::TranscribeSetup;
+        use transcribe::whisper_transcriber::WhisperModel;
+        use transcribe::WhisperTranscriber;
+
+        // sample01.wav を読み、16kHz mono へ変換する。
+        let mut reader = hound::WavReader::open("sample01.wav").expect("wavを開けない");
+        let spec = reader.spec();
+        let max_val = (1i64 << (spec.bits_per_sample.max(1) - 1)) as f32;
+        let raw: Vec<f32> = reader
+            .samples::<i32>()
+            .map(|s| s.expect("読み取り失敗") as f32 / max_val)
+            .collect();
+        let mut resampler = transcribe::resampler::Resampler::new(spec.sample_rate, 16000);
+        let mut samples = Vec::new();
+        resampler.process(&raw, |s| samples.push(s));
+
+        // vad.rs と同じ窓幅でRMSを測り、SpeechDetectorに通す。
+        const WINDOW_SECS: f32 = 0.1;
+        let window_len = (16000.0 * WINDOW_SECS) as usize;
+        let mut detector = SpeechDetector::default();
+        let mut chunks: Vec<(usize, usize)> = Vec::new();
+        let mut pos = 0;
+        while pos + window_len <= samples.len() {
+            let window = pos..pos + window_len;
+            let rms = {
+                let s = &samples[window.clone()];
+                (s.iter().map(|&x| x * x).sum::<f32>() / s.len() as f32).sqrt()
+            };
+            if let Some(speech) = detector.observe(window.clone(), rms) {
+                chunks.push((speech.start, speech.end.min(samples.len())));
+            }
+            pos = window.end;
+        }
+        println!("検出された発話区間: {}個", chunks.len());
+
+        let player_names = [
+            "りょーちゃん",
+            "えんがわ",
+            "しおりぬ",
+            "なあこ",
+            "ふく",
+            "たぬころ",
+            "にゃんばる",
+            "れもん",
+            "かえで",
+            "ぼっくり",
+            "かいくん",
+            "にこ",
+        ];
+        let rooms = JapaneseWords::AIRSHIP_ROOMS
+            .iter()
+            .copied()
+            .filter(|s| !s.chars().all(|c| c.is_ascii_alphabetic() || c == ' '));
+        let known: Vec<&str> = player_names.iter().copied().chain(rooms).collect();
+        let corrector = VocabularyCorrector::new(known.iter().copied());
+
+        for (label, setup) in [
+            ("small", TranscribeSetup::CPU),
+            ("medium", {
+                TranscribeSetup {
+                    gpu: None,
+                    model: WhisperModel::MEDIUM,
+                }
+            }),
+        ] {
+            let mut transcriber = WhisperTranscriber::new(setup).expect("モデルの読み込みに失敗");
+            let mut all_text = String::new();
+            for &(start, end) in &chunks {
+                let segments = transcriber
+                    .transcribe(&samples[start..end], None)
+                    .expect("書き起こしに失敗");
+                for seg in segments {
+                    all_text.push_str(&seg.text);
+                    all_text.push(' ');
+                }
+            }
+
+            let corrected = corrector.correct(&all_text);
+            let hits: Vec<&str> = known
+                .iter()
+                .copied()
+                .filter(|term| corrected.contains(term))
+                .collect();
+            let hotwords: Vec<&str> = ["ターン開始", "ターン終了"]
+                .into_iter()
+                .filter(|w| all_text.contains(w))
+                .collect();
+            println!(
+                "\n[{label}] {}/{} 復元: {:?} / ホットワード: {:?}",
+                hits.len(),
+                known.len(),
+                hits,
+                hotwords
+            );
+            println!("  生: {all_text}");
+            println!("  補正後: {corrected}");
+        }
+    }
 }

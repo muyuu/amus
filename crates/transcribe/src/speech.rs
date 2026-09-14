@@ -3,7 +3,7 @@
 //! 録音の音量を窓単位で与えると、書き起こしへ送る区間を返す。判定は録音上のサンプル
 //! 位置だけで行い、実時間には依存しない。フレームレートの揺れが区間に乗らないように。
 
-use crate::resources::voice_recorder::SAMPLE_RATE;
+use crate::voice_recorder::SAMPLE_RATE;
 use std::ops::Range;
 
 /// 発話を開始と判定する、暗騒音に対する倍率。
@@ -36,7 +36,7 @@ fn samples(secs: f32) -> usize {
 /// 閾値は暗騒音からの相対で決める。マイクの入力レベルは環境ごとに大きく違い、
 /// 固定値では音量の小さい環境で発話を取り逃す。
 #[derive(Default)]
-pub(super) struct SpeechDetector {
+pub struct SpeechDetector {
     /// 暗騒音の推定値。最初に観測した音量で初期化する。
     ///
     /// 固定値から始めると、静かな環境では発話まで上がりきらず取り逃し、うるさい
@@ -53,7 +53,7 @@ impl SpeechDetector {
     /// 窓ひとつ分の音量を与える。発話区間が確定したらその範囲を返す。
     ///
     /// `window` はその窓が占める録音上の範囲、`rms` はその区間の音量。
-    pub(super) fn observe(&mut self, window: Range<usize>, rms: f32) -> Option<Range<usize>> {
+    pub fn observe(&mut self, window: Range<usize>, rms: f32) -> Option<Range<usize>> {
         let floor = *self.noise_floor.get_or_insert(rms);
 
         let voiced = match self.speech_start {
@@ -90,12 +90,12 @@ impl SpeechDetector {
     /// 未確定のまま進行中の発話があれば、その開始位置。
     ///
     /// 録音が止まるときに、言いかけを取りこぼさないために使う。
-    pub(super) fn pending_speech(&self) -> Option<usize> {
+    pub fn pending_speech(&self) -> Option<usize> {
         self.speech_start
     }
 
     /// 録音を取り直したときに、位置の対応を捨てる。
-    pub(super) fn reset(&mut self) {
+    pub fn reset(&mut self) {
         self.speech_start = None;
         self.last_voiced_end = 0;
     }

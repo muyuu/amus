@@ -2473,6 +2473,7 @@ dependencies = [
  "egui",
  "embed-resource",
  "env_logger",
+ "hound",
  "image",
  "include_dir",
  "log",
