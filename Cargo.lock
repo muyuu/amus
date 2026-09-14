@@ -2469,27 +2469,22 @@ dependencies = [
  "colored",
  "console_error_panic_hook",
  "console_log",
- "cpal",
- "dirs-next",
  "eframe",
  "egui",
  "embed-resource",
  "env_logger",
- "hound",
  "image",
  "include_dir",
  "log",
  "serde",
  "serde_json",
- "sha2",
  "thiserror 2.0.17",
- "ureq",
+ "transcribe",
  "uuid",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
  "wgpu",
- "whisper-rs",
 ]
 
 [[package]]
@@ -4161,6 +4156,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a04e24fab5c89c6a36eb8558c9656f30d81de51dfa4d3b45f26b21d61fa0a6c"
 dependencies = [
  "once_cell",
+]
+
+[[package]]
+name = "transcribe"
+version = "0.1.0"
+dependencies = [
+ "cpal",
+ "dirs-next",
+ "env_logger",
+ "hound",
+ "log",
+ "sha2",
+ "thiserror 2.0.17",
+ "ureq",
+ "whisper-rs",
 ]
 
 [[package]]

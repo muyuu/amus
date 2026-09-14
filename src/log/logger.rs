@@ -20,9 +20,14 @@ impl Log {
             // 依存クレートのログを巻き込まないよう、全体は OFF にして自分のクレートだけ通す。
             // 対象はクレート名で指定する必要があるため、パッケージ名の変更に追従するよう
             // ビルド時のクレート名を使う。
+            //
+            // `transcribe`（音声認識、GUIに依存しない別クレート）は素の `log` クレートで
+            // 直接ログを出す（アプリ独自の構造化ログには依存できない向きのため）ので、
+            // そちらも個別に許可する。
             builder
                 .filter_level(log::LevelFilter::Off)
-                .filter_module(env!("CARGO_CRATE_NAME"), log_level);
+                .filter_module(env!("CARGO_CRATE_NAME"), log_level)
+                .filter_module("transcribe", log_level);
 
             // env_loggerのフォーマットをシンプルにする
             builder.format(|buf, record| {
