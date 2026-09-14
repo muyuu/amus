@@ -1,0 +1,29 @@
+[package]
+name = "transcribe"
+version = "0.1.0"
+edition = "2021"
+
+# アプリ本体から検証コマンドとして単体で動かせるようにする（音声ファイル + モデルを
+# 指定して書き起こす。認識パラメータの実験にアプリの再ビルドを要らなくする）。
+[[bin]]
+name = "transcribe-check"
+path = "src/bin/transcribe_check.rs"
+
+[features]
+# whisper.cpp の都合でビルド時に固定される GPU バックエンド。詳細はアプリ本体の
+# Cargo.toml（gpu-vulkan 等）を参照。
+gpu-vulkan = ["whisper-rs/vulkan"]
+gpu-cuda = ["whisper-rs/cuda"]
+gpu-metal = ["whisper-rs/metal"]
+
+[dependencies]
+cpal = "0.17"
+hound = "3.5"
+whisper-rs = { version = "0.16", features = ["log_backend"] }
+dirs-next = "2.0"
+ureq = "3"
+sha2 = "0.10"
+thiserror = "2"
+log = "0.4"
+# transcribe-check（検証用CLI）がログを表示するのに使う。
+env_logger = "0.11"
