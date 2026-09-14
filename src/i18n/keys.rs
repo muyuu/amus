@@ -97,6 +97,8 @@ text_keys! {
     SETTINGS_UI_SCALE => SettingsUiScale,
     SETTINGS_UI_SCALE_AUTO => SettingsUiScaleAuto,
     SETTINGS_VOICE_PLACEHOLDER => SettingsVoicePlaceholder,
+    SETTINGS_INPUT_DEVICE => SettingsInputDevice,
+    SETTINGS_INPUT_DEVICE_DEFAULT => SettingsInputDeviceDefault,
     SETTINGS_APP_VERSION => SettingsAppVersion,
     SETTINGS_DEBUG_TOGGLE => SettingsDebugToggle,
     SETTINGS_CLOSE => SettingsClose,

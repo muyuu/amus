@@ -78,6 +78,8 @@ pub fn translate(key: TextKey) -> String {
         SettingsUiScale => "UI拡大率".to_string(),
         SettingsUiScaleAuto => "DPIに追従".to_string(),
         SettingsVoicePlaceholder => "設定できる項目はまだありません".to_string(),
+        SettingsInputDevice => format!("{}{}", W::INPUT, W::DEVICE),
+        SettingsInputDeviceDefault => format!("{}の{}", W::DEFAULT, W::DEVICE),
         SettingsAppVersion => W::VERSION.to_string(),
         SettingsDebugToggle => "🐛 デバッグ表示".to_string(),
         SettingsClose => W::CLOSE.to_string(),

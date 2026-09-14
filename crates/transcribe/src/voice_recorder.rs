@@ -9,6 +9,64 @@ use std::collections::VecDeque;
 use std::sync::{Arc, Mutex, MutexGuard};
 use thiserror::Error;
 
+/// 表示名の元になる (機種名, チャンネル名) の組。機種名が取れなければ空文字。
+///
+/// オーディオインターフェースは「In 1-2」のようなチャンネル名だけでは
+/// どの機材か分からないため、分かれば機種名を添える（Discord 等の表示に合わせた形式）。
+/// cpal の WASAPI 実装は機種名（Windows の `DEVPKEY_DeviceInterface_FriendlyName`、例:
+/// "MOTU M Series"）を `manufacturer` ではなく `driver` に積むため、`driver` を優先し、
+/// 無ければ `manufacturer` にフォールバックする。
+fn device_group_and_name(device: &Device) -> Result<(String, String), cpal::DeviceNameError> {
+    let desc = device.description()?;
+    let name = desc.name().to_string();
+    let group = match desc.driver().or_else(|| desc.manufacturer()) {
+        Some(extra) if extra != name => extra.to_string(),
+        _ => String::new(),
+    };
+    Ok((group, name))
+}
+
+fn format_device_display_name(group: &str, name: &str) -> String {
+    if group.is_empty() {
+        name.to_string()
+    } else {
+        format!("{name} ({group})")
+    }
+}
+
+/// デバイスの表示名。`DeviceTrait::name` は非推奨（`description`/`id` へ移行）のため、
+/// 人が読む名前だけが要る箇所ではこちらを使う。
+fn device_display_name(device: &Device) -> Result<String, cpal::DeviceNameError> {
+    let (group, name) = device_group_and_name(device)?;
+    Ok(format_device_display_name(&group, &name))
+}
+
+/// 利用可能な入力デバイス名の一覧。
+///
+/// 列挙に失敗した場合（ホスト側のエラー）は空を返す。設定UIでの表示専用で、
+/// 録音の成否には関わらない（`VoiceRecorder::new_with_device` は見つからなければ
+/// 既定デバイスへ落ちる）。
+///
+/// OS の列挙順は機種ごとにまとまっていないため、機種名→チャンネル名の順で
+/// 並べ替えてから返す。
+pub fn input_device_names() -> Vec<String> {
+    let Ok(devices) = cpal::default_host().input_devices() else {
+        return Vec::new();
+    };
+
+    let mut entries: Vec<(String, String)> = devices
+        .filter_map(|d| device_group_and_name(&d).ok())
+        .collect();
+    entries.sort_by(|(group_a, name_a), (group_b, name_b)| {
+        group_a.cmp(group_b).then_with(|| name_a.cmp(name_b))
+    });
+
+    entries
+        .into_iter()
+        .map(|(group, name)| format_device_display_name(&group, &name))
+        .collect()
+}
+
 /// このレコーダが返すサンプルと、絶対インデックスの単位となるレート。
 ///
 /// デバイスのレートに関わらずここへ揃える。Whisper が 16kHz を要求するのに
@@ -189,11 +247,24 @@ pub struct VoiceRecorder {
 }
 
 impl VoiceRecorder {
-    /// 新しいVoiceRecorderを作成
+    /// 新しいVoiceRecorderを作成（既定の入力デバイス）
     pub fn new() -> Result<Self, RecorderError> {
+        Self::new_with_device(None)
+    }
+
+    /// 入力デバイスを指定して VoiceRecorder を作成する。
+    ///
+    /// `device_name` が `None`、または該当デバイスが見つからない場合（抜線など）は
+    /// 既定の入力デバイスへ落ちる。
+    pub fn new_with_device(device_name: Option<&str>) -> Result<Self, RecorderError> {
         let host = cpal::default_host();
-        let device = host
-            .default_input_device()
+        let by_name = device_name.and_then(|name| {
+            host.input_devices()
+                .ok()?
+                .find(|d| device_display_name(d).map(|n| n == name).unwrap_or(false))
+        });
+        let device = by_name
+            .or_else(|| host.default_input_device())
             .ok_or(RecorderError::NoInputDevice)?;
 
         let supported_config = device.default_input_config()?;

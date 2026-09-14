@@ -10,7 +10,7 @@ use crate::features::StatefulFeatures;
 use crate::i18n::keys;
 use crate::log_error;
 use crate::resources::Resources;
-use crate::state::{Actions, AppState};
+use crate::state::{Actions, AppState, SettingsAction};
 
 pub struct AmusApp {
     state: AppState,
@@ -61,6 +61,14 @@ impl AmusApp {
                 .load_from_storage(Some(storage))
                 .unwrap_or_default();
         }
+
+        // 起動時点の Resources は既定デバイスで組んであるため、保存されていた
+        // 入力デバイス選択があれば読み込み後にここで反映する。
+        #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+        if let Some(device) = app.state.slices().ui().input_device_name() {
+            app.resources.reload_voice_recorder(Some(&device));
+        }
+
         app
     }
 }
@@ -217,7 +225,7 @@ impl AmusApp {
                 AppAction::RouteDrawing(a) => Actions::new(&mut self.state).handle_route_drawing(a),
                 AppAction::Eraser(a) => Actions::new(&mut self.state).handle_eraser(a),
                 AppAction::Setup(a) => Actions::new(&mut self.state).handle_setup(a),
-                AppAction::Settings(a) => Actions::new(&mut self.state).handle_settings(a),
+                AppAction::Settings(a) => self.handle_settings_action(a),
                 AppAction::Wave(a) => Actions::new(&mut self.state).handle_wave(a),
                 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
                 AppAction::VoiceMemo(a) => self
@@ -226,6 +234,24 @@ impl AmusApp {
                     .handle_action(&mut self.resources, a),
             }
         }
+    }
+
+    /// 設定 Action を dispatch する。
+    ///
+    /// 入力デバイスの切り替えだけはハードウェア（`Resources`）に触るため、
+    /// `AppState` しか触れない汎用の `Actions` では完結しない。録音中なら
+    /// 安全に止めてから録音リソースを作り直し、その上で選択内容を state へ保存する
+    /// （ゲーム進行中なら次フレームで新デバイスの録音が自動的に再開する）。
+    fn handle_settings_action(&mut self, action: SettingsAction) {
+        #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+        if let SettingsAction::SetInputDevice(ref device) = action {
+            self.features
+                .voice_memo
+                .stop_recording_for_hardware_change(&mut self.resources);
+            self.resources.reload_voice_recorder(device.as_deref());
+        }
+
+        Actions::new(&mut self.state).handle_settings(action);
     }
 
     fn get_frame() -> Frame {

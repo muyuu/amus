@@ -39,6 +39,9 @@ impl EnglishWords {
     pub const APP: &'static str = "App";
     pub const WIDTH: &'static str = "Width";
     pub const VERSION: &'static str = "Version";
+    pub const DEVICE: &'static str = "Device";
+    pub const INPUT: &'static str = "Input";
+    pub const DEFAULT: &'static str = "Default";
     pub const CONFIG: &'static str = "Configuration";
     pub const COUNT: &'static str = "Count";
     pub const MODE: &'static str = "Mode";
