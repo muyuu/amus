@@ -5,7 +5,15 @@
 Among Usのゲーム中の情報を記録・可視化するデスクトップアプリケーション。
 Rust + egui + WebAssembly で構築。
 
-## ビルド・実行
+エンドユーザー向けの説明は [README.md](./README.md)、開発の背景・詳細な制約は
+[docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md) を参照。
+
+## リポジトリ運用
+
+**`main` への直接 push は禁止。変更は必ずブランチを切って PR で行う。**
+GitHub 側でも `main` への直接 push を禁止するブランチ保護を設定済み。
+
+## ビルド・実行（クイックリファレンス）
 
 ```bash
 # 初期化（依存インストール + git フック設定）。clone / worktree 作成時に一度
@@ -15,61 +23,22 @@ mise run init
 cargo run            # または mise run start
 mise run dev         # ファイル監視 + 自動リロード
 
+# GPU バックエンド付き（書き起こしが速くなる。認識精度は CPU 版と同じ）
+mise run build-gpu
+mise run start-gpu
+
 # WASM（wasm-pack で web/pkg にビルドし、miniserve で配信）
 mise run build-wasm
 mise run serve       # http://localhost:8080
+
+# 配布用ビルド（dist/ へ）
+mise run release-gpu
+mise run release-cpu
 ```
 
-### ネイティブビルドの前提
-
-`voice_memo`（音声録音・Whisper 書き起こし）が cpal / whisper-rs を使うため、ネイティブビルドには
-追加の前提がある。
-
-- **Linux**: cpal がオーディオに ALSA を使うため `libasound2-dev` が必要（例: `apt install libasound2-dev`）。
-- **whisper-rs のビルドは重い**（C/C++ の whisper.cpp をコンパイルするため初回は数分かかる）。CI では
-  キャッシュミス時にここがスパイクする。
-- macOS / Windows は追加パッケージ不要。WASM ビルドに音声機能は含まれない（`voice_memo` はネイティブ専用）。
-
-### 書き起こしの GPU ビルド
-
-whisper.cpp のバックエンドはコンパイル時に固定されるため、GPU を使うビルドは feature で
-指定する。既定は CPU。
-
-```bash
-mise run build-gpu   # GPU ビルド
-mise run start-gpu   # GPU 版を起動
-```
-
-バックエンドは OS で決まる（Windows / Linux は Vulkan、macOS は Metal）。NVIDIA 専用の
-`gpu-cuda` feature もあるが、実行側に CUDA ランタイムを要求するため配布には使わない。
-
-`gpu-vulkan` のビルドには **Vulkan SDK**（`VULKAN_SDK` 環境変数）が要る。要るのはビルドする
-マシンだけで、実行側には GPU ドライバ同梱のローダー（`vulkan-1.dll` / `libvulkan.so.1`）しか
-要らない。インストール直後はシェルを開き直さないと環境変数が反映されない。
-
-### 配布用ビルド
-
-```bash
-mise run release-gpu   # → dist/memongus-<os>-gpu
-mise run release-cpu   # → dist/memongus-<os>-cpu
-```
-
-動かすマシンの OS 向けに作る。whisper.cpp と Vulkan のシェーダを含むためクロスコンパイル
-はせず、配布する OS ごとにそのマシンで実行する。リリースビルドはアセットを実行ファイルへ
-埋め込むため、成果物は 1 ファイルで動く（デバッグビルドは `assets/` を実行時に読むので
-配布には使えない）。
-
-### GPU ビルドの target ディレクトリ
-
-GPU ビルドは CPU ビルドと target ディレクトリを分ける。feature が違うとビルドグラフ全体が
-無効化されるため、共有すると切り替えるたびに全再ビルドになる。Windows ではこれが必須でもある。
-ggml-vulkan がシェーダ生成ツールを入れ子の ExternalProject として建てる都合で中間ファイルの
-パスが深くなり、リポジトリ内の `target/` では MAX_PATH(260) を超えて `cl.exe` が pdb を
-開けなくなる（OS の LongPathsEnabled は MSVC のツール群に効かない）。既定の移動先は
-`C:\amus-build` で、`AMUS_GPU_TARGET_DIR` で変えられる。
-
-GPU feature を付けると whisper.cpp のビルドがさらに重くなるため、CI と pre-push フックは
-CPU ビルドのまま回す。
+`voice_memo`（音声録音・Whisper 書き起こし）はネイティブ専用で cpal / whisper-rs を使う。
+Linux の追加パッケージ、GPU ビルドの Vulkan SDK / target ディレクトリ分離の理由など、
+ビルドの詳細と背景は [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md) を参照。
 
 ### push 前ゲート（git pre-push フック）
 
@@ -84,8 +53,10 @@ native clippy の回帰防止はこのフックで担保する。緊急時は `g
 
 ### 設計ドキュメント
 
+- **[DEVELOPMENT.md](./docs/DEVELOPMENT.md)** - セットアップ・ビルド・配布
 - **[ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - レイヤー構成、データフロー、Feature設計
 - **[STATE_MANAGEMENT.md](./docs/STATE_MANAGEMENT.md)** - AppState/AppData、Slices/Actions、ビジネスロジック配置
+- **[VOICE_MEMO.md](./docs/VOICE_MEMO.md)** - 音声メモ（録音・VAD・書き起こし）の設計指針
 
 ### 基本方針
 
@@ -109,8 +80,9 @@ Feature → View
 
 ### アーキテクチャ方針
 
-現時点で未解決のアーキテクチャ方針はない（過去の検討は decisions.md の ADR で決着済み）。
-今後の方向性は [ARCHITECTURE_ROADMAP.md](./docs/ARCHITECTURE_ROADMAP.md) を参照。
+現時点で未解決のアーキテクチャ方針はない（過去の検討は [decisions.md](./docs/decisions.md) の
+ADR で決着済み）。新たな方針が必要になったら GitHub Issue で検討し、決着したら decisions.md に
+ADR として追記する。
 
 ## ディレクトリ構造
 
@@ -125,10 +97,13 @@ src/
 ├── models/          # データ構造
 ├── features/        # 機能単位モジュール (Feature + View)
 ├── components/      # 再利用UIコンポーネント
-├── resources/       # ハードウェア依存リソース（画像・録音・書き起こし）
+├── resources/       # ハードウェア依存リソース（画像・録音・書き起こし。録音/書き起こし本体は crates/transcribe）
 ├── i18n/            # 多言語対応
 ├── log/             # ロギング（native=env_logger / wasm=console）
 └── common/          # 共通ユーティリティ
+
+crates/
+└── transcribe/      # 音声認識（GUIに依存しない別クレート。transcribe-check CLI も持つ）
 ```
 
 ## コード規約

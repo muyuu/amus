@@ -5,7 +5,7 @@
 # Amus — Among Us Map Utility Software
 
 Among Us のゲーム進行（プレイヤーの位置・移動・生死・サボタージュ等）を記録・可視化する
-デスクトップ / WebAssembly アプリケーション。Rust + [egui](https://github.com/emilk/egui) 製。
+デスクトップ / WebAssembly アプリケーション。
 
 ## 主な機能
 
@@ -13,65 +13,27 @@ Among Us のゲーム進行（プレイヤーの位置・移動・生死・サ�
 - **プレイヤー管理**: 生死・色・名前、ボタン使用状況
 - **ターン（wave）管理**: ターンごとに記録を切り替え
 - **サボタージュ**: 通信 / 停電 / 酸素 / 原子炉の解決状況を管理
-- **音声メモ**（ネイティブのみ）: マイク録音と [whisper.cpp](https://github.com/ggerganov/whisper.cpp) による書き起こし
+- **音声メモ**（ネイティブ版のみ）: マイク録音と音声認識による書き起こし。「ターン開始」
+  「ターン終了」と話すだけでターンの区切りを自動記録
 - **多言語**（日本語 / 英語）、テーマ、UI 拡大率の設定
-- **ネイティブ / WebAssembly** の両対応
+- **ネイティブ / ブラウザ（WebAssembly）** の両対応
 
-## 動作環境・前提
+## ダウンロード
 
-- [mise](https://mise.jdx.dev/) … タスクランナー兼ツールチェイン管理（Rust ツールチェイン等は `mise run init` で導入）
-- **Linux でネイティブビルドする場合**の追加パッケージ:
-  - `libasound2-dev`（cpal / ALSA）、`libudev-dev`・`libxkbcommon-dev`（winit / wgpu）
-  - `cmake` / `clang` / `libclang-dev`（whisper.cpp のビルド）
-  - whisper-rs のビルドは whisper.cpp を C/C++ コンパイルするため初回は数分かかる
-- macOS / Windows は追加パッケージ不要。WASM ビルドに音声機能は含まれない（`voice_memo` はネイティブ専用）
+🚧 GitHub Releases からのダウンロードは現在準備中です。しばらくお待ちください。
 
-## セットアップ
+## 動作環境
 
-```bash
-mise run init   # 依存インストール + git フック（push 前ゲート）設定
-```
+- **OS**: Windows / macOS / Linux（ネイティブ版）、またはブラウザ（WebAssembly 版）
+- **音声メモ機能を使う場合**: マイク。初回起動時に音声認識モデル（約 466MB）を自動ダウンロードする
+- GPU 版を使うと音声認識が速くなる（認識精度は CPU 版と同じ）
 
-## ビルド・実行
+## 使い方
 
-```bash
-# ネイティブ
-cargo run         # または mise run start
-mise run dev      # ファイル監視 + 自動リロード
+起動すると設定ダイアログでマップ・プレイヤー人数・名前・色を選ぶ。ゲームを開始したら、
+プレイヤーの出現位置をマップ上に配置し、ターンが進むごとに移動先・死亡・サボタージュ状況を
+記録していく。音声メモ機能を有効にすると、トリガーワードの発話でターンの区切りも自動化できる。
 
-# WebAssembly（wasm-pack で web/pkg にビルドし、miniserve で配信）
-mise run build-wasm
-mise run serve    # http://localhost:8080
-```
+## 開発者向け情報
 
-音声メモは初回に Whisper モデル（約 466MB）をアプリのデータディレクトリへダウンロードする
-（SHA-256 検証つき）。
-
-## プロジェクト構成
-
-```
-src/
-├── main.rs / lib.rs   # native / WASM の各エントリーポイント
-├── app.rs             # eframe::App（update → render → handle_actions）
-├── shell.rs           # native/wasm 共通のシェル初期化
-├── state/             # AppState / AppData / Slices（読み取り）/ Actions（書き込み）
-├── models/            # データ構造
-├── features/          # 機能単位モジュール（Feature + View）
-├── components/        # 再利用 UI コンポーネント
-├── resources/         # ハードウェア依存リソース（画像・録音・書き起こし）
-├── i18n/ · log/ · common/ · constants.rs
-```
-
-設計の詳細は [docs/](./docs/) を参照:
-
-- [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — レイヤー構成・データフロー
-- [STATE_MANAGEMENT.md](./docs/STATE_MANAGEMENT.md) — 状態管理パターン
-- [decisions.md](./docs/decisions.md) — 設計判断記録（ADR）
-- [ARCHITECTURE_ROADMAP.md](./docs/ARCHITECTURE_ROADMAP.md) — 今後の方向性
-
-## 開発
-
-`mise run init` が push 前フック（`mise run pre-push`）を有効化する。push 前に
-**フォーマット検査 + native/wasm の clippy + テスト**が走る。緊急時は `git push --no-verify` でスキップ可。
-
-PR では CI が `fast`（fmt + wasm clippy）と `test`（voice_memo を除いた軽量テスト）を実行する。
+ビルド方法やアーキテクチャなど開発者向けの情報は [docs/](./docs/) を参照。

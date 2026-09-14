@@ -217,7 +217,11 @@ impl PlayerListFeature {
 
 - `AppData`に含めない（シリアライズ不可・永続化対象外）
 - `AssetManager` - マップ画像・プレイヤー画像などのテクスチャを読み込み・管理（egui の `Context` 経由でシングルトン管理）
-- 音声メモ用リソース（ネイティブのみ）: `VoiceRecorder`、`WhisperTranscriber`、モデルダウンロード・書き起こしスレッドなど
+- 音声メモ用リソース（ネイティブのみ）: `VoiceRecorder`、`WhisperTranscriber`、モデルダウンロード・書き起こしスレッドなど。
+  実体は GUI（egui/wgpu）に依存しない別クレート `crates/transcribe` にあり、`resources` は
+  re-export して既存の呼び出し側（`crate::resources::whisper_transcriber::...` 等）を変えずに
+  済ませている（モデル・認識パラメータの検証をアプリの再ビルドなしに行うため。詳細は
+  [VOICE_MEMO.md](./VOICE_MEMO.md)）。
 
 ### common (`src/common/`)
 
