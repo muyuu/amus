@@ -25,18 +25,15 @@
    - 設計意図（所有権、&mutの限定、カプセル化）
    - 実装パターンとベストプラクティス
 
-4. **[ARCHITECTURE_ROADMAP.md](./ARCHITECTURE_ROADMAP.md)**: アーキテクチャ方針（今後の方向性）
-   - 現時点で未解決の方針はない。過去の検討（中央 dispatch / Actions 層 / egui 分離）は
-     いずれも decisions.md の ADR で決着済み
-
-5. **[VOICE_MEMO.md](./VOICE_MEMO.md)**: 音声メモ設計指針
+4. **[VOICE_MEMO.md](./VOICE_MEMO.md)**: 音声メモ設計指針
    - 録音・検知・書き起こしの3層構成
    - 常時録音リングバッファとターン区間
    - ホットワードによるターン境界検知
    - 認識精度（プロンプト予算、語彙補正）
 
-6. **[decisions.md](./decisions.md)**: 設計判断記録（ADR）
+5. **[decisions.md](./decisions.md)**: 設計判断記録（ADR）
    - 採用した設計の「なぜ」と却下した案
+   - 新たなアーキテクチャ方針は GitHub Issue で検討し、決着したらここに ADR として追記する
 
 ## 使い方
 

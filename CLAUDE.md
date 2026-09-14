@@ -80,8 +80,9 @@ Feature → View
 
 ### アーキテクチャ方針
 
-現時点で未解決のアーキテクチャ方針はない（過去の検討は decisions.md の ADR で決着済み）。
-今後の方向性は [ARCHITECTURE_ROADMAP.md](./docs/ARCHITECTURE_ROADMAP.md) を参照。
+現時点で未解決のアーキテクチャ方針はない（過去の検討は [decisions.md](./docs/decisions.md) の
+ADR で決着済み）。新たな方針が必要になったら GitHub Issue で検討し、決着したら decisions.md に
+ADR として追記する。
 
 ## ディレクトリ構造
 
