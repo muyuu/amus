@@ -122,6 +122,19 @@ impl WhisperModel {
     pub fn max_download_bytes(&self) -> u64 {
         self.expected_bytes + 4 * 1024 * 1024
     }
+
+    /// レジストリ外の任意の GGML ファイルを直接指定する（検証用）。
+    ///
+    /// ダウンロード・SHA-256 検証の対象外。`path` は絶対パスであること
+    /// （[`Self::path`] の実装上、絶対パスならそのまま使われる）。
+    pub fn at_path(path: &'static str) -> Self {
+        Self {
+            file_name: path,
+            url: "",
+            sha256: "",
+            expected_bytes: 0,
+        }
+    }
 }
 
 // =============================================================================
