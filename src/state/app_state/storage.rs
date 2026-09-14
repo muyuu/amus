@@ -49,6 +49,13 @@ impl AppState {
             self.data.ui_scale = ui_scale;
         }
 
+        // 軌跡描画の線の太さ
+        if let Ok(Some(route_line_width)) =
+            AppStorage::get::<f32>(storage, StorageKeys::ROUTE_LINE_WIDTH)
+        {
+            self.data.route_line_width = route_line_width;
+        }
+
         Ok(())
     }
 
@@ -81,6 +88,11 @@ impl AppState {
             )?;
             AppStorage::set(Some(s), StorageKeys::ERASE_MODE, &self.data.erase_mode)?;
             AppStorage::set(Some(s), StorageKeys::UI_SCALE, &self.data.ui_scale)?;
+            AppStorage::set(
+                Some(s),
+                StorageKeys::ROUTE_LINE_WIDTH,
+                &self.data.route_line_width,
+            )?;
 
             Ok(())
         })

@@ -69,5 +69,18 @@ pub fn translate(key: TextKey) -> String {
         VoiceMemoRecordHint => W::RECORD_BUTTON_HINT.to_string(),
         VoiceMemoMemoCount => W::NOTES.to_string(),
         VoiceMemoTurnTime => format!("{}{}", W::TURN, W::TIME),
+        SettingsTitle => W::SETTINGS.to_string(),
+        SettingsTabGame => W::GAME.to_string(),
+        SettingsTabDisplay => W::DISPLAY.to_string(),
+        SettingsTabVoice => W::VOICE.to_string(),
+        SettingsTabApp => W::APP.to_string(),
+        SettingsRouteLineWidth => format!("軌跡の{}", W::WIDTH),
+        SettingsUiScale => "UI拡大率".to_string(),
+        SettingsUiScaleAuto => "DPIに追従".to_string(),
+        SettingsVoicePlaceholder => "設定できる項目はまだありません".to_string(),
+        SettingsAppVersion => W::VERSION.to_string(),
+        SettingsDebugToggle => "🐛 デバッグ表示".to_string(),
+        SettingsClose => W::CLOSE.to_string(),
+        SettingsResetGame => format!("{}を{}", W::GAME, W::RESET),
     }
 }

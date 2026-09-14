@@ -1,6 +1,7 @@
 use crate::models::location::DraggingLocation;
 use crate::models::player::PlayerId;
 use crate::state::app_data::AppData;
+use crate::state::SettingsTab;
 
 /// UI状態の読み取り専用アクセスを提供
 pub struct UiSlice<'a> {
@@ -35,5 +36,20 @@ impl<'a> UiSlice<'a> {
     /// ドラッグ中の位置情報
     pub fn dragging_location(&self) -> Option<DraggingLocation> {
         self.data.dragging_location
+    }
+
+    /// 設定モーダルで選択中のタブ
+    pub fn settings_tab(&self) -> SettingsTab {
+        self.data.settings_tab
+    }
+
+    /// 軌跡描画の線の太さ
+    pub fn route_line_width(&self) -> f32 {
+        self.data.route_line_width
+    }
+
+    /// UI 拡大率。`None` はネイティブ DPI 追従。
+    pub fn ui_scale(&self) -> Option<f32> {
+        self.data.ui_scale
     }
 }

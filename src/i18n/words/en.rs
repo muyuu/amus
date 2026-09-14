@@ -19,6 +19,8 @@ impl EnglishWords {
     pub const CLEAR: &'static str = "Clear";
     pub const RECORD: &'static str = "Record";
     pub const DOWNLOAD: &'static str = "Download";
+    pub const RESET: &'static str = "Reset";
+    pub const CLOSE: &'static str = "Close";
 
     // 基本名詞
     pub const GAME: &'static str = "Game";
@@ -32,6 +34,11 @@ impl EnglishWords {
     pub const NOTES: &'static str = "Notes";
     pub const SELECTION: &'static str = "Selection";
     pub const SETTINGS: &'static str = "Settings";
+    pub const DISPLAY: &'static str = "Display";
+    pub const VOICE: &'static str = "Voice";
+    pub const APP: &'static str = "App";
+    pub const WIDTH: &'static str = "Width";
+    pub const VERSION: &'static str = "Version";
     pub const CONFIG: &'static str = "Configuration";
     pub const COUNT: &'static str = "Count";
     pub const MODE: &'static str = "Mode";
