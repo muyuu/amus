@@ -51,13 +51,12 @@ pub fn dump_chunk(samples: &[f32], start_sample: usize) {
         return;
     };
 
-    // LAME の ieee_float 入力は 16bit PCM と同じスケール（±32768）を想定する。
-    // whisper 向けの samples は ±1.0 に正規化されているのでそのままでは無音同然になる。
-    let scaled: Vec<f32> = samples.iter().map(|&s| s * 32768.0).collect();
+    // LAME の ieee_float 入力は ±1.0 フルスケールを想定する（±32768 を想定するのは
+    // 紛らわしい名前の lame_encode_buffer_float の方）。whisper 向けの samples は
+    // すでに ±1.0 に正規化済みなのでそのまま渡す。
+    let mut mp3 = Vec::with_capacity(mp3lame_encoder::max_required_buffer_size(samples.len()));
 
-    let mut mp3 = Vec::with_capacity(mp3lame_encoder::max_required_buffer_size(scaled.len()));
-
-    let encoded = match encoder.encode(MonoPcm(&scaled), mp3.spare_capacity_mut()) {
+    let encoded = match encoder.encode(MonoPcm(samples), mp3.spare_capacity_mut()) {
         Ok(n) => n,
         Err(e) => {
             log_error!("record-audio", format!("mp3エンコードに失敗: {:?}", e));
