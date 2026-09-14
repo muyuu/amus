@@ -4,6 +4,8 @@
 //! アプリ本体からはリソースとして使う一方、`bin/transcribe_check.rs` から単体でも
 //! 動かせるため、モデルや認識パラメータの検証をアプリの再ビルドなしに行える。
 
+#[cfg(feature = "record-audio")]
+pub mod debug_recording;
 pub mod file_downloader;
 pub mod resampler;
 pub mod speech;

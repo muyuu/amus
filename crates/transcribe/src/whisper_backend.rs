@@ -41,9 +41,9 @@ pub fn compiled_backend() -> Option<GpuBackend> {
 
 /// 書き起こしをどう動かすか。バックエンドと、それに見合うモデルの組。
 ///
-/// モデルはバックエンドと一緒に決める。処理時間の大半は音声長によらない 30 秒窓の
-/// エンコードが占めており、CPU ではそれが small で頭打ちになる。GPU ならより大きい
-/// モデルでも CPU + small を下回るため、精度に振れる。
+/// モデルは GPU/CPU どちらでも small で揃える。GPU/CPU の違いは処理速度だけで認識精度
+/// には影響しないため、モデルを分ける理由がない（medium 等との比較は
+/// `vocabulary.rs` の `compare_with_real_chunking` を参照）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TranscribeSetup {
     /// 使う GPU バックエンド。`None` なら CPU で動かす。
@@ -81,7 +81,7 @@ impl TranscribeSetup {
         match available {
             Some(gpu) => Self {
                 gpu: Some(gpu),
-                model: WhisperModel::MEDIUM,
+                model: WhisperModel::SMALL,
             },
             None => Self::CPU,
         }
@@ -93,11 +93,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_gpu_build_pairs_the_backend_with_a_larger_model() {
+    fn a_gpu_build_uses_the_same_model_as_cpu() {
         let setup = TranscribeSetup::select(Some(GpuBackend::Vulkan));
 
         assert_eq!(setup.gpu, Some(GpuBackend::Vulkan));
-        assert_eq!(setup.model, WhisperModel::MEDIUM);
+        assert_eq!(setup.model, WhisperModel::SMALL);
     }
 
     #[test]

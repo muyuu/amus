@@ -16,6 +16,9 @@ gpu-vulkan = ["whisper-rs/vulkan"]
 gpu-cuda = ["whisper-rs/cuda"]
 gpu-metal = ["whisper-rs/metal"]
 
+# 実機でのモデル比較検証用データ収集。詳細はアプリ本体の Cargo.toml を参照。
+record-audio = ["dep:mp3lame-encoder"]
+
 [dependencies]
 cpal = "0.17"
 hound = "3.5"
@@ -27,3 +30,6 @@ thiserror = "2"
 log = "0.4"
 # transcribe-check（検証用CLI）がログを表示するのに使う。
 env_logger = "0.11"
+# record-audio feature でのみ使う。データ収集を頼む相手に渡しやすいよう wav でなく
+# mp3 にする（長時間録音すると wav はすぐ大きくなる）。
+mp3lame-encoder = { version = "0.2", optional = true }

@@ -32,6 +32,11 @@ gpu-vulkan = ["voice_memo", "transcribe?/gpu-vulkan"]
 gpu-cuda = ["voice_memo", "transcribe?/gpu-cuda"]
 gpu-metal = ["voice_memo", "transcribe?/gpu-metal"]
 
+# 実機でのモデル比較検証のため、書き起こしに渡した音声チャンクをそのまま
+# 実行ファイルの隣の `./recorded/` に mp3 で保存する。データ収集専用のビルドに
+# だけ立てる feature で、配布ビルドには絶対に含めない（default には入れない）。
+record-audio = ["voice_memo", "transcribe?/record-audio"]
+
 [dependencies]
 # GUI framework - egui is recommended for this use case
 # Alternatives: gpui, bevy, iced
