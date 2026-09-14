@@ -22,7 +22,7 @@ pub use asset_manager::AssetManager;
 // 音声メモ関連リソース（ネイティブのみ、実体は `transcribe` クレート）
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub use transcribe::{
-    file_downloader, transcriber_thread, voice_recorder, whisper_backend, whisper_prompt,
+    file_downloader, speech, transcriber_thread, voice_recorder, whisper_backend, whisper_prompt,
     whisper_transcriber,
 };
 

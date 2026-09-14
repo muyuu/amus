@@ -18,7 +18,6 @@ mod hotword;
 mod prompt;
 mod reading;
 mod recording;
-mod speech;
 mod transcription;
 mod types;
 mod vad;
@@ -36,6 +35,7 @@ use crate::i18n::words::ja::JapaneseWords;
 use crate::log_debug;
 use crate::log_error;
 use crate::models::Area;
+use crate::resources::speech::SpeechDetector;
 use crate::resources::voice_recorder::SAMPLE_RATE;
 use crate::resources::{DownloadError, DownloadProgress, Resources, TranscriberThread};
 use crate::state::Slices;
@@ -77,7 +77,7 @@ pub struct VoiceMemoFeature {
     /// バックグラウンド書き起こしスレッド
     transcriber_thread: Option<TranscriberThread>,
     /// 発話区間の検出器
-    detector: speech::SpeechDetector,
+    detector: SpeechDetector,
     /// VAD で検査済みの録音上の位置
     vad_checked_sample: usize,
     /// 現在の録音が始まった絶対サンプル位置
@@ -346,7 +346,7 @@ impl Default for VoiceMemoFeature {
             context_vocabulary: None,
             corrector: VocabularyCorrector::new([]),
             transcriber_thread: None,
-            detector: speech::SpeechDetector::default(),
+            detector: SpeechDetector::default(),
             vad_checked_sample: 0,
             recording_start_sample: 0,
             matcher: HotwordMatcher::new(hotword::DEFAULT_START_WORDS, hotword::DEFAULT_END_WORDS),

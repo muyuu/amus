@@ -81,6 +81,10 @@ eframe = { version = "0.33", features = ["glow"] }
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 transcribe = { path = "crates/transcribe", optional = true }
 
+# モデル比較検証（cargo test --ignored）で wav を読むためだけに使う。
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+hound = "3.5"
+
 # wasm
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 eframe = { version = "0.33", features = ["default"] }
