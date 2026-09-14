@@ -10,3 +10,7 @@ web/pkg/
 
 # 配布用リリースビルドの成果物
 /dist
+
+# モデル検討用の音声データ（transcribe-check で使う。個人の録音のため含めない）
+/test-audio
+*.wav
