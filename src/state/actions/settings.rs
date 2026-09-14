@@ -12,6 +12,11 @@ pub enum SettingsAction {
     ResetUiScale,
     /// 軌跡描画の線の太さを設定
     SetRouteLineWidth(f32),
+    /// 録音に使う入力デバイスを設定（`None` はシステム既定）。
+    /// 実際のハードウェア切り替えはアプリシェル（`AmusApp`）側で行うため、
+    /// ここでは選択内容の保存のみを担う。
+    #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+    SetInputDevice(Option<String>),
     /// デバッグビューの表示切り替え
     #[cfg(debug_assertions)]
     ToggleDebugView,
@@ -26,6 +31,8 @@ impl Actions<'_> {
             SettingsAction::SetUiScale(scale) => self.state.set_ui_scale(scale),
             SettingsAction::ResetUiScale => self.state.reset_ui_scale(),
             SettingsAction::SetRouteLineWidth(width) => self.state.set_route_line_width(width),
+            #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+            SettingsAction::SetInputDevice(name) => self.state.set_input_device_name(name),
             #[cfg(debug_assertions)]
             SettingsAction::ToggleDebugView => self.state.toggle_debug_view(),
             SettingsAction::Close => self.state.close_settings(),
@@ -54,6 +61,22 @@ mod tests {
         Actions::new(&mut state).handle_settings(SettingsAction::SetRouteLineWidth(10.0));
 
         assert_eq!(state.slices().ui().route_line_width(), 10.0);
+    }
+
+    #[test]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+    fn set_input_device_updates_state() {
+        let mut state = AppState::new();
+
+        Actions::new(&mut state)
+            .handle_settings(SettingsAction::SetInputDevice(Some("USB Mic".to_string())));
+        assert_eq!(
+            state.slices().ui().input_device_name(),
+            Some("USB Mic".to_string())
+        );
+
+        Actions::new(&mut state).handle_settings(SettingsAction::SetInputDevice(None));
+        assert_eq!(state.slices().ui().input_device_name(), None);
     }
 
     #[test]

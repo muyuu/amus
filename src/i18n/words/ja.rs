@@ -52,6 +52,9 @@ impl JapaneseWords {
     pub const APP: &'static str = "アプリ";
     pub const WIDTH: &'static str = "太さ";
     pub const VERSION: &'static str = "バージョン";
+    pub const DEVICE: &'static str = "デバイス";
+    pub const INPUT: &'static str = "入力";
+    pub const DEFAULT: &'static str = "既定";
 
     // 音声メモ関連
     pub const VOICE_MEMO: &'static str = "音声メモ";

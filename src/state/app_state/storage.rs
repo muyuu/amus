@@ -56,6 +56,14 @@ impl AppState {
             self.data.route_line_width = route_line_width;
         }
 
+        // 録音に使う入力デバイス名（保存値は Option<String>: None = システム既定）
+        #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+        if let Ok(Some(input_device_name)) =
+            AppStorage::get::<Option<String>>(storage, StorageKeys::INPUT_DEVICE_NAME)
+        {
+            self.data.input_device_name = input_device_name;
+        }
+
         Ok(())
     }
 
@@ -92,6 +100,12 @@ impl AppState {
                 Some(s),
                 StorageKeys::ROUTE_LINE_WIDTH,
                 &self.data.route_line_width,
+            )?;
+            #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+            AppStorage::set(
+                Some(s),
+                StorageKeys::INPUT_DEVICE_NAME,
+                &self.data.input_device_name,
             )?;
 
             Ok(())

@@ -67,6 +67,11 @@ impl SettingsView {
                         SettingsTab::Display => {
                             Self::render_display_tab(slices, &texts, ui, &mut actions)
                         }
+                        #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+                        SettingsTab::Voice => {
+                            Self::render_voice_tab(slices, &texts, ui, &mut actions)
+                        }
+                        #[cfg(not(all(not(target_arch = "wasm32"), feature = "voice_memo")))]
                         SettingsTab::Voice => Self::render_voice_tab(&texts, ui),
                         SettingsTab::App => Self::render_app_tab(&texts, ui, &mut actions),
                     }
@@ -137,6 +142,36 @@ impl SettingsView {
         });
     }
 
+    #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+    fn render_voice_tab(
+        slices: &Slices<'_>,
+        texts: &SettingsTexts,
+        ui: &mut Ui,
+        actions: &mut Vec<SettingsAction>,
+    ) {
+        ui.horizontal(|ui| {
+            ui.label(&texts.input_device);
+            ui.add_space(8.0);
+
+            let mut selected = slices.ui().input_device_name();
+            let options: Vec<(Option<String>, String)> =
+                std::iter::once((None, texts.input_device_default.clone()))
+                    .chain(
+                        crate::resources::voice_recorder::input_device_names()
+                            .into_iter()
+                            .map(|name| (Some(name.clone()), name)),
+                    )
+                    .collect();
+
+            if let Some(choice) =
+                select_with_options(ui, SelectIds::SETTINGS_INPUT_DEVICE, &mut selected, options)
+            {
+                actions.push(SettingsAction::SetInputDevice(choice));
+            }
+        });
+    }
+
+    #[cfg(not(all(not(target_arch = "wasm32"), feature = "voice_memo")))]
     fn render_voice_tab(texts: &SettingsTexts, ui: &mut Ui) {
         ui.label(&texts.voice_placeholder);
     }
@@ -167,6 +202,11 @@ struct SettingsTexts {
     route_line_width: String,
     ui_scale: String,
     ui_scale_auto_label: String,
+    #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+    input_device: String,
+    #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+    input_device_default: String,
+    #[cfg(not(all(not(target_arch = "wasm32"), feature = "voice_memo")))]
     voice_placeholder: String,
     app_version: String,
     #[cfg(debug_assertions)]
@@ -184,6 +224,11 @@ impl SettingsTexts {
             route_line_width: slices.t(SETTINGS_ROUTE_LINE_WIDTH),
             ui_scale: slices.t(SETTINGS_UI_SCALE),
             ui_scale_auto_label: slices.t(SETTINGS_UI_SCALE_AUTO),
+            #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+            input_device: slices.t(SETTINGS_INPUT_DEVICE),
+            #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+            input_device_default: slices.t(SETTINGS_INPUT_DEVICE_DEFAULT),
+            #[cfg(not(all(not(target_arch = "wasm32"), feature = "voice_memo")))]
             voice_placeholder: slices.t(SETTINGS_VOICE_PLACEHOLDER),
             app_version: slices.t(SETTINGS_APP_VERSION),
             #[cfg(debug_assertions)]

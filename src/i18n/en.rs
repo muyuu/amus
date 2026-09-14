@@ -96,6 +96,8 @@ pub fn translate(key: TextKey) -> String {
         SettingsUiScale => "UI Scale".to_string(),
         SettingsUiScaleAuto => "Follow display DPI".to_string(),
         SettingsVoicePlaceholder => "No settings yet".to_string(),
+        SettingsInputDevice => format!("{} {}", W::INPUT, W::DEVICE),
+        SettingsInputDeviceDefault => format!("{} {}", W::DEFAULT, W::DEVICE),
         SettingsAppVersion => W::VERSION.to_string(),
         SettingsDebugToggle => "🐛 Debug view".to_string(),
         SettingsClose => W::CLOSE.to_string(),

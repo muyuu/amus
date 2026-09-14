@@ -22,4 +22,8 @@ impl StorageKeys {
 
     /// 軌跡描画の線の太さ
     pub const ROUTE_LINE_WIDTH: &'static str = "route_line_width";
+
+    /// 録音に使う入力デバイス名（None = システム既定）
+    #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+    pub const INPUT_DEVICE_NAME: &'static str = "input_device_name";
 }

@@ -35,6 +35,12 @@ pub struct AppData {
     /// 軌跡描画の線の太さ（ユーザー指定可能な範囲へクランプ済み）。
     pub(in crate::state) route_line_width: f32,
 
+    /// 録音に使う入力デバイス名。`None` はシステム既定。
+    /// ネイティブの voice_memo 機能専用（wasm/無効ビルドでは書き手も読み手もおらず
+    /// dead_code になるため cfg で分ける）。
+    #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+    pub(in crate::state) input_device_name: Option<String>,
+
     // ゲーム設定の状態
     pub(in crate::state) setup_state: SetupState,
 
@@ -68,6 +74,8 @@ impl Default for AppData {
             game_generation: 0,
             selected_player_id: None,
             route_line_width: AppConstants::ROUTE_LINE_WIDTH_DEFAULT,
+            #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+            input_device_name: None,
             setup_state: SetupState::default(),
             show_setup_dialog: false,
             show_settings: false,

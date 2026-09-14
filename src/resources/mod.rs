@@ -57,12 +57,22 @@ impl Resources {
     pub fn new() -> Self {
         Self {
             #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-            voice_recorder: Self::init_voice_recorder(),
+            voice_recorder: Self::init_voice_recorder(None),
             #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
             whisper_transcriber: Self::init_whisper_transcriber(TranscribeSetup::compiled()),
             #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
             transcribe_setup: TranscribeSetup::compiled(),
         }
+    }
+
+    /// 入力デバイスを切り替えて録音リソースを作り直す。
+    ///
+    /// 呼び出し側（アプリシェル）は切り替え前に進行中の録音を安全に止めておくこと
+    /// （`VoiceMemoFeature::stop_recording_for_hardware_change`）。ゲームが進行中なら
+    /// 次フレームの `follow_game_lifecycle` が新デバイスで録音を再開する。
+    #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+    pub fn reload_voice_recorder(&mut self, device_name: Option<&str>) {
+        self.voice_recorder = Self::init_voice_recorder(device_name);
     }
 
     /// 書き起こしを用意し直す。
@@ -109,8 +119,8 @@ impl Resources {
     }
 
     #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
-    fn init_voice_recorder() -> Option<VoiceRecorder> {
-        match VoiceRecorder::new() {
+    fn init_voice_recorder(device_name: Option<&str>) -> Option<VoiceRecorder> {
+        match VoiceRecorder::new_with_device(device_name) {
             Ok(r) => Some(r),
             Err(e) => {
                 crate::log_error!("Resources", format!("VoiceRecorder初期化エラー: {}", e));

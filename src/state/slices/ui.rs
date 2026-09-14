@@ -52,4 +52,10 @@ impl<'a> UiSlice<'a> {
     pub fn ui_scale(&self) -> Option<f32> {
         self.data.ui_scale
     }
+
+    /// 録音に使う入力デバイス名。`None` はシステム既定。
+    #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+    pub fn input_device_name(&self) -> Option<String> {
+        self.data.input_device_name.clone()
+    }
 }

@@ -199,6 +199,17 @@ impl VoiceMemoFeature {
         }
     }
 
+    /// マイクデバイスを切り替える前に呼ぶ。
+    ///
+    /// 録音中なら（溜まっている発話の書き起こし送信・進行中ターンのクローズを含めて）
+    /// 安全に止める。録音していなければ何もしない。ゲームが進行中なら、次フレームの
+    /// `follow_game_lifecycle` が新しい録音リソースで自動的に録音を再開する。
+    pub fn stop_recording_for_hardware_change(&mut self, resources: &mut Resources) {
+        if self.state.is_recording {
+            self.stop_recording(resources);
+        }
+    }
+
     /// 語彙が変化していれば認識コンテキストを組み直す。
     ///
     /// 組み立てにはモデルのトークナイザが要るため、`WhisperTranscriber` が

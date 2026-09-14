@@ -36,6 +36,12 @@ impl AppState {
         );
     }
 
+    /// 録音に使う入力デバイス名を設定する。`None` はシステム既定に戻す。
+    #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+    pub fn set_input_device_name(&mut self, name: Option<String>) {
+        self.data.input_device_name = name;
+    }
+
     /// UI 拡大率。`None` はネイティブ DPI 追従（明示的な上書きをしない）、
     /// `Some(x)` はユーザー指定倍率。
     pub fn ui_scale(&self) -> Option<f32> {

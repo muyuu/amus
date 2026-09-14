@@ -46,6 +46,9 @@ impl SelectIds {
     pub const SETUP_AREA: &str = "setup_area_select";
     pub const SETUP_PLAYER_COLOR: &str = "setup_player_color_select";
     pub const SETTINGS_UI_SCALE: &str = "settings_ui_scale_select";
+    /// 音声タブの入力デバイス選択（ネイティブの voice_memo 機能専用）。
+    #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
+    pub const SETTINGS_INPUT_DEVICE: &str = "settings_input_device_select";
 }
 
 pub struct ContextIds;
