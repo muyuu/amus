@@ -87,6 +87,15 @@ pub struct VoiceMemoFeature {
     matcher: HotwordMatcher,
     /// 検出をターン境界へ変換する
     boundary_tracker: BoundaryTracker,
+
+    /// 書き起こし結果待ちの音声チャンク（`record-audio` feature 限定）。
+    ///
+    /// 書き起こしスレッドへ送った順に積み、結果を受け取った順に先頭から取り出す
+    /// （リクエストと結果は 1:1 かつ順序が保たれるため、FIFO で対応が取れる）。
+    /// 「ターン開始の発話」か「ターン中の発話」だと分かってから保存するため、送信時点
+    /// では即保存せずここに保持しておく。
+    #[cfg(feature = "record-audio")]
+    pending_audio_chunks: std::collections::VecDeque<(usize, Vec<f32>)>,
 }
 
 impl VoiceMemoFeature {
@@ -123,6 +132,10 @@ impl VoiceMemoFeature {
         self.transcriber_thread = None;
         self.state.pending_chunks = 0;
         self.state.is_processing = false;
+        // 前のスレッドが持っていたリクエストの結果はもう来ないため、対応する保留チャンクも
+        // 一緒に捨てる（残すと後続のFIFO対応がずれる）。
+        #[cfg(feature = "record-audio")]
+        self.pending_audio_chunks.clear();
 
         match TranscriberThread::new(resources.transcribe_setup()) {
             Ok(t) => self.transcriber_thread = Some(t),
@@ -364,6 +377,8 @@ impl Default for VoiceMemoFeature {
             boundary_tracker: BoundaryTracker::new(
                 (SAMPLE_RATE as f32 * hotword::COOLDOWN_SECS) as usize,
             ),
+            #[cfg(feature = "record-audio")]
+            pending_audio_chunks: std::collections::VecDeque::new(),
         }
     }
 }

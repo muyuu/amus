@@ -160,9 +160,6 @@ impl TranscriberThread {
                         )
                     );
 
-                    #[cfg(feature = "record-audio")]
-                    super::debug_recording::dump_chunk(&req.samples, req.start_sample);
-
                     let started = std::time::Instant::now();
                     let transcribed = transcriber.transcribe(&req.samples, req.context.as_deref());
                     let elapsed = started.elapsed().as_secs_f32();

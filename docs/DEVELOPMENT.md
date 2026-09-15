@@ -90,8 +90,10 @@ mise run release-gpu-record-audio
 ```
 
 `transcribe` クレートの `record-audio` feature を足したビルド。書き起こしに渡した音声
-チャンクを実行ファイルの隣の `./recorded/*.mp3` に保存する。Whisper のモデル選定は手元の
-少数サンプルだけでは決め切れないため、実機で使ってもらいながら実データを集める用途。
+チャンクのうち、ターン開始/終了の発話・ターン中の発話だと分かったものだけを実行ファイル
+の隣の `./recorded/*.mp3` に保存する（ターン外の雑談や誤検出は保存しない）。Whisper の
+モデル選定は手元の少数サンプルだけでは決め切れないため、実機で使ってもらいながら実データ
+を集める用途。集めた mp3 は `transcribe-check --features record-audio` にそのまま渡せる。
 成果物名に `-record-audio` を付けて通常の配布ビルドと区別しており、`default` feature には
 含めていない。
 

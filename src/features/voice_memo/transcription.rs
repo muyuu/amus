@@ -20,13 +20,28 @@ impl VoiceMemoFeature {
         for result in transcriber.poll_results() {
             self.state.pending_chunks = self.state.pending_chunks.saturating_sub(1);
 
+            // リクエストと結果は 1:1 かつ順序が保たれるため、送信順に積んだ保留チャンクを
+            // 結果を受け取った順に取り出せば対応が取れる。
+            #[cfg(feature = "record-audio")]
+            let pending_chunk = self.pending_audio_chunks.pop_front();
+
             if let Some(error) = result.error {
                 log_error!("VoiceMemo", &format!("書き起こしエラー: {}", error));
                 self.state.error = Some(error);
                 continue;
             }
 
-            self.apply_segments(result.segments);
+            #[cfg_attr(not(feature = "record-audio"), allow(unused_variables))]
+            let kept = self.apply_segments(result.segments);
+
+            // ターン開始の発話・ターン中の発話だと分かったチャンクだけ保存する。それ以外
+            // （ターン外の雑談や誤検出）は実機データ収集として不要なので保存しない。
+            #[cfg(feature = "record-audio")]
+            if kept {
+                if let Some((start_sample, samples)) = pending_chunk {
+                    crate::resources::debug_recording::save_chunk(&samples, start_sample);
+                }
+            }
         }
 
         // 処理待ちがなくなったらis_processingをfalseに
@@ -45,6 +60,12 @@ impl VoiceMemoFeature {
             return;
         };
 
+        // record-audio: 保存するかどうかは書き起こし結果が返ってから決まるため、
+        // 判断できるまで手元に残しておく（`poll_transcription_results` 参照）。
+        #[cfg(feature = "record-audio")]
+        self.pending_audio_chunks
+            .push_back((start_sample, samples.clone()));
+
         transcriber.request(TranscribeRequest {
             samples,
             start_sample,
@@ -59,14 +80,14 @@ impl VoiceMemoFeature {
         );
     }
 
-    /// 指定位置の発話をメモとして積む。
+    /// 指定位置の発話をメモとして積む。実際に積んだら `true` を返す。
     ///
     /// `at` は録音上の絶対サンプル位置。その位置を含むターンへ入れ、どのターンにも
     /// 属さなければ捨てる。書き起こしはターンの開閉より遅れて返るため、所属は
     /// 送信時点ではなく位置で決める。
-    pub(super) fn push_memo_at(&mut self, at: usize, text: String) {
+    pub(super) fn push_memo_at(&mut self, at: usize, text: String) -> bool {
         let Some(index) = self.round_index_at(at) else {
-            return;
+            return false;
         };
 
         let round = &mut self.state.rounds[index];
@@ -80,6 +101,7 @@ impl VoiceMemoFeature {
                 .partial_cmp(&b.timestamp_secs)
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
+        true
     }
 
     /// 指定位置を含むターンの位置。進行中のターンは終端を持たないため末尾まで含む。
@@ -99,13 +121,16 @@ impl VoiceMemoFeature {
     ///
     /// 録音を取り直した後に前の録音の結果が返ることがある。位置が現在の録音より前の
     /// セグメントは捨てる。
-    pub(super) fn apply_segments(&mut self, segments: Vec<RecordedSegment>) {
+    ///
+    /// 戻り値は、このチャンクに「ターン境界の検出」または「いずれかのターンへ積まれた
+    /// 発話」があったか（`record-audio` の保存要否判断に使う。他の呼び出し側は無視してよい）。
+    pub(super) fn apply_segments(&mut self, segments: Vec<RecordedSegment>) -> bool {
         let segments: Vec<RecordedSegment> = segments
             .into_iter()
             .filter(|segment| segment.start_sample >= self.recording_start_sample)
             .collect();
         if segments.is_empty() {
-            return;
+            return false;
         }
 
         // 結合テキストと、各セグメントがその何文字目から何文字目に当たるか
@@ -132,30 +157,35 @@ impl VoiceMemoFeature {
         );
 
         let Some(matched) = matched else {
+            let mut kept = false;
             for segment in &segments {
-                self.push_memo_text(segment.start_sample, &segment.text);
+                kept |= self.push_memo_text(segment.start_sample, &segment.text);
             }
-            return;
+            return kept;
         };
 
         let boundary = Self::sample_at(&segments, &ranges, matched.word_end);
 
         // 語より前の発話は、これから閉じるターンのもの。境界を動かす前に積む。
+        let mut kept = false;
         for (segment, range) in segments.iter().zip(&ranges) {
             let before = take_chars(
                 &segment.text,
                 matched.word_start.saturating_sub(range.start),
             );
-            self.push_memo_text(segment.start_sample, &before);
+            kept |= self.push_memo_text(segment.start_sample, &before);
         }
 
-        self.move_turn_boundary(matched.hotword, boundary);
+        // トリガーワード自体の発話はターン開始/終了として意味があるため常に保存対象。
+        kept |= self.move_turn_boundary(matched.hotword, boundary);
 
         // 語より後ろの発話は、開いたばかりのターンのもの
         for (segment, range) in segments.iter().zip(&ranges) {
             let after = skip_chars(&segment.text, matched.word_end.saturating_sub(range.start));
-            self.push_memo_text(segment.start_sample.max(boundary), &after);
+            kept |= self.push_memo_text(segment.start_sample.max(boundary), &after);
         }
+
+        kept
     }
 
     /// 結合テキスト上の文字位置を録音上の位置へ直す。
@@ -179,13 +209,13 @@ impl VoiceMemoFeature {
         segments.last().map_or(0, |segment| segment.end_sample)
     }
 
-    /// 中身があればメモとして積む。
-    fn push_memo_text(&mut self, at: usize, text: &str) {
+    /// 中身があればメモとして積む。積んだら `true` を返す。
+    fn push_memo_text(&mut self, at: usize, text: &str) -> bool {
         let text = reading::trim_separators(text);
         if text.is_empty() {
-            return;
+            return false;
         }
-        self.push_memo_at(at, self.corrector.correct(text));
+        self.push_memo_at(at, self.corrector.correct(text))
     }
 
     /// セグメント内の文字位置を録音上の位置へ直す。
@@ -198,13 +228,14 @@ impl VoiceMemoFeature {
         start + (end - start) * index.min(len) / len
     }
 
-    /// 検出したトリガーワードに応じてターン境界を動かす。
-    fn move_turn_boundary(&mut self, hotword: Hotword, at: usize) {
+    /// 検出したトリガーワードに応じてターン境界を動かす。実際に動かしたら `true` を返す
+    /// （クールダウン中などで無視された場合は `false`）。
+    fn move_turn_boundary(&mut self, hotword: Hotword, at: usize) -> bool {
         let Some(boundary) = self
             .boundary_tracker
             .accept(hotword, at, self.state.round_active)
         else {
-            return;
+            return false;
         };
 
         log_debug!(
@@ -223,6 +254,7 @@ impl VoiceMemoFeature {
                 self.open_turn(at);
             }
         }
+        true
     }
 }
 
@@ -456,6 +488,76 @@ mod hotword_tests {
 
         assert!(!feature.state.round_active);
         assert_eq!(feature.state.rounds[0].end_sample, Some(6000));
+    }
+}
+
+/// `apply_segments` の戻り値（record-audio の保存要否判断に使う「保存する価値があった
+/// か」）を検証する。
+#[cfg(test)]
+mod kept_result_tests {
+    use super::*;
+    use crate::features::voice_memo::hotword::BoundaryTracker;
+    use crate::features::voice_memo::Round;
+
+    fn feature() -> VoiceMemoFeature {
+        VoiceMemoFeature {
+            boundary_tracker: BoundaryTracker::new(0),
+            ..Default::default()
+        }
+    }
+
+    fn segment(start_sample: usize, end_sample: usize, text: &str) -> RecordedSegment {
+        RecordedSegment {
+            start_sample,
+            end_sample,
+            text: text.to_string(),
+        }
+    }
+
+    #[test]
+    fn a_turn_start_utterance_is_kept() {
+        let mut feature = feature();
+
+        let kept = feature.apply_segments(vec![segment(0, 1000, "ターン開始")]);
+
+        assert!(kept, "ターン開始の発話は保存対象になるべき");
+    }
+
+    #[test]
+    fn speech_inside_an_open_turn_is_kept() {
+        let mut feature = feature();
+        feature.state.rounds.push(Round {
+            start_sample: 0,
+            ..Default::default()
+        });
+        feature.state.round_active = true;
+
+        let kept = feature.apply_segments(vec![segment(1000, 2000, "エレキ湧き")]);
+
+        assert!(kept, "ターン中の発話は保存対象になるべき");
+    }
+
+    #[test]
+    fn speech_outside_any_turn_is_not_kept() {
+        let mut feature = feature();
+
+        // ターンが一つも無い状態での雑談。トリガーワードも含まない。
+        let kept = feature.apply_segments(vec![segment(0, 1000, "さっきのタスクやった")]);
+
+        assert!(!kept, "ターン外の発話は保存対象にならないべき");
+    }
+
+    #[test]
+    fn a_stale_chunk_from_a_previous_recording_is_not_kept() {
+        let mut feature = VoiceMemoFeature {
+            boundary_tracker: BoundaryTracker::new(0),
+            recording_start_sample: 1000,
+            ..Default::default()
+        };
+
+        let kept = feature.apply_segments(vec![segment(100, 200, "ターン開始")]);
+
+        assert!(!kept, "前の録音のチャンクは保存対象にならないべき");
     }
 }
 

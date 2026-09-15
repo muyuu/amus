@@ -17,7 +17,7 @@ gpu-cuda = ["whisper-rs/cuda"]
 gpu-metal = ["whisper-rs/metal"]
 
 # 実機でのモデル比較検証用データ収集。詳細はアプリ本体の Cargo.toml を参照。
-record-audio = ["dep:mp3lame-encoder"]
+record-audio = ["dep:mp3lame-encoder", "dep:symphonia"]
 
 [dependencies]
 cpal = "0.17"
@@ -33,3 +33,6 @@ env_logger = "0.11"
 # record-audio feature でのみ使う。データ収集を頼む相手に渡しやすいよう wav でなく
 # mp3 にする（長時間録音すると wav はすぐ大きくなる）。
 mp3lame-encoder = { version = "0.2", optional = true }
+# record-audio で集めた mp3 を transcribe-check に直接読ませるためのデコーダ
+# （同じ record-audio feature に相乗り。集めた録音の再生・検証でしか使わない）。
+symphonia = { version = "0.5", default-features = false, features = ["mp3"], optional = true }
