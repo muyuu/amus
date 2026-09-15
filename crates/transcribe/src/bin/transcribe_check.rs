@@ -1,12 +1,13 @@
 //! 音声ファイルを指定モデルで書き起こして表示する検証用CLI。
 //!
 //! アプリ本体を再ビルドせずに、モデルや認識パラメータ（プロンプト等）を試せるように
-//! するためのもの。対応する音声形式は WAV のみ（16bit/24bit/32bit PCM・float、
-//! 任意サンプルレート・チャンネル数）。
+//! するためのもの。対応する音声形式は WAV（16bit/24bit/32bit PCM・float、任意サンプル
+//! レート・チャンネル数）。`record-audio` feature 有効時は MP3 も読める（`record-audio`
+//! ビルドが集めたデータをそのまま渡せるようにするため）。
 //!
 //! 使い方:
 //!   transcribe-check --model small|medium [--gpu vulkan|cuda|metal] \
-//!       [--prompt "テキスト"] <音声ファイル.wav>...
+//!       [--prompt "テキスト"] <音声ファイル.wav|.mp3>...
 //!
 //! `--model-path <ファイル>` で、アプリのレジストリに無い任意の GGML ファイルを
 //! 直接指定できる（ダウンロード・SHA-256検証はしない、既に手元にある前提）。
@@ -89,7 +90,7 @@ fn main() -> ExitCode {
 
     if files.is_empty() {
         eprintln!(
-            "使い方: transcribe-check --model small|medium | --model-path <ファイル> \\\n    [--gpu vulkan|cuda|metal] [--prompt \"テキスト\"] <音声ファイル.wav>..."
+            "使い方: transcribe-check --model small|medium | --model-path <ファイル> \\\n    [--gpu vulkan|cuda|metal] [--prompt \"テキスト\"] <音声ファイル.wav|.mp3>..."
         );
         return ExitCode::FAILURE;
     }
@@ -128,7 +129,7 @@ fn main() -> ExitCode {
     println!("構成: {}\n", transcriber.setup().label());
 
     for path in &files {
-        let samples = match load_wav_as_16k_mono(path) {
+        let samples = match load_audio_as_16k_mono(path) {
             Ok(s) => s,
             Err(e) => {
                 eprintln!("[{path}] 読み込みに失敗: {e}");
@@ -179,11 +180,47 @@ fn download_model(model: WhisperModel) -> Result<(), transcribe::DownloadError> 
     result
 }
 
-/// WAV を読み、Whisper が要求する 16kHz mono f32 へ変換する。
-fn load_wav_as_16k_mono(path: &str) -> Result<Vec<f32>, Box<dyn std::error::Error>> {
+/// 拡張子で WAV / MP3（`record-audio` feature 時のみ）を振り分けて読む。
+fn load_audio_as_16k_mono(path: &str) -> Result<Vec<f32>, Box<dyn std::error::Error>> {
+    let is_mp3 = path
+        .rsplit('.')
+        .next()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("mp3"));
+
+    if is_mp3 {
+        #[cfg(feature = "record-audio")]
+        return load_mp3_as_16k_mono(path);
+        #[cfg(not(feature = "record-audio"))]
+        return Err("MP3 を読むには --features record-audio でビルドしてください".into());
+    }
+
+    load_wav_as_16k_mono(path)
+}
+
+/// チャンネル平均でモノラル化し、16kHz へリサンプルする（WAV/MP3 共通）。
+fn to_16k_mono(raw: Vec<f32>, channels: usize, sample_rate: u32) -> Vec<f32> {
     use transcribe::resampler::Resampler;
     use transcribe::voice_recorder::SAMPLE_RATE;
 
+    let mono: Vec<f32> = if channels <= 1 {
+        raw
+    } else {
+        raw.chunks(channels)
+            .map(|frame| frame.iter().sum::<f32>() / frame.len() as f32)
+            .collect()
+    };
+
+    if sample_rate == SAMPLE_RATE {
+        return mono;
+    }
+    let mut resampler = Resampler::new(sample_rate, SAMPLE_RATE);
+    let mut out = Vec::new();
+    resampler.process(&mono, |s| out.push(s));
+    out
+}
+
+/// WAV を読み、Whisper が要求する 16kHz mono f32 へ変換する。
+fn load_wav_as_16k_mono(path: &str) -> Result<Vec<f32>, Box<dyn std::error::Error>> {
     let mut reader = hound::WavReader::open(path)?;
     let spec = reader.spec();
 
@@ -198,21 +235,71 @@ fn load_wav_as_16k_mono(path: &str) -> Result<Vec<f32>, Box<dyn std::error::Erro
         }
     };
 
-    // ステレオ等は全チャンネル平均でモノラル化する。
-    let channels = spec.channels as usize;
-    let mono: Vec<f32> = if channels <= 1 {
-        raw
-    } else {
-        raw.chunks(channels)
-            .map(|frame| frame.iter().sum::<f32>() / frame.len() as f32)
-            .collect()
-    };
+    Ok(to_16k_mono(raw, spec.channels as usize, spec.sample_rate))
+}
 
-    if spec.sample_rate == SAMPLE_RATE {
-        return Ok(mono);
+/// MP3（`record-audio` が集めたデータ）を読み、16kHz mono f32 へ変換する。
+#[cfg(feature = "record-audio")]
+fn load_mp3_as_16k_mono(path: &str) -> Result<Vec<f32>, Box<dyn std::error::Error>> {
+    use symphonia::core::codecs::DecoderOptions;
+    use symphonia::core::errors::Error as SymphoniaError;
+    use symphonia::core::formats::FormatOptions;
+    use symphonia::core::io::MediaSourceStream;
+    use symphonia::core::meta::MetadataOptions;
+    use symphonia::core::probe::Hint;
+
+    let file = std::fs::File::open(path)?;
+    let mss = MediaSourceStream::new(Box::new(file), Default::default());
+
+    let mut hint = Hint::new();
+    hint.with_extension("mp3");
+
+    let probed = symphonia::default::get_probe().format(
+        &hint,
+        mss,
+        &FormatOptions::default(),
+        &MetadataOptions::default(),
+    )?;
+    let mut format = probed.format;
+
+    let track = format
+        .tracks()
+        .iter()
+        .find(|t| t.codec_params.codec != symphonia::core::codecs::CODEC_TYPE_NULL)
+        .ok_or("MP3 に音声トラックが見つかりません")?;
+    let track_id = track.id;
+    let channels = track
+        .codec_params
+        .channels
+        .ok_or("MP3 のチャンネル数が不明です")?
+        .count();
+    let sample_rate = track
+        .codec_params
+        .sample_rate
+        .ok_or("MP3 のサンプルレートが不明です")?;
+
+    let mut decoder =
+        symphonia::default::get_codecs().make(&track.codec_params, &DecoderOptions::default())?;
+
+    let mut raw: Vec<f32> = Vec::new();
+    loop {
+        let packet = match format.next_packet() {
+            Ok(p) => p,
+            Err(SymphoniaError::IoError(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+                break
+            }
+            Err(e) => return Err(e.into()),
+        };
+        if packet.track_id() != track_id {
+            continue;
+        }
+        let decoded = decoder.decode(&packet)?;
+        let spec = *decoded.spec();
+        let mut sample_buf =
+            symphonia::core::audio::SampleBuffer::<f32>::new(decoded.capacity() as u64, spec);
+        sample_buf.copy_interleaved_ref(decoded);
+        raw.extend_from_slice(sample_buf.samples());
     }
-    let mut resampler = Resampler::new(spec.sample_rate, SAMPLE_RATE);
-    let mut out = Vec::new();
-    resampler.process(&mono, |s| out.push(s));
-    Ok(out)
+
+    Ok(to_16k_mono(raw, channels, sample_rate))
 }

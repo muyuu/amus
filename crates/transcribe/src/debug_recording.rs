@@ -3,6 +3,10 @@
 //! モデル比較の検証は手元の少数サンプルだけでは決め切れなかった。実際にアモアスで
 //! 使ってもらいながら書き起こしに渡した音声そのものを集め、後で複数モデルにかけ直せる
 //! ようにする。配布ビルドに混ざらないよう feature で切り離してある。
+//!
+//! 保存するかどうかはこのクレートでは決めない（「ターン」はアプリ側 `features::voice_memo`
+//! の概念で、ここは GUI に依存しない）。呼び出し側（アプリ層）が書き起こし結果からターン
+//! 開始の発話・ターン中の発話だと分かったチャンクだけ [`save_chunk`] を呼ぶ想定。
 
 use mp3lame_encoder::{Bitrate, Builder, Encoder, FlushNoGap, MonoPcm, Quality};
 use std::io::Write;
@@ -37,10 +41,10 @@ fn build_encoder() -> Option<Encoder> {
         .ok()
 }
 
-/// 書き起こしに渡した音声チャンクをmp3で保存する。
+/// 音声チャンクをmp3で保存する。呼び出し側が「保存する価値がある」と判断したものだけ渡すこと。
 ///
 /// 失敗してもログに残すだけで書き起こし自体は止めない（データ収集はあくまで副作用）。
-pub fn dump_chunk(samples: &[f32], start_sample: usize) {
+pub fn save_chunk(samples: &[f32], start_sample: usize) {
     let Some(dir) = output_dir() else {
         log_error!("record-audio", "保存先ディレクトリ(./recorded)の用意に失敗");
         return;

@@ -26,6 +26,11 @@ pub use transcribe::{
     whisper_transcriber,
 };
 
+// 実機データ収集用の録音チャンク保存（`record-audio` feature 限定）。
+// どのチャンクを保存するかはアプリ層（features::voice_memo）が判断する。
+#[cfg(all(not(target_arch = "wasm32"), feature = "record-audio"))]
+pub use transcribe::debug_recording;
+
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
 pub use file_downloader::{download_file, DownloadError, DownloadProgress, IntegrityCheck};
 #[cfg(all(not(target_arch = "wasm32"), feature = "voice_memo"))]
